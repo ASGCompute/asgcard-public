@@ -36,6 +36,11 @@ const envSchema = z.object({
   FACILITATOR_TIMEOUT_MS: z.coerce.number().default(8000),
   FACILITATOR_MAX_RETRIES: z.coerce.number().default(2),
 
+  // ── Repository mode ─────────────────────────────────────
+  REPO_MODE: z.enum(["inmemory", "postgres"]).default("inmemory"),
+  DATABASE_URL: z.string().optional(),
+  CARD_DETAILS_KEY: z.string().optional(), // base64-encoded 32 bytes, validated below
+
   // ── Legacy Solana fallback (backward compat, removed in M2) ──
   SOLANA_NETWORK: z.string().optional(),
   SOLANA_RPC_URL: z.string().optional(),
@@ -48,6 +53,29 @@ let env: z.infer<typeof envSchema>;
 
 try {
   env = envSchema.parse(process.env);
+
+  // ── Conditional validation for postgres mode ────────────
+  if (env.REPO_MODE === "postgres") {
+    if (!env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL is required when REPO_MODE=postgres"
+      );
+    }
+    if (!env.CARD_DETAILS_KEY) {
+      throw new Error(
+        "CARD_DETAILS_KEY is required when REPO_MODE=postgres. " +
+        'Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"'
+      );
+    }
+    // Validate key byte length (must be exactly 32 bytes when decoded from base64)
+    const keyBuf = Buffer.from(env.CARD_DETAILS_KEY, "base64");
+    if (keyBuf.length !== 32) {
+      throw new Error(
+        `CARD_DETAILS_KEY must be exactly 32 bytes (got ${keyBuf.length}). ` +
+        'Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"'
+      );
+    }
+  }
 } catch (error) {
   if (error instanceof z.ZodError) {
     const missing = error.issues
@@ -62,6 +90,11 @@ try {
       process.exit(1);
     }
     throw new Error(message);
+  }
+  // Re-throw non-Zod errors (e.g. our conditional validation errors)
+  if (typeof process !== "undefined" && process.env.NODE_ENV !== "test") {
+    console.error(`\n❌ ${(error as Error).message}\n`);
+    process.exit(1);
   }
   throw error;
 }

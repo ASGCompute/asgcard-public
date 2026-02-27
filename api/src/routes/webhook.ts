@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import { env } from "../config/env";
+import { webhookEventRepository } from "../repositories/runtime";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -10,27 +11,6 @@ export interface WebhookEvent {
     payload: Record<string, unknown>;
     timestamp: string;
 }
-
-// ── Idempotency Store ──────────────────────────────────────
-
-export interface IdempotencyStore {
-    has(key: string): boolean;
-    add(key: string): void;
-}
-
-class InMemoryIdempotencyStore implements IdempotencyStore {
-    private seen = new Set<string>();
-
-    has(key: string): boolean {
-        return this.seen.has(key);
-    }
-
-    add(key: string): void {
-        this.seen.add(key);
-    }
-}
-
-const idempotencyStore: IdempotencyStore = new InMemoryIdempotencyStore();
 
 // ── HMAC Verification (safe length check) ──────────────────
 
@@ -76,7 +56,7 @@ export const webhookRouter = Router();
 // Raw body parser for HMAC — must be applied BEFORE json parser
 webhookRouter.post(
     "/4payments",
-    (req, res) => {
+    async (req, res) => {
         // 4payments canonical header: "webhook-sign"
         // Also accept "X-Webhook-Signature" for compatibility
         const signatureHeader =
@@ -117,14 +97,22 @@ webhookRouter.post(
             return;
         }
 
-        // Idempotency check
-        if (idempotencyStore.has(event.idempotencyKey)) {
+        // Idempotency check via repository (DB-backed in postgres mode)
+        const existing = await webhookEventRepository.findByIdempotencyKey(
+            event.idempotencyKey
+        );
+        if (existing) {
             // Already processed — return 200 to prevent retries
             res.status(200).json({ status: "already_processed" });
             return;
         }
 
-        idempotencyStore.add(event.idempotencyKey);
+        // Store webhook event (atomic — INSERT ON CONFLICT in postgres mode)
+        await webhookEventRepository.store({
+            idempotencyKey: event.idempotencyKey,
+            eventType: event.type,
+            payload: event.payload
+        });
 
         // Route event to handler
         // TODO: Implement concrete handlers for 4payments event types:

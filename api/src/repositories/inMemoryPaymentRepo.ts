@@ -7,6 +7,10 @@ export class InMemoryPaymentRepository implements PaymentRepository {
     async recordPayment(
         payment: Omit<PaymentRecord, "id" | "createdAt" | "updatedAt">
     ): Promise<PaymentRecord> {
+        // Match Postgres ON CONFLICT (tx_hash) DO NOTHING semantics
+        const existing = this.payments.get(payment.txHash);
+        if (existing) return existing;
+
         const record: PaymentRecord = {
             ...payment,
             id: `pay_${crypto.randomUUID().slice(0, 8)}`,

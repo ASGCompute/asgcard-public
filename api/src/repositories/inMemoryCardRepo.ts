@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { StoredCard, CardDetails } from "../types/domain";
+import type { StoredCard } from "../types/domain";
 import type { CardRepository, CreateCardInput } from "./types";
 
 export class InMemoryCardRepository implements CardRepository {

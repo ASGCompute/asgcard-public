@@ -87,6 +87,8 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
     // ── PAY-002: Verify via facilitator (FAIL-CLOSED) ──────
     const verifyResult = await paymentService.verifyAndAccept({
       txHash: proof.payload.txHash,
+      payer: proof.payload.authorization.from,
+      tierAmount: amount as 10 | 25 | 50 | 100 | 200 | 500,
       payTo: env.STELLAR_TREASURY_ADDRESS,
       asset: env.STELLAR_USDC_ASSET,
       amount: requiredAtomic,

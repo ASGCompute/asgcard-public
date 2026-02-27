@@ -1,24 +1,8 @@
 import { facilitatorClient, FacilitatorError } from "./facilitatorClient";
 import type { VerifyRequest } from "./facilitatorClient";
-
-// ── Anti-replay store (interface for DB in PLAT-003) ───────
-
-export interface TxHashStore {
-    has(txHash: string): boolean;
-    add(txHash: string): void;
-}
-
-class InMemoryTxHashStore implements TxHashStore {
-    private used = new Set<string>();
-
-    has(txHash: string): boolean {
-        return this.used.has(txHash);
-    }
-
-    add(txHash: string): void {
-        this.used.add(txHash);
-    }
-}
+import type { TierAmount } from "../types/domain";
+import type { PaymentRepository } from "../repositories/types";
+import { paymentRepository } from "../repositories/runtime";
 
 // ── Payment verification result ────────────────────────────
 
@@ -28,41 +12,67 @@ export interface PaymentVerifyResult {
     error?: string;
 }
 
+export interface VerifyPaymentInput extends VerifyRequest {
+    payer: string;
+    tierAmount: TierAmount;
+}
+
 // ── PaymentService ─────────────────────────────────────────
 
 export class PaymentService {
-    private txHashStore: TxHashStore;
+    private readonly paymentRepo: PaymentRepository;
 
-    constructor(txHashStore?: TxHashStore) {
-        this.txHashStore = txHashStore ?? new InMemoryTxHashStore();
+    constructor(repo: PaymentRepository = paymentRepository) {
+        this.paymentRepo = repo;
     }
 
     /**
      * Verify a payment proof via the facilitator.
      * FAIL-CLOSED: if facilitator is unreachable, reject the request.
      */
-    async verifyAndAccept(proof: VerifyRequest): Promise<PaymentVerifyResult> {
+    async verifyAndAccept(proof: VerifyPaymentInput): Promise<PaymentVerifyResult> {
         // Anti-replay check
-        if (this.txHashStore.has(proof.txHash)) {
+        const existing = await this.paymentRepo.findByTxHash(proof.txHash);
+        if (existing) {
             return { valid: false, error: "Transaction hash already used (replay)" };
         }
 
         try {
-            const result = await facilitatorClient.verify(proof);
+            const result = await facilitatorClient.verify({
+                txHash: proof.txHash,
+                payTo: proof.payTo,
+                asset: proof.asset,
+                amount: proof.amount,
+                network: proof.network
+            });
 
             if (!result.valid) {
+                await this.paymentRepo.recordPayment({
+                    txHash: proof.txHash,
+                    payer: proof.payer,
+                    amount: proof.amount,
+                    tierAmount: proof.tierAmount,
+                    status: "verify_failed",
+                    settleId: result.settleId
+                });
                 return {
                     valid: false,
                     error: result.error ?? "Facilitator rejected payment"
                 };
             }
 
-            // Mark txHash as used (anti-replay)
-            this.txHashStore.add(proof.txHash);
+            await this.paymentRepo.recordPayment({
+                txHash: proof.txHash,
+                payer: proof.payer,
+                amount: proof.amount,
+                tierAmount: proof.tierAmount,
+                status: "verified",
+                settleId: result.settleId
+            });
 
             // Enqueue settlement (async, fire-and-forget with error logging)
             if (result.settleId) {
-                this.enqueueSettlement(result.settleId);
+                this.enqueueSettlement(proof.txHash, result.settleId);
             }
 
             return { valid: true, settleId: result.settleId };
@@ -85,15 +95,24 @@ export class PaymentService {
      * Async settlement — fire-and-forget with logging.
      * In production, this should be a job queue (Bull/BullMQ).
      */
-    private enqueueSettlement(settleId: string): void {
+    private enqueueSettlement(txHash: string, settleId: string): void {
         // Intentionally not awaited — settlement is async per ADR-002
-        facilitatorClient.settle(settleId).catch((error) => {
-            // TODO [PAY-004]: Add alerting, mark as settle_failed in DB
-            console.error(
-                `[PaymentService] Settlement failed for ${settleId}:`,
-                error instanceof Error ? error.message : String(error)
-            );
-        });
+        facilitatorClient
+            .settle(settleId)
+            .then((result) => {
+                if (result.settled) {
+                    return this.paymentRepo.markSettled(txHash, settleId);
+                }
+
+                return this.paymentRepo.markFailed(txHash, "settle_failed");
+            })
+            .catch((error) => {
+                void this.paymentRepo.markFailed(txHash, "settle_failed");
+                console.error(
+                    `[PaymentService] Settlement failed for ${settleId}:`,
+                    error instanceof Error ? error.message : String(error)
+                );
+            });
     }
 }
 

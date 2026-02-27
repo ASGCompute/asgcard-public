@@ -1,5 +1,6 @@
-import { randomUUID } from "crypto";
-import type { CardDetails, StoredCard } from "../types/domain";
+import type { CardDetails, TierAmount } from "../types/domain";
+import type { CardRepository } from "../repositories/types";
+import { cardRepository } from "../repositories/runtime";
 
 class HttpError extends Error {
   readonly status: number;
@@ -30,35 +31,32 @@ const createMockCardDetails = (): CardDetails => {
 };
 
 class CardService {
-  private cards = new Map<string, StoredCard>();
+  private readonly repo: CardRepository;
 
   private detailsReadTimestamps = new Map<string, number[]>();
 
-  createCard(input: {
+  constructor(repo: CardRepository = cardRepository) {
+    this.repo = repo;
+  }
+
+  async createCard(input: {
     walletAddress: string;
     nameOnCard: string;
     email: string;
     initialAmountUsd: number;
+    tierAmount: TierAmount;
     chargedUsd: number;
     txHash: string;
   }) {
-    const nowIso = new Date().toISOString();
-    const cardId = randomUUID();
-
-    const card: StoredCard = {
-      cardId,
+    const card = await this.repo.create({
       walletAddress: input.walletAddress,
       nameOnCard: input.nameOnCard,
       email: input.email,
-      balance: input.initialAmountUsd,
       initialAmountUsd: input.initialAmountUsd,
-      status: "active",
-      createdAt: nowIso,
-      updatedAt: nowIso,
+      tierAmount: input.tierAmount,
+      txHash: input.txHash,
       details: createMockCardDetails()
-    };
-
-    this.cards.set(cardId, card);
+    });
 
     return {
       success: true,
@@ -78,26 +76,33 @@ class CardService {
     };
   }
 
-  fundCard(input: {
+  async fundCard(input: {
     walletAddress: string;
     cardId: string;
     fundAmountUsd: number;
     chargedUsd: number;
     txHash: string;
   }) {
-    const card = this.cards.get(input.cardId);
+    const card = await this.repo.findById(input.cardId);
     if (!card || card.walletAddress !== input.walletAddress) {
       throw new HttpError(404, "Card not found");
     }
 
-    card.balance += input.fundAmountUsd;
-    card.updatedAt = new Date().toISOString();
+    const updated = await this.repo.addBalance(card.cardId, input.fundAmountUsd);
+    if (!updated) {
+      throw new HttpError(500, "Unable to update card balance");
+    }
+
+    const refreshed = await this.repo.findById(card.cardId);
+    if (!refreshed) {
+      throw new HttpError(500, "Card not found after balance update");
+    }
 
     return {
       success: true,
       cardId: card.cardId,
       fundedAmount: input.fundAmountUsd,
-      newBalance: card.balance,
+      newBalance: refreshed.balance,
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
@@ -106,9 +111,9 @@ class CardService {
     };
   }
 
-  listCards(walletAddress: string) {
-    return Array.from(this.cards.values())
-      .filter((card) => card.walletAddress === walletAddress)
+  async listCards(walletAddress: string) {
+    const cards = await this.repo.findByWallet(walletAddress);
+    return cards
       .map((card) => ({
         cardId: card.cardId,
         nameOnCard: card.nameOnCard,
@@ -119,8 +124,8 @@ class CardService {
       }));
   }
 
-  getCard(walletAddress: string, cardId: string) {
-    const card = this.cards.get(cardId);
+  async getCard(walletAddress: string, cardId: string) {
+    const card = await this.repo.findById(cardId);
     if (!card || card.walletAddress !== walletAddress) {
       throw new HttpError(404, "Card not found");
     }
@@ -139,8 +144,8 @@ class CardService {
     };
   }
 
-  getCardDetails(walletAddress: string, cardId: string) {
-    const card = this.cards.get(cardId);
+  async getCardDetails(walletAddress: string, cardId: string) {
+    const card = await this.repo.findById(cardId);
     if (!card || card.walletAddress !== walletAddress) {
       throw new HttpError(404, "Card not found");
     }
@@ -162,19 +167,21 @@ class CardService {
     };
   }
 
-  setCardStatus(walletAddress: string, cardId: string, status: "active" | "frozen") {
-    const card = this.cards.get(cardId);
+  async setCardStatus(walletAddress: string, cardId: string, status: "active" | "frozen") {
+    const card = await this.repo.findById(cardId);
     if (!card || card.walletAddress !== walletAddress) {
       throw new HttpError(404, "Card not found");
     }
 
-    card.status = status;
-    card.updatedAt = new Date().toISOString();
+    const updated = await this.repo.updateStatus(cardId, status);
+    if (!updated) {
+      throw new HttpError(500, "Unable to update card status");
+    }
 
     return {
       success: true,
       cardId: card.cardId,
-      status: card.status
+      status
     };
   }
 }

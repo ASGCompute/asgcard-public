@@ -14,7 +14,7 @@ const fundCardSchema = z.object({
 
 export const paidRouter = Router();
 
-paidRouter.post("/create/tier/:amount", requireX402Payment("create"), (req, res) => {
+paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req, res) => {
   if (!req.paymentContext) {
     res.status(500).json({ error: "Payment context unavailable" });
     return;
@@ -27,11 +27,12 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), (req, res)
   }
 
   try {
-    const result = cardService.createCard({
+    const result = await cardService.createCard({
       walletAddress: req.paymentContext.payer,
       nameOnCard: parsed.data.nameOnCard,
       email: parsed.data.email,
       initialAmountUsd: req.paymentContext.tierAmount,
+      tierAmount: req.paymentContext.tierAmount,
       chargedUsd: req.paymentContext.totalCostUsd,
       txHash: req.paymentContext.txHash
     });
@@ -47,7 +48,7 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), (req, res)
   }
 });
 
-paidRouter.post("/fund/tier/:amount", requireX402Payment("fund"), (req, res) => {
+paidRouter.post("/fund/tier/:amount", requireX402Payment("fund"), async (req, res) => {
   if (!req.paymentContext) {
     res.status(500).json({ error: "Payment context unavailable" });
     return;
@@ -60,7 +61,7 @@ paidRouter.post("/fund/tier/:amount", requireX402Payment("fund"), (req, res) => 
   }
 
   try {
-    const result = cardService.fundCard({
+    const result = await cardService.fundCard({
       walletAddress: req.paymentContext.payer,
       cardId: parsed.data.cardId,
       fundAmountUsd: req.paymentContext.tierAmount,

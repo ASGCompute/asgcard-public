@@ -6,24 +6,24 @@ export const walletRouter = Router();
 
 walletRouter.use(requireWalletAuth);
 
-walletRouter.get("/", (req, res) => {
+walletRouter.get("/", async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;
   }
 
-  const cards = cardService.listCards(req.walletContext.address);
+  const cards = await cardService.listCards(req.walletContext.address);
   res.json({ cards });
 });
 
-walletRouter.get("/:cardId", (req, res) => {
+walletRouter.get("/:cardId", async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;
   }
 
   try {
-    const result = cardService.getCard(req.walletContext.address, req.params.cardId);
+    const result = await cardService.getCard(req.walletContext.address, req.params.cardId);
     res.json(result);
   } catch (error) {
     if (error instanceof HttpError) {
@@ -35,14 +35,14 @@ walletRouter.get("/:cardId", (req, res) => {
   }
 });
 
-walletRouter.get("/:cardId/details", (req, res) => {
+walletRouter.get("/:cardId/details", async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;
   }
 
   try {
-    const result = cardService.getCardDetails(req.walletContext.address, req.params.cardId);
+    const result = await cardService.getCardDetails(req.walletContext.address, req.params.cardId);
     res.json(result);
   } catch (error) {
     if (error instanceof HttpError) {
@@ -54,14 +54,14 @@ walletRouter.get("/:cardId/details", (req, res) => {
   }
 });
 
-walletRouter.post("/:cardId/freeze", (req, res) => {
+walletRouter.post("/:cardId/freeze", async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;
   }
 
   try {
-    const result = cardService.setCardStatus(
+    const result = await cardService.setCardStatus(
       req.walletContext.address,
       req.params.cardId,
       "frozen"
@@ -77,14 +77,14 @@ walletRouter.post("/:cardId/freeze", (req, res) => {
   }
 });
 
-walletRouter.post("/:cardId/unfreeze", (req, res) => {
+walletRouter.post("/:cardId/unfreeze", async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;
   }
 
   try {
-    const result = cardService.setCardStatus(
+    const result = await cardService.setCardStatus(
       req.walletContext.address,
       req.params.cardId,
       "active"

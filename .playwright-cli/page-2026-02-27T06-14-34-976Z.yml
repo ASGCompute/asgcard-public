@@ -1,0 +1,83 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "4payments API Logo 4payments API" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "4payments API Logo" [ref=e9]
+          - generic [ref=e10]: 4payments API
+        - link "Documentation" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+        - link "Help" [ref=e12] [cursor=pointer]:
+          - /url: mailto:info@4payments.io
+      - button "Switch between dark and light mode (currently light mode)" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - navigation "Docs sidebar" [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Introduction" [ref=e27] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e28]:
+            - link "Authorization" [ref=e29] [cursor=pointer]:
+              - /url: /docs/auth
+          - listitem [ref=e30]:
+            - button "API reference" [ref=e32] [cursor=pointer]
+          - listitem [ref=e33]:
+            - button "Webhooks" [ref=e35] [cursor=pointer]
+          - listitem [ref=e36]:
+            - button "Help" [ref=e38] [cursor=pointer]
+    - main [ref=e39]:
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - article [ref=e44]:
+            - navigation "Breadcrumbs" [ref=e45]:
+              - list [ref=e46]:
+                - listitem [ref=e47]:
+                  - link "Home page" [ref=e48] [cursor=pointer]:
+                    - /url: /
+                    - img [ref=e49]
+                - listitem [ref=e51]:
+                  - generic [ref=e52]: Introduction
+            - generic [ref=e53]:
+              - heading "Introduction" [level=1] [ref=e55]
+              - heading "IntroductionDirect link to Introduction" [level=3] [ref=e56]:
+                - text: Introduction
+                - link "Direct link to Introduction" [ref=e57] [cursor=pointer]:
+                  - /url: "#introduction"
+                  - text: "#"
+              - paragraph [ref=e58]:
+                - text: Welcome to the 4payments Business documentation!
+                - text: We are excited to partner with you and hope this documentation helps you smoothly integrate our payment solutions into your applications.
+              - paragraph [ref=e59]:
+                - text: If you have any questions or need assistance, please do not hesitate to contact your account manager.
+                - text: We’re here to support you every step of the way!
+              - heading "Base URLDirect link to Base URL" [level=3] [ref=e60]:
+                - text: Base URL
+                - link "Direct link to Base URL" [ref=e61] [cursor=pointer]:
+                  - /url: "#base-url"
+                  - text: "#"
+              - paragraph [ref=e62]: "To access API methods, you must send requests to the following base URL:"
+              - generic [ref=e64]:
+                - code [ref=e66]:
+                  - generic [ref=e67]: https://business.4payments.io
+                - button "Copy code to clipboard" [ref=e69] [cursor=pointer]:
+                  - generic [ref=e70]:
+                    - img [ref=e71]
+                    - img [ref=e73]
+          - navigation "Docs pages" [ref=e75]:
+            - link "Next Authorization »" [ref=e76] [cursor=pointer]:
+              - /url: /docs/auth
+              - generic [ref=e77]: Next
+              - generic [ref=e78]: Authorization »
+        - list [ref=e81]:
+          - listitem [ref=e82]:
+            - link "Introduction" [ref=e83] [cursor=pointer]:
+              - /url: "#introduction"
+          - listitem [ref=e84]:
+            - link "Base URL" [ref=e85] [cursor=pointer]:
+              - /url: "#base-url"

@@ -1,0 +1,3 @@
+[     632ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/pricing:0
+[     634ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0
+[     765ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.asgcard.dev/pricing:0

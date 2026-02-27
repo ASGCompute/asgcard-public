@@ -1,0 +1,11 @@
+[    5541ms] [ERROR] Docusaurus React Root onRecoverableError: Error: Minified React error #418; visit https://react.dev/errors/418?args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at ca (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:56788)
+    at Xl (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:105441)
+    at Xc (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:140150)
+    at Yc (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:140122)
+    at https://docs.4payments.io/assets/js/main.5729bbbd.js:2:136301
+    at Mc (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:136399)
+    at Pu (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:151083)
+    at MessagePort.T (https://docs.4payments.io/assets/js/main.5729bbbd.js:2:355058) {componentStack: 
+    at div (<anonymous>)
+    at be (https://docs.…s.4payments.io/assets/js/main.5729bbbd.js:2:9995)} @ https://docs.4payments.io/assets/js/main.5729bbbd.js:1

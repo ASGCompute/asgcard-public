@@ -1,0 +1,190 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - link "ASG Card" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e9]: ASG Card
+        - navigation "Main navigation" [ref=e10]:
+          - link "Features" [ref=e11] [cursor=pointer]:
+            - /url: "#features"
+          - link "How it Works" [ref=e12] [cursor=pointer]:
+            - /url: "#how-it-works"
+          - link "Pricing" [ref=e13] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Docs" [ref=e14] [cursor=pointer]:
+            - /url: /docs
+        - generic [ref=e15]:
+          - link "ASG Card on X" [ref=e16] [cursor=pointer]:
+            - /url: https://x.com/ASGCardx402
+            - img [ref=e17]
+          - link "Get Started" [ref=e19] [cursor=pointer]:
+            - /url: /docs#sdk-quick-start
+            - generic [ref=e20]: Get Started
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: Powered by x402 on Stellar
+          - heading "Virtual Cards for AI Agents." [level=1] [ref=e27]:
+            - text: Virtual Cards
+            - text: for AI Agents.
+          - paragraph [ref=e28]: Give your AI agent a spending card. Issues virtual debit cards on demand — paid with USDC on Stellar via x402. Card details in seconds.
+          - link "View Docs" [ref=e30] [cursor=pointer]:
+            - /url: /docs
+          - generic [ref=e31]:
+            - generic [ref=e32]: Easy Install
+            - generic [ref=e33]:
+              - code [ref=e34]: npm install @asgcard/sdk
+              - button "Copy install command" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - generic [ref=e46]:
+                - generic [ref=e47]: Virtual Card
+                - generic [ref=e48]: ASG Card
+              - img "Stellar logo" [ref=e50]
+            - generic [ref=e53]:
+              - generic [ref=e54]: 4111 •••• •••• 4444
+              - generic [ref=e55]:
+                - generic [ref=e56]:
+                  - generic [ref=e57]: Expires
+                  - generic [ref=e58]: 12/28
+                - generic [ref=e59]:
+                  - generic [ref=e60]: CVV
+                  - generic [ref=e61]: •••
+                - generic [ref=e62]:
+                  - generic [ref=e63]: Balance
+                  - generic [ref=e64]: $50.00
+                - generic [ref=e65]: VISA
+          - generic:
+            - generic:
+              - generic: stream.write(chunk) // clipLeft = clamp(progress, 0, 1) ; wallet.sign( verifySignature(payload, nonce) ; verifySignature(payload, nonce) ; gl response.headers.set("X-Payment", proof) // glow += Math.sin(time * 2. particle.alpha *= 0.98 ; stream.write(chunk) // scanner.intensity = ta const scanX = lerp(prevX, nextX, dt) ; particle.alpha *= 0.98 ; reques clipLeft = clamp(progress, 0, 1) ; particle.alpha *= 0.98 ; response.h ctx.globalCompositeOperation = "lighter" // glow += Math.sin(time * 2. verifySignature(payload, nonce) // if (x > width) resetParticle() ; cl glow += Math.sin(time * 2.2) * 0.05 // particle.alpha *= 0.98 // glow verifySignature(payload, nonce) ; if (x > width) resetParticle() // re wallet.sign(txEnvelope) ; const scanX = lerp(prevX, nextX, dt) ; walle response.headers.set("X-Payment", proof) // ctx.globalCompositeOperati verifySignature(payload, nonce) ; ctx.globalCompositeOperation = "ligh glow += Math.sin(time * 2.2) * 0.05 ; verifySignature(payload, nonce) clipLeft = clamp(progress, 0, 1) // verifySignature(payload, nonce) ; clipLeft = clamp(progress, 0, 1) ; ctx.globalCompositeOperation = "lig if (x > width) resetParticle() ; clipLeft = clamp(progress, 0, 1) ; pa if (x > width) resetParticle() ; requestAnimationFrame(renderFrame) // stream.write(chunk) ; scanner.intensity = target * 0.85 ; verifySignat clipLeft = clamp(progress, 0, 1) ; stream.write(chunk) ; if (x > width glow += Math.sin(time * 2.2) * 0.05 ; verifySignature(payload, nonce) if (x > width) resetParticle() // requestAnimationFrame(renderFrame) / requestAnimationFrame(renderFrame) // glow += Math.sin(time * 2.2) * 0 clipLeft = clamp(progress, 0, 1) ; wallet.sign(txEnvelope) ; ctx.globa
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]: x402
+          - generic [ref=e71]: Protocol
+        - generic [ref=e72]:
+          - generic [ref=e73]: Stellar
+          - generic [ref=e74]: Mainnet
+        - generic [ref=e75]:
+          - generic [ref=e76]: USDC
+          - generic [ref=e77]: Payments
+        - generic [ref=e78]:
+          - generic [ref=e79]: <1s
+          - generic [ref=e80]: Issuance
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: Features
+          - heading "Built for autonomous agents" [level=2] [ref=e85]
+          - paragraph [ref=e86]: Streamlined card infrastructure. Get started in minutes.
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]: ⚡
+            - heading "Sub-Second Issuance" [level=3] [ref=e90]
+            - paragraph [ref=e91]: Card details returned in the same HTTP response. No polling, no webhooks, no waiting.
+          - generic [ref=e92]:
+            - generic [ref=e93]: 🔐
+            - heading "x402 Protocol Native" [level=3] [ref=e94]
+            - paragraph [ref=e95]: Built on the HTTP 402 standard. Agents pay at the protocol layer — no middleware, no wrappers.
+          - generic [ref=e96]:
+            - generic [ref=e97]: 🤖
+            - heading "Agent-First API" [level=3] [ref=e98]
+            - paragraph [ref=e99]: Designed for autonomous agents. No human-in-the-loop. Deterministic, stateless, fast.
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]: How it works
+          - heading "Get a card in seconds, not days." [level=2] [ref=e104]
+          - paragraph [ref=e105]: From first request to first purchase — we've reduced the entire flow to four deterministic steps.
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - img [ref=e109]
+            - generic [ref=e113]:
+              - generic [ref=e114]: "01"
+              - heading "Send a Request" [level=4] [ref=e115]
+              - paragraph [ref=e116]: Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.
+          - generic [ref=e117]:
+            - img [ref=e119]
+            - generic [ref=e122]:
+              - generic [ref=e123]: "02"
+              - heading "Pay with USDC" [level=4] [ref=e124]
+              - paragraph [ref=e125]: The server responds 402 with payment details on Stellar. Your x402 client auto-pays the exact USDC amount.
+          - generic [ref=e126]:
+            - img [ref=e128]
+            - generic [ref=e130]:
+              - generic [ref=e131]: "03"
+              - heading "Receive Card Details" [level=4] [ref=e132]
+              - paragraph [ref=e133]: Card number, CVV, expiry, and billing address returned instantly in the response body.
+          - generic [ref=e134]:
+            - img [ref=e136]
+            - generic [ref=e139]:
+              - generic [ref=e140]: "04"
+              - heading "Start Spending" [level=4] [ref=e141]
+              - paragraph [ref=e142]: Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - generic [ref=e146]: Pricing
+          - heading "Transparent, tier-based" [level=2] [ref=e147]
+          - paragraph [ref=e148]: No subscriptions. Pay only for what you use.
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - heading "Create Card" [level=3] [ref=e152]
+              - generic [ref=e153]: One-time
+            - paragraph [ref=e154]:
+              - text: via
+              - code [ref=e155]: POST /cards/create/tier/:amount
+            - table [ref=e156]:
+              - rowgroup [ref=e157]:
+                - row "Load Issuance Top-up Service Total" [ref=e158]:
+                  - columnheader "Load" [ref=e159]
+                  - columnheader "Issuance" [ref=e160]
+                  - columnheader "Top-up" [ref=e161]
+                  - columnheader "Service" [ref=e162]
+                  - columnheader "Total" [ref=e163]
+              - rowgroup [ref=e164]:
+                - row "Pricing is temporarily unavailable. Please refresh in a few seconds." [ref=e165]:
+                  - cell "Pricing is temporarily unavailable. Please refresh in a few seconds." [ref=e166]
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - heading "Fund Card" [level=3] [ref=e169]
+              - generic [ref=e170]: Reload
+            - paragraph [ref=e171]:
+              - text: via
+              - code [ref=e172]: POST /cards/fund/tier/:amount
+            - table [ref=e173]:
+              - rowgroup [ref=e174]:
+                - row "Amount Top-up Service Total" [ref=e175]:
+                  - columnheader "Amount" [ref=e176]
+                  - columnheader "Top-up" [ref=e177]
+                  - columnheader "Service" [ref=e178]
+                  - columnheader "Total" [ref=e179]
+              - rowgroup [ref=e180]:
+                - row "Pricing is temporarily unavailable. Please refresh in a few seconds." [ref=e181]:
+                  - cell "Pricing is temporarily unavailable. Please refresh in a few seconds." [ref=e182]
+      - generic [ref=e184]:
+        - heading "Ready to give your agent a card?" [level=2] [ref=e185]:
+          - text: Ready to give your
+          - text: agent a card?
+        - paragraph [ref=e186]: Join developers using ASG Card to pay for SaaS, infrastructure, and services autonomously on-chain.
+        - generic [ref=e187]:
+          - link "Get Started" [ref=e188] [cursor=pointer]:
+            - /url: /docs#sdk-quick-start
+          - link "Read the Docs" [ref=e189] [cursor=pointer]:
+            - /url: /docs
+    - contentinfo [ref=e190]:
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - img [ref=e193]
+          - generic [ref=e194]: ASG Card
+        - generic [ref=e195]:
+          - link "Docs" [ref=e196] [cursor=pointer]:
+            - /url: /docs
+          - link "X" [ref=e197] [cursor=pointer]:
+            - /url: https://x.com/ASGCardx402
+          - link "OpenCard.dev" [ref=e198] [cursor=pointer]:
+            - /url: https://opencard.dev
+          - generic [ref=e199]: © 2026 Autonomous Service Group

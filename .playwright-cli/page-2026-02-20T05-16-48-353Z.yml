@@ -1,0 +1,288 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#docs-content"
+  - generic [ref=e4]:
+    - navigation "Documentation navigation" [ref=e5]:
+      - link "ASG Card Stellar" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e8]: ASG Card Stellar
+      - navigation [ref=e9]:
+        - generic [ref=e10]: Documentation
+        - link "Introduction" [ref=e11] [cursor=pointer]:
+          - /url: "#introduction"
+        - link "Positioning" [ref=e12] [cursor=pointer]:
+          - /url: "#positioning"
+        - link "Architecture" [ref=e13] [cursor=pointer]:
+          - /url: "#architecture"
+        - link "Quick Start" [ref=e14] [cursor=pointer]:
+          - /url: "#quick-start"
+        - link "Install" [ref=e15] [cursor=pointer]:
+          - /url: "#install"
+        - link "Stellar Flow" [ref=e16] [cursor=pointer]:
+          - /url: "#stellar-flow"
+        - link "API Surface" [ref=e17] [cursor=pointer]:
+          - /url: "#api-surface"
+        - link "Core Endpoints" [ref=e18] [cursor=pointer]:
+          - /url: "#core-endpoints"
+        - link "Event Model" [ref=e19] [cursor=pointer]:
+          - /url: "#event-model"
+        - link "Pricing" [ref=e20] [cursor=pointer]:
+          - /url: "#pricing"
+        - link "Card Creation" [ref=e21] [cursor=pointer]:
+          - /url: "#card-creation"
+        - link "Card Funding" [ref=e22] [cursor=pointer]:
+          - /url: "#card-funding"
+        - link "Roadmap" [ref=e23] [cursor=pointer]:
+          - /url: "#roadmap"
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - link "← Home" [ref=e26] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e27]: ASG Card Stellar Docs
+      - main [ref=e29]:
+        - region "Introduction" [ref=e30]:
+          - generic [ref=e31]:
+            - heading "ASG Card Stellar API Documentation" [level=1] [ref=e32]
+            - paragraph [ref=e33]: Virtual Cards for AI Agents on Stellar. Powered by x402 with USDC settlement and agent-first API ergonomics.
+          - generic [ref=e34]:
+            - strong [ref=e35]: "Scope:"
+            - text: dedicated Stellar concept docs in an isolated folder, without touching the current production website.
+          - generic [ref=e36]:
+            - generic [ref=e37]: Base URL
+            - code [ref=e38]: https://api-stellar.asgcard.dev
+        - region "Positioning" [ref=e39]:
+          - heading "Positioning" [level=2] [ref=e40]
+          - paragraph [ref=e41]: ASG Card Stellar keeps the same developer experience as the main ASG Card product and switches settlement to USDC on Stellar via x402.
+          - list [ref=e42]:
+            - listitem [ref=e43]: Dedicated landing + docs in a separate code path.
+            - listitem [ref=e44]: x402-first paid endpoints for deterministic agent payments.
+            - listitem [ref=e45]: Fast migration path by reusing existing endpoint contracts.
+          - generic [ref=e46]: This is a concept docs set for GTM and partner calls; implementation details stay compatible with the core API shape.
+        - region "Architecture" [ref=e47]:
+          - heading "Architecture" [level=2] [ref=e48]
+          - paragraph [ref=e49]: High-level component model for the Stellar x402 variant.
+          - table [ref=e51]:
+            - rowgroup [ref=e52]:
+              - row "Layer Purpose Notes" [ref=e53]:
+                - columnheader "Layer" [ref=e54]
+                - columnheader "Purpose" [ref=e55]
+                - columnheader "Notes" [ref=e56]
+            - rowgroup [ref=e57]:
+              - row "Client SDK x402 payment handling + request retries Keeps one-line developer flow for card create/fund calls" [ref=e58]:
+                - cell "Client SDK" [ref=e59]
+                - cell "x402 payment handling + request retries" [ref=e60]
+                - cell "Keeps one-line developer flow for card create/fund calls" [ref=e61]
+              - row "Card API Card issuance, funding, freeze/unfreeze Existing endpoint contracts reused for migration speed" [ref=e62]:
+                - cell "Card API" [ref=e63]
+                - cell "Card issuance, funding, freeze/unfreeze" [ref=e64]
+                - cell "Existing endpoint contracts reused for migration speed" [ref=e65]
+              - row "Stellar Settlement USDC transfer verification On-chain settlement source of truth" [ref=e66]:
+                - cell "Stellar Settlement" [ref=e67]
+                - cell "USDC transfer verification" [ref=e68]
+                - cell "On-chain settlement source of truth" [ref=e69]
+          - generic [ref=e70]: "Optional extension: fiat ramps can be attached later as a separate integration layer."
+        - region "Quick Start" [ref=e71]:
+          - heading "Quick Start" [level=2] [ref=e72]
+          - paragraph [ref=e73]: Existing ASG Card implementation can be copied into a Stellar-only deployment by changing payment middleware and network adapters.
+          - heading "Install" [level=3] [ref=e74]
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]: bash
+              - button "Copy code" [ref=e78] [cursor=pointer]:
+                - img [ref=e79]
+                - generic [ref=e82]: Copy
+            - code [ref=e84]: npm install @asgcard/sdk stellar-sdk
+          - heading "Stellar Payment Flow (x402)" [level=3] [ref=e85]
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: typescript
+              - button "Copy code" [ref=e89] [cursor=pointer]:
+                - img [ref=e90]
+                - generic [ref=e93]: Copy
+            - code [ref=e95]: "import { ASGCardClient } from '@asgcard/sdk' const client = new ASGCardClient({ baseUrl: 'https://api-stellar.asgcard.dev', network: 'stellar:mainnet', }) const card = await client.createCard({ amount: 50, nameOnCard: 'AI AGENT', email: 'agent@example.com', }) console.log(card.card.cardId, card.card.status)"
+          - generic [ref=e96]: SDK contract is intentionally kept familiar to reduce switching cost from the current implementation.
+        - region "API Surface" [ref=e97]:
+          - heading "API Surface" [level=2] [ref=e98]
+          - paragraph [ref=e99]: Core endpoint contracts for the Stellar-only stack.
+          - heading "Core Endpoints" [level=3] [ref=e100]
+          - table [ref=e102]:
+            - rowgroup [ref=e103]:
+              - row "Method Path Purpose" [ref=e104]:
+                - columnheader "Method" [ref=e105]
+                - columnheader "Path" [ref=e106]
+                - columnheader "Purpose" [ref=e107]
+            - rowgroup [ref=e108]:
+              - row "GET /health Service health" [ref=e109]:
+                - cell "GET" [ref=e110]:
+                  - generic [ref=e111]: GET
+                - cell "/health" [ref=e112]:
+                  - code [ref=e113]: /health
+                - cell "Service health" [ref=e114]
+              - row "GET /pricing Tiered card pricing" [ref=e115]:
+                - cell "GET" [ref=e116]:
+                  - generic [ref=e117]: GET
+                - cell "/pricing" [ref=e118]:
+                  - code [ref=e119]: /pricing
+                - cell "Tiered card pricing" [ref=e120]
+              - row "POST /cards/create/tier/:amount Issue card (x402 paid)" [ref=e121]:
+                - cell "POST" [ref=e122]:
+                  - generic [ref=e123]: POST
+                - cell "/cards/create/tier/:amount" [ref=e124]:
+                  - code [ref=e125]: /cards/create/tier/:amount
+                - cell "Issue card (x402 paid)" [ref=e126]
+              - row "POST /cards/fund/tier/:amount Fund card (x402 paid)" [ref=e127]:
+                - cell "POST" [ref=e128]:
+                  - generic [ref=e129]: POST
+                - cell "/cards/fund/tier/:amount" [ref=e130]:
+                  - code [ref=e131]: /cards/fund/tier/:amount
+                - cell "Fund card (x402 paid)" [ref=e132]
+              - row "PUT /cards/:cardId/freeze Freeze card" [ref=e133]:
+                - cell "PUT" [ref=e134]:
+                  - generic [ref=e135]: PUT
+                - cell "/cards/:cardId/freeze" [ref=e136]:
+                  - code [ref=e137]: /cards/:cardId/freeze
+                - cell "Freeze card" [ref=e138]
+              - row "PUT /cards/:cardId/unfreeze Unfreeze card" [ref=e139]:
+                - cell "PUT" [ref=e140]:
+                  - generic [ref=e141]: PUT
+                - cell "/cards/:cardId/unfreeze" [ref=e142]:
+                  - code [ref=e143]: /cards/:cardId/unfreeze
+                - cell "Unfreeze card" [ref=e144]
+          - heading "Event Model" [level=3] [ref=e145]
+          - generic [ref=e146]:
+            - generic [ref=e147]:
+              - generic [ref=e148]: json
+              - button "Copy code" [ref=e149] [cursor=pointer]:
+                - img [ref=e150]
+                - generic [ref=e153]: Copy
+            - code [ref=e155]: "{ \"event\": \"card.funded\", \"cardId\": \"card_123\", \"network\": \"stellar\", \"asset\": \"USDC\", \"amount\": \"50.00\", \"timestamp\": \"2026-02-20T12:34:56Z\" }"
+        - region "Pricing" [ref=e156]:
+          - heading "Pricing" [level=2] [ref=e157]
+          - paragraph [ref=e158]: Pricing tables below reuse the existing ASG Card pricing response for fast prototyping. Replace with Stellar-specific economics once backend rollout is complete.
+          - generic [ref=e159]:
+            - text: "Source: live data from"
+            - code [ref=e160]: GET /pricing
+            - text: .
+          - heading "Card Creation" [level=3] [ref=e161]
+          - table [ref=e163]:
+            - rowgroup [ref=e164]:
+              - row "Load Issuance Top-up Service Total Endpoint" [ref=e165]:
+                - columnheader "Load" [ref=e166]
+                - columnheader "Issuance" [ref=e167]
+                - columnheader "Top-up" [ref=e168]
+                - columnheader "Service" [ref=e169]
+                - columnheader "Total" [ref=e170]
+                - columnheader "Endpoint" [ref=e171]
+            - rowgroup [ref=e172]:
+              - row "$10.00 $3.00 $2.20 $2.00 $17.20 /cards/create/tier/10" [ref=e173]:
+                - cell "$10.00" [ref=e174]
+                - cell "$3.00" [ref=e175]
+                - cell "$2.20" [ref=e176]
+                - cell "$2.00" [ref=e177]
+                - cell "$17.20" [ref=e178]
+                - cell "/cards/create/tier/10" [ref=e179]:
+                  - code [ref=e180]: /cards/create/tier/10
+              - row "$25.00 $3.00 $2.50 $2.00 $32.50 /cards/create/tier/25" [ref=e181]:
+                - cell "$25.00" [ref=e182]
+                - cell "$3.00" [ref=e183]
+                - cell "$2.50" [ref=e184]
+                - cell "$2.00" [ref=e185]
+                - cell "$32.50" [ref=e186]
+                - cell "/cards/create/tier/25" [ref=e187]:
+                  - code [ref=e188]: /cards/create/tier/25
+              - row "$50.00 $3.00 $3.00 $2.00 $58.00 /cards/create/tier/50" [ref=e189]:
+                - cell "$50.00" [ref=e190]
+                - cell "$3.00" [ref=e191]
+                - cell "$3.00" [ref=e192]
+                - cell "$2.00" [ref=e193]
+                - cell "$58.00" [ref=e194]
+                - cell "/cards/create/tier/50" [ref=e195]:
+                  - code [ref=e196]: /cards/create/tier/50
+              - row "$100.00 $3.00 $4.00 $3.00 $110.00 /cards/create/tier/100" [ref=e197]:
+                - cell "$100.00" [ref=e198]
+                - cell "$3.00" [ref=e199]
+                - cell "$4.00" [ref=e200]
+                - cell "$3.00" [ref=e201]
+                - cell "$110.00" [ref=e202]
+                - cell "/cards/create/tier/100" [ref=e203]:
+                  - code [ref=e204]: /cards/create/tier/100
+              - row "$200.00 $3.00 $6.00 $5.00 $214.00 /cards/create/tier/200" [ref=e205]:
+                - cell "$200.00" [ref=e206]
+                - cell "$3.00" [ref=e207]
+                - cell "$6.00" [ref=e208]
+                - cell "$5.00" [ref=e209]
+                - cell "$214.00" [ref=e210]
+                - cell "/cards/create/tier/200" [ref=e211]:
+                  - code [ref=e212]: /cards/create/tier/200
+              - row "$500.00 $3.00 $12.00 $7.00 $522.00 /cards/create/tier/500" [ref=e213]:
+                - cell "$500.00" [ref=e214]
+                - cell "$3.00" [ref=e215]
+                - cell "$12.00" [ref=e216]
+                - cell "$7.00" [ref=e217]
+                - cell "$522.00" [ref=e218]
+                - cell "/cards/create/tier/500" [ref=e219]:
+                  - code [ref=e220]: /cards/create/tier/500
+          - heading "Card Funding" [level=3] [ref=e221]
+          - table [ref=e223]:
+            - rowgroup [ref=e224]:
+              - row "Amount Top-up Service Total Endpoint" [ref=e225]:
+                - columnheader "Amount" [ref=e226]
+                - columnheader "Top-up" [ref=e227]
+                - columnheader "Service" [ref=e228]
+                - columnheader "Total" [ref=e229]
+                - columnheader "Endpoint" [ref=e230]
+            - rowgroup [ref=e231]:
+              - row "$10.00 $2.20 $2.00 $14.20 /cards/fund/tier/10" [ref=e232]:
+                - cell "$10.00" [ref=e233]
+                - cell "$2.20" [ref=e234]
+                - cell "$2.00" [ref=e235]
+                - cell "$14.20" [ref=e236]
+                - cell "/cards/fund/tier/10" [ref=e237]:
+                  - code [ref=e238]: /cards/fund/tier/10
+              - row "$25.00 $2.50 $2.00 $29.50 /cards/fund/tier/25" [ref=e239]:
+                - cell "$25.00" [ref=e240]
+                - cell "$2.50" [ref=e241]
+                - cell "$2.00" [ref=e242]
+                - cell "$29.50" [ref=e243]
+                - cell "/cards/fund/tier/25" [ref=e244]:
+                  - code [ref=e245]: /cards/fund/tier/25
+              - row "$50.00 $3.00 $2.00 $55.00 /cards/fund/tier/50" [ref=e246]:
+                - cell "$50.00" [ref=e247]
+                - cell "$3.00" [ref=e248]
+                - cell "$2.00" [ref=e249]
+                - cell "$55.00" [ref=e250]
+                - cell "/cards/fund/tier/50" [ref=e251]:
+                  - code [ref=e252]: /cards/fund/tier/50
+              - row "$100.00 $4.00 $3.00 $107.00 /cards/fund/tier/100" [ref=e253]:
+                - cell "$100.00" [ref=e254]
+                - cell "$4.00" [ref=e255]
+                - cell "$3.00" [ref=e256]
+                - cell "$107.00" [ref=e257]
+                - cell "/cards/fund/tier/100" [ref=e258]:
+                  - code [ref=e259]: /cards/fund/tier/100
+              - row "$200.00 $6.00 $5.00 $211.00 /cards/fund/tier/200" [ref=e260]:
+                - cell "$200.00" [ref=e261]
+                - cell "$6.00" [ref=e262]
+                - cell "$5.00" [ref=e263]
+                - cell "$211.00" [ref=e264]
+                - cell "/cards/fund/tier/200" [ref=e265]:
+                  - code [ref=e266]: /cards/fund/tier/200
+              - row "$500.00 $12.00 $7.00 $519.00 /cards/fund/tier/500" [ref=e267]:
+                - cell "$500.00" [ref=e268]
+                - cell "$12.00" [ref=e269]
+                - cell "$7.00" [ref=e270]
+                - cell "$519.00" [ref=e271]
+                - cell "/cards/fund/tier/500" [ref=e272]:
+                  - code [ref=e273]: /cards/fund/tier/500
+        - region "Roadmap" [ref=e274]:
+          - heading "Roadmap" [level=2] [ref=e275]
+          - list [ref=e276]:
+            - listitem [ref=e277]: "Phase 1: Landing + docs + partner narrative (this folder)."
+            - listitem [ref=e278]: "Phase 2: Stellar settlement adapter in payment middleware."
+            - listitem [ref=e279]: "Phase 3: Production-grade verification, monitoring, and reliability hardening."
+            - listitem [ref=e280]: "Phase 4 (optional): fiat ramp integrations where commercially justified."
+          - generic [ref=e281]:
+            - text: "Scope isolation guarantee: all work lives under"
+            - code [ref=e282]: /web-stellar-mg
+            - text: and does not modify the existing web app.

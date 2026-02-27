@@ -1,0 +1,200 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "4payments API Logo 4payments API" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "4payments API Logo" [ref=e9]
+          - generic [ref=e10]: 4payments API
+        - link "Documentation" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+        - link "Help" [ref=e12] [cursor=pointer]:
+          - /url: mailto:info@4payments.io
+      - button "Switch between dark and light mode (currently light mode)" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - navigation "Docs sidebar" [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Introduction" [ref=e27] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e28]:
+            - link "Authorization" [ref=e29] [cursor=pointer]:
+              - /url: /docs/auth
+          - listitem [ref=e30]:
+            - button "API reference" [ref=e32] [cursor=pointer]
+          - listitem [ref=e33]:
+            - button "Webhooks" [ref=e35] [cursor=pointer]
+          - listitem [ref=e36]:
+            - button "Help" [expanded] [ref=e38] [cursor=pointer]
+            - list [ref=e39]:
+              - listitem [ref=e40]:
+                - link "How to start" [ref=e41] [cursor=pointer]:
+                  - /url: /docs/Help/api-key
+              - listitem [ref=e42]:
+                - link "Signature Verification" [ref=e43] [cursor=pointer]:
+                  - /url: /docs/Help/signature
+              - listitem [ref=e44]:
+                - link "Rate Limits" [ref=e45] [cursor=pointer]:
+                  - /url: /docs/Help/limits
+              - listitem [ref=e46]:
+                - link "Restriced MCCs" [ref=e47] [cursor=pointer]:
+                  - /url: /docs/Help/restriced
+              - listitem [ref=e48]:
+                - link "Error Codes" [ref=e49] [cursor=pointer]:
+                  - /url: /docs/Help/error-codes
+              - listitem [ref=e50]:
+                - link "New - Retry Policy" [ref=e51] [cursor=pointer]:
+                  - /url: /docs/Help/retry
+              - listitem [ref=e52]:
+                - link "Contacts" [ref=e53] [cursor=pointer]:
+                  - /url: /docs/Help/сontacts
+    - main [ref=e54]:
+      - generic [ref=e56]:
+        - generic [ref=e58]:
+          - article [ref=e59]:
+            - navigation "Breadcrumbs" [ref=e60]:
+              - list [ref=e61]:
+                - listitem [ref=e62]:
+                  - link "Home page" [ref=e63] [cursor=pointer]:
+                    - /url: /
+                    - img [ref=e64]
+                - listitem [ref=e66]:
+                  - generic [ref=e67]: Help
+                - listitem [ref=e68]:
+                  - generic [ref=e69]: Signature Verification
+            - generic [ref=e70]:
+              - heading "🔐 Signature Verification" [level=1] [ref=e72]
+              - paragraph [ref=e73]: "For security and authenticity, every webhook request includes a cryptographic signature. By validating this signature you can ensure that:"
+              - list [ref=e74]:
+                - listitem [ref=e75]: the request really comes from us (not from an impersonator);
+                - listitem [ref=e76]: the payload was not altered during transmission.
+              - separator [ref=e77]
+              - heading "How it worksDirect link to How it works" [level=3] [ref=e78]:
+                - text: How it works
+                - link "Direct link to How it works" [ref=e79] [cursor=pointer]:
+                  - /url: "#how-it-works"
+                  - text: "#"
+              - paragraph [ref=e80]:
+                - text: All events are sent as HTTPS POST requests to the webhook URL you configured. Each request includes an
+                - code [ref=e81]: SHA-256
+                - text: "signature in the header:"
+              - generic [ref=e83]:
+                - code [ref=e85]:
+                  - generic [ref=e86]: "webhook-sign: SHA256"
+                - button "Copy code to clipboard" [ref=e88] [cursor=pointer]:
+                  - generic [ref=e89]:
+                    - img [ref=e90]
+                    - img [ref=e92]
+              - paragraph [ref=e94]: You must verify this signature on your side using your Webhook Sign Token.
+              - heading "How to verifyDirect link to How to verify" [level=3] [ref=e95]:
+                - text: How to verify
+                - link "Direct link to How to verify" [ref=e96] [cursor=pointer]:
+                  - /url: "#how-to-verify"
+                  - text: "#"
+              - list [ref=e97]:
+                - listitem [ref=e98]: Take the raw request body (the JSON payload exactly as received).
+                - listitem [ref=e99]: Use your Webhook Sign Token as the secret key.
+                - listitem [ref=e100]: Compute the SHA256 hash of the body.
+                - listitem [ref=e101]: Compare the computed value with the webhook-sign header.
+                - listitem [ref=e102]: If they match, the request is valid.
+              - separator [ref=e103]
+              - heading "Example PayloadDirect link to Example Payload" [level=2] [ref=e104]:
+                - text: Example Payload
+                - link "Direct link to Example Payload" [ref=e105] [cursor=pointer]:
+                  - /url: "#example-payload"
+                  - text: "#"
+              - paragraph [ref=e106]: "Webhook request with header:"
+              - generic [ref=e108]:
+                - code [ref=e110]:
+                  - generic [ref=e111]: "webhook-sign: 681f5fa445f55310057dd5abcbd90f352bd8faff76357fca01f9be8086f7a871"
+                - generic [ref=e112]:
+                  - button "Toggle word wrap" [ref=e113] [cursor=pointer]:
+                    - img [ref=e114]
+                  - button "Copy code to clipboard" [ref=e116] [cursor=pointer]:
+                    - generic [ref=e117]:
+                      - img [ref=e118]
+                      - img [ref=e120]
+              - paragraph [ref=e122]: "Body:"
+              - generic [ref=e124]:
+                - code [ref=e126]:
+                  - generic [ref=e127]: "{"
+                  - generic [ref=e128]: "\"status\": \"success\","
+                  - generic [ref=e129]: "\"type\": \"cardIssue\","
+                  - generic [ref=e130]: "\"data\": {"
+                  - generic [ref=e131]: "\"id\": string,"
+                  - generic [ref=e132]: "},"
+                  - generic [ref=e133]: "}"
+                - button "Copy code to clipboard" [ref=e135] [cursor=pointer]:
+                  - generic [ref=e136]:
+                    - img [ref=e137]
+                    - img [ref=e139]
+              - heading "Example VerificationDirect link to Example Verification" [level=2] [ref=e141]:
+                - text: Example Verification
+                - link "Direct link to Example Verification" [ref=e142] [cursor=pointer]:
+                  - /url: "#example-verification"
+                  - text: "#"
+              - heading "Node.jsDirect link to Node.js" [level=3] [ref=e143]:
+                - text: Node.js
+                - link "Direct link to Node.js" [ref=e144] [cursor=pointer]:
+                  - /url: "#nodejs"
+                  - text: "#"
+              - generic [ref=e146]:
+                - code [ref=e148]:
+                  - generic [ref=e149]: const crypto = require("crypto");
+                  - generic [ref=e150]: // Example values
+                  - generic [ref=e151]: const webhookToken = "e1a34ea8500d9d7145ebaf6383ab4ee487da2fc3c821d1e330084e9cbaf0cae3"; // your secret token
+                  - generic [ref=e152]: "const body = JSON.stringify({"
+                  - generic [ref=e153]: "status: \"success\","
+                  - generic [ref=e154]: "type: \"cardIssue\","
+                  - generic [ref=e155]: "data: { id: \"123\" }"
+                  - generic [ref=e156]: "});"
+                  - generic [ref=e157]: // Signature received in header
+                  - generic [ref=e158]: const receivedSignature = "681f5fa445f55310057dd5abcbd90f352bd8faff76357fca01f9be8086f7a871";
+                  - generic [ref=e159]: // Compute signature
+                  - generic [ref=e160]: const computedSignature = crypto
+                  - generic [ref=e161]: .createHmac("sha256", webhookToken)
+                  - generic [ref=e162]: .update(body)
+                  - generic [ref=e163]: .digest("hex");
+                  - generic [ref=e164]: "if (computedSignature === receivedSignature) {"
+                  - generic [ref=e165]: console.log("✅ Signature is valid");
+                  - generic [ref=e166]: "} else {"
+                  - generic [ref=e167]: console.log("❌ Invalid signature");
+                  - generic [ref=e168]: "}"
+                - generic [ref=e169]:
+                  - button "Toggle word wrap" [ref=e170] [cursor=pointer]:
+                    - img [ref=e171]
+                  - button "Copy code to clipboard" [ref=e173] [cursor=pointer]:
+                    - generic [ref=e174]:
+                      - img [ref=e175]
+                      - img [ref=e177]
+          - navigation "Docs pages" [ref=e179]:
+            - link "Previous « How to start" [ref=e180] [cursor=pointer]:
+              - /url: /docs/Help/api-key
+              - generic [ref=e181]: Previous
+              - generic [ref=e182]: « How to start
+            - link "Next Rate Limits »" [ref=e183] [cursor=pointer]:
+              - /url: /docs/Help/limits
+              - generic [ref=e184]: Next
+              - generic [ref=e185]: Rate Limits »
+        - list [ref=e188]:
+          - listitem [ref=e189]:
+            - link "How it works" [ref=e190] [cursor=pointer]:
+              - /url: "#how-it-works"
+          - listitem [ref=e191]:
+            - link "How to verify" [ref=e192] [cursor=pointer]:
+              - /url: "#how-to-verify"
+          - listitem [ref=e193]:
+            - link "Example Payload" [ref=e194] [cursor=pointer]:
+              - /url: "#example-payload"
+          - listitem [ref=e195]:
+            - link "Example Verification" [ref=e196] [cursor=pointer]:
+              - /url: "#example-verification"
+            - list [ref=e197]:
+              - listitem [ref=e198]:
+                - link "Node.js" [ref=e199] [cursor=pointer]:
+                  - /url: "#nodejs"

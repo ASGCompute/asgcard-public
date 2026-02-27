@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASG Card x402 on Stellar + PayAI - Commercial Proposal</title>
+  <style>
+    :root {
+      --bg: #07080b;
+      --surface: #11131a;
+      --surface-2: #141822;
+      --border: rgba(255, 255, 255, 0.14);
+      --text: #f6f7fb;
+      --muted: #d5d9e5;
+      --dim: #aeb7ca;
+      --accent: #14f195;
+      --accent-2: #9945ff;
+      --accent-3: #22d3ee;
+    }
+
+    @page {
+      size: A4;
+      margin: 11mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      padding: 8mm;
+    }
+
+    .page {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14mm 12mm;
+      background:
+        radial-gradient(75% 50% at 10% 5%, rgba(20, 241, 149, 0.09), transparent 65%),
+        radial-gradient(60% 45% at 100% 0%, rgba(153, 69, 255, 0.10), transparent 65%),
+        radial-gradient(70% 55% at 50% 100%, rgba(34, 211, 238, 0.05), transparent 68%),
+        var(--surface);
+    }
+
+    .kicker {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(20, 241, 149, 0.25);
+      border-radius: 999px;
+      padding: 5px 10px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.48;
+      max-width: 95%;
+    }
+
+    .section {
+      margin-top: 11px;
+    }
+
+    .section h2 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .split {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.00));
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .card ul, .card ol {
+      margin: 0 0 0 1px;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .card li + li,
+    .phase-list li + li {
+      margin-top: 4px;
+    }
+
+    .flow {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .flow li {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .flow strong {
+      color: var(--text);
+    }
+
+    .mini-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 10px;
+    }
+
+    .tagline {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    .pill-row {
+      margin-top: 7px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .pill {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 10px;
+      color: #d8e3ff;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .table-wrap {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.2px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    th {
+      color: var(--dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    td strong {
+      color: var(--text);
+    }
+
+    .phase-list {
+      margin: 0;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .phase-list strong {
+      color: var(--text);
+    }
+
+    .cta {
+      margin-top: 10px;
+      border: 1px solid rgba(20, 241, 149, 0.25);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #dff9f0;
+      background: linear-gradient(90deg, rgba(20, 241, 149, 0.10), rgba(34, 211, 238, 0.06));
+    }
+
+    .cta strong {
+      color: var(--text);
+    }
+
+    .footer {
+      margin-top: 9px;
+      font-size: 10px;
+      color: var(--dim);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .accent {
+      color: var(--accent-2);
+    }
+
+    .accent-2 {
+      color: var(--accent-3);
+    }
+  </style>
+</head>
+<body>
+  <article class="page">
+    <span class="kicker">Commercial Proposal</span>
+    <h1>ASG Card x402 on <span class="accent">Stellar</span> + <span class="accent-2">PayAI</span></h1>
+    <p class="subtitle">
+      Professional proposal for agentic commerce: monetize AI-agent API calls through x402,
+      settle in USDC on Stellar, and orchestrate facilitator-based payment verification with PayAI.
+    </p>
+
+    <div class="split">
+      <section class="card">
+        <h2>What is ASG Card</h2>
+        <p>
+          ASG Card is payment-to-card infrastructure for AI agents. It converts paid API actions into
+          immediate virtual card issuance and funding so agents can execute spend safely and programmatically.
+        </p>
+        <div class="pill-row">
+          <span class="pill">x402-native</span>
+          <span class="pill">Virtual Cards API</span>
+          <span class="pill">USDC on Stellar</span>
+          <span class="pill">PayAI facilitator path</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>How it works</h2>
+        <ol class="flow">
+          <li><strong>1. Agent requests a paid action:</strong> call card create/fund endpoint.</li>
+          <li><strong>2. x402 challenge + payment:</strong> PayAI path verifies payment intent and execution.</li>
+          <li><strong>3. Settlement:</strong> USDC settles on Stellar and payment is confirmed.</li>
+          <li><strong>4. Card response:</strong> ASG Card issues/funds card and returns details plus controls.</li>
+        </ol>
+      </section>
+    </div>
+
+    <div class="mini-grid">
+      <section class="card">
+        <h2>Expanded Use Cases</h2>
+        <ul>
+          <li><strong>OpenClaw autonomous ops:</strong> agents buy APIs/compute/data in real time with policy-bound cards.</li>
+          <li><strong>OpenClaw runbooks:</strong> per-task cards for cloud/GPU budgets with audit trails.</li>
+          <li><strong>Agentic procurement:</strong> enterprise bots handling SaaS renewals and subscriptions.</li>
+          <li><strong>B2B API monetization:</strong> pay-per-action commerce with deterministic x402 settlement.</li>
+          <li><strong>Cross-border teams:</strong> centralized USDC treasury with distributed card execution.</li>
+          <li><strong>Marketplace agents:</strong> autonomous checkout and vendor payout orchestration.</li>
+        </ul>
+        <div class="tagline">Examples can be replicated for OpenClaw and similar agent frameworks.</div>
+      </section>
+
+      <section class="card">
+        <h2>Target Users (ICP)</h2>
+        <ul>
+          <li>Teams shipping agentic products (OpenClaw and similar stacks).</li>
+          <li>API platforms launching paid agent endpoints.</li>
+          <li>FinOps/operations teams requiring spend controls and traceability.</li>
+          <li>Treasury/compliance teams adopting USDC settlement rails.</li>
+          <li>Ecosystem and growth teams at Stellar and PayAI.</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="section">
+      <h2>Value by Platform</h2>
+    </section>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Value</th>
+            <th>Why It Matters</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Stellar</strong></td>
+            <td>USDC settlement growth plus brand leadership in agentic commerce.</td>
+            <td>Positions Stellar in the core agentic narrative and shows it is shipping with the trend, not reacting to it later.</td>
+          </tr>
+          <tr>
+            <td><strong>PayAI</strong></td>
+            <td>Facilitator adoption in production-grade partner flows.</td>
+            <td>Creates a visible reference integration for x402 monetization and orchestration.</td>
+          </tr>
+          <tr>
+            <td><strong>ASG Card + Partners</strong></td>
+            <td>New transaction revenue stream with low integration friction.</td>
+            <td>Faster pilot-to-scale conversion with measurable payment and usage KPIs.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="card" style="margin-top: 10px;">
+      <h2>Suggested Pilot Structure</h2>
+      <ol class="phase-list">
+        <li><strong>Phase 1 - Strategy & Design:</strong> select priority use cases (OpenClaw + 1-2 additional), define success criteria, compliance scope, and economics model.</li>
+        <li><strong>Phase 2 - Integration & Sandbox:</strong> connect x402 endpoints, facilitator flow, Stellar settlement checks, and observability baseline.</li>
+        <li><strong>Phase 3 - Controlled Pilot:</strong> launch limited partner cohort with transaction caps, approval policies, and KPI dashboards.</li>
+        <li><strong>Phase 4 - Commercial Scale:</strong> finalize pricing/GTM package, publish references, and expand to additional target users.</li>
+      </ol>
+    </section>
+
+    <div class="cta">
+      <strong>Primary CTA:</strong> Approve Phase 1 and start a joint pilot track with shared success metrics across product, BD, and operations.
+    </div>
+
+    <div class="footer">
+      <span>Prepared for partner discussions</span>
+      <span>Updated: February 20, 2026</span>
+    </div>
+  </article>
+</body>
+</html>

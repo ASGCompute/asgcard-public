@@ -1,0 +1,3 @@
+[    1251ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.asgcard.dev/pricing:0
+[    1678ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.asgcard.dev/api/pricing:0
+[    1720ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api.asgcard.dev/pricing:0

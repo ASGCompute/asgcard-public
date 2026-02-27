@@ -1,0 +1,970 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#docs-content"
+  - generic [ref=e4]:
+    - navigation "Documentation navigation" [ref=e5]:
+      - link "ASG Card" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e8]: ASG Card
+      - navigation [ref=e9]:
+        - generic [ref=e10]: Documentation
+        - link "Introduction" [ref=e11] [cursor=pointer]:
+          - /url: "#introduction"
+        - link "Overview" [ref=e12] [cursor=pointer]:
+          - /url: "#overview"
+        - link "SDK" [ref=e13] [cursor=pointer]:
+          - /url: "#sdk"
+        - link "Install" [ref=e14] [cursor=pointer]:
+          - /url: "#sdk-install"
+        - link "Quick Start" [ref=e15] [cursor=pointer]:
+          - /url: "#sdk-quick-start"
+        - link "Configuration" [ref=e16] [cursor=pointer]:
+          - /url: "#sdk-configuration"
+        - link "Methods" [ref=e17] [cursor=pointer]:
+          - /url: "#sdk-methods"
+        - link "Error Handling" [ref=e18] [cursor=pointer]:
+          - /url: "#sdk-error-handling"
+        - link "Low-Level Utilities" [ref=e19] [cursor=pointer]:
+          - /url: "#sdk-low-level"
+        - link "How It Works" [ref=e20] [cursor=pointer]:
+          - /url: "#sdk-how-it-works"
+        - link "Authentication" [ref=e21] [cursor=pointer]:
+          - /url: "#authentication"
+        - link "x402 Payment Flow" [ref=e22] [cursor=pointer]:
+          - /url: "#x402-payment-flow"
+        - link "Wallet Signature" [ref=e23] [cursor=pointer]:
+          - /url: "#wallet-signature"
+        - link "Pricing" [ref=e24] [cursor=pointer]:
+          - /url: "#pricing"
+        - link "Card Creation" [ref=e25] [cursor=pointer]:
+          - /url: "#card-creation"
+        - link "Card Funding" [ref=e26] [cursor=pointer]:
+          - /url: "#card-funding"
+        - link "Endpoints" [ref=e27] [cursor=pointer]:
+          - /url: "#endpoints"
+        - link "Public" [ref=e28] [cursor=pointer]:
+          - /url: "#public-endpoints"
+        - link "Paid (x402)" [ref=e29] [cursor=pointer]:
+          - /url: "#paid-endpoints"
+        - link "Wallet-Signed" [ref=e30] [cursor=pointer]:
+          - /url: "#wallet-signed-endpoints"
+        - link "Errors" [ref=e31] [cursor=pointer]:
+          - /url: "#errors"
+        - link "Rate Limits" [ref=e32] [cursor=pointer]:
+          - /url: "#rate-limits"
+        - link "Architecture" [ref=e33] [cursor=pointer]:
+          - /url: "#architecture"
+    - generic [ref=e34]:
+      - button "Toggle navigation" [ref=e35] [cursor=pointer]
+      - generic [ref=e39]:
+        - link "← Home" [ref=e40] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e41]: Documentation
+      - main [ref=e43]:
+        - region "Introduction" [ref=e44]:
+          - generic [ref=e45]:
+            - heading "ASG Card API Documentation" [level=1] [ref=e46]
+            - paragraph [ref=e47]: x402-powered virtual card issuance for AI agents on Solana. Pay with USDC, get a card in seconds.
+          - generic [ref=e48]:
+            - generic [ref=e49]: Base URL
+            - code [ref=e50]: https://api.asgcard.dev
+        - region "Overview" [ref=e51]:
+          - heading "Overview" [level=2] [ref=e52]
+          - paragraph [ref=e53]: "ASG Card exposes a REST API with three classes of endpoints:"
+          - table [ref=e55]:
+            - rowgroup [ref=e56]:
+              - row "Type Public Auth None Description Health check, pricing, tiers" [ref=e57]:
+                - cell "Type Public" [ref=e58]:
+                  - text: Type
+                  - generic [ref=e59]: Public
+                - cell "Auth None" [ref=e60]
+                - cell "Description Health check, pricing, tiers" [ref=e61]
+              - row "Type Paid (x402) Auth USDC payment on Solana Description Create/fund cards" [ref=e62]:
+                - cell "Type Paid (x402)" [ref=e63]:
+                  - text: Type
+                  - generic [ref=e64]: Paid (x402)
+                - cell "Auth USDC payment on Solana" [ref=e65]
+                - cell "Description Create/fund cards" [ref=e66]
+              - row "Type Wallet-signed Auth Ed25519 signature Description Card management" [ref=e67]:
+                - cell "Type Wallet-signed" [ref=e68]:
+                  - text: Type
+                  - generic [ref=e69]: Wallet-signed
+                - cell "Auth Ed25519 signature" [ref=e70]
+                - cell "Description Card management" [ref=e71]
+        - region "SDK" [ref=e72]:
+          - heading "SDK" [level=2] [ref=e73]
+          - paragraph [ref=e74]: The official client SDK wraps the raw x402 flow (402 → parse challenge → pay USDC → retry with proof) into one-liner methods. No need to handle the payment handshake yourself.
+          - heading "Install" [level=3] [ref=e75]
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - generic [ref=e78]: bash
+              - button "Copy code" [ref=e79] [cursor=pointer]:
+                - img [ref=e80]
+                - generic [ref=e83]: Copy
+            - code [ref=e85]: npm install @asgcard/sdk @solana/web3.js
+          - separator [ref=e86]
+          - heading "Quick Start" [level=3] [ref=e87]
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e90]: typescript
+              - button "Copy code" [ref=e91] [cursor=pointer]:
+                - img [ref=e92]
+                - generic [ref=e95]: Copy
+            - code [ref=e97]: "import { ASGCardClient } from '@asgcard/sdk'; const client = new ASGCardClient({ privateKey: '<base58_solana_key>', baseUrl: 'https://api.asgcard.dev', rpcUrl: 'https://api.mainnet-beta.solana.com', }); // One line — SDK handles payment automatically const card = await client.createCard({ amount: 10, // $10 tier nameOnCard: 'AI AGENT', email: 'agent@example.com', }); console.log(card.details); // { cardNumber, cvv, expiry, … }"
+          - separator [ref=e98]
+          - heading "Configuration" [level=3] [ref=e99]
+          - table [ref=e101]:
+            - rowgroup [ref=e102]:
+              - row "Parameter privateKey Type string Required One of two Default — Description Base58 Solana private key (32 or 64 bytes)" [ref=e103]:
+                - cell "Parameter privateKey" [ref=e104]:
+                  - text: Parameter
+                  - code [ref=e105]: privateKey
+                - cell "Type string" [ref=e106]:
+                  - text: Type
+                  - code [ref=e107]: string
+                - cell "Required One of two" [ref=e108]
+                - cell "Default —" [ref=e109]
+                - cell "Description Base58 Solana private key (32 or 64 bytes)" [ref=e110]
+              - row "Parameter walletAdapter Type WalletAdapter Required One of two Default — Description Solana wallet adapter ( publicKey + signTransaction )" [ref=e111]:
+                - cell "Parameter walletAdapter" [ref=e112]:
+                  - text: Parameter
+                  - code [ref=e113]: walletAdapter
+                - cell "Type WalletAdapter" [ref=e114]:
+                  - text: Type
+                  - code [ref=e115]: WalletAdapter
+                - cell "Required One of two" [ref=e116]
+                - cell "Default —" [ref=e117]
+                - cell "Description Solana wallet adapter ( publicKey + signTransaction )" [ref=e118]:
+                  - text: Description Solana wallet adapter (
+                  - code [ref=e119]: publicKey
+                  - text: +
+                  - code [ref=e120]: signTransaction
+                  - text: )
+              - row "Parameter baseUrl Type string Required No Default https://api.asgcard.dev Description API base URL" [ref=e121]:
+                - cell "Parameter baseUrl" [ref=e122]:
+                  - text: Parameter
+                  - code [ref=e123]: baseUrl
+                - cell "Type string" [ref=e124]:
+                  - text: Type
+                  - code [ref=e125]: string
+                - cell "Required No" [ref=e126]
+                - cell "Default https://api.asgcard.dev" [ref=e127]:
+                  - text: Default
+                  - code [ref=e128]: https://api.asgcard.dev
+                - cell "Description API base URL" [ref=e129]
+              - row "Parameter rpcUrl Type string Required No Default https://api.mainnet-beta.solana.com Description Solana RPC endpoint" [ref=e130]:
+                - cell "Parameter rpcUrl" [ref=e131]:
+                  - text: Parameter
+                  - code [ref=e132]: rpcUrl
+                - cell "Type string" [ref=e133]:
+                  - text: Type
+                  - code [ref=e134]: string
+                - cell "Required No" [ref=e135]
+                - cell "Default https://api.mainnet-beta.solana.com" [ref=e136]:
+                  - text: Default
+                  - code [ref=e137]: https://api.mainnet-beta.solana.com
+                - cell "Description Solana RPC endpoint" [ref=e138]
+              - row "Parameter timeout Type number Required No Default 60000 Description Request timeout in milliseconds" [ref=e139]:
+                - cell "Parameter timeout" [ref=e140]:
+                  - text: Parameter
+                  - code [ref=e141]: timeout
+                - cell "Type number" [ref=e142]:
+                  - text: Type
+                  - code [ref=e143]: number
+                - cell "Required No" [ref=e144]
+                - cell "Default 60000" [ref=e145]:
+                  - text: Default
+                  - code [ref=e146]: "60000"
+                - cell "Description Request timeout in milliseconds" [ref=e147]
+          - separator [ref=e148]
+          - heading "Methods" [level=3] [ref=e149]
+          - 'heading "client.createCard(params): Promise<CardResult>" [level=4] [ref=e150]':
+            - code [ref=e151]: "client.createCard(params): Promise<CardResult>"
+          - paragraph [ref=e152]: Create a virtual card. Pays USDC automatically.
+          - table [ref=e154]:
+            - rowgroup [ref=e155]:
+              - row "Field amount Type number Values 10 | 25 | 50 | 100 | 200 | 500" [ref=e156]:
+                - cell "Field amount" [ref=e157]:
+                  - text: Field
+                  - code [ref=e158]: amount
+                - cell "Type number" [ref=e159]:
+                  - text: Type
+                  - code [ref=e160]: number
+                - cell "Values 10 | 25 | 50 | 100 | 200 | 500" [ref=e161]:
+                  - text: Values
+                  - code [ref=e162]: 10 | 25 | 50 | 100 | 200 | 500
+              - row "Field nameOnCard Type string Values Name embossed on card" [ref=e163]:
+                - cell "Field nameOnCard" [ref=e164]:
+                  - text: Field
+                  - code [ref=e165]: nameOnCard
+                - cell "Type string" [ref=e166]:
+                  - text: Type
+                  - code [ref=e167]: string
+                - cell "Values Name embossed on card" [ref=e168]
+              - row "Field email Type string Values Delivery email" [ref=e169]:
+                - cell "Field email" [ref=e170]:
+                  - text: Field
+                  - code [ref=e171]: email
+                - cell "Type string" [ref=e172]:
+                  - text: Type
+                  - code [ref=e173]: string
+                - cell "Values Delivery email" [ref=e174]
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]: typescript
+              - button "Copy code" [ref=e178] [cursor=pointer]:
+                - img [ref=e179]
+                - generic [ref=e182]: Copy
+            - code [ref=e184]: "const result = await client.createCard({ amount: 50, nameOnCard: 'AI AGENT', email: 'agent@example.com', });"
+          - 'heading "client.fundCard(params): Promise<FundResult>" [level=4] [ref=e185]':
+            - code [ref=e186]: "client.fundCard(params): Promise<FundResult>"
+          - paragraph [ref=e187]: Fund an existing card.
+          - table [ref=e189]:
+            - rowgroup [ref=e190]:
+              - row "Field amount Type number Values 10 | 25 | 50 | 100 | 200 | 500" [ref=e191]:
+                - cell "Field amount" [ref=e192]:
+                  - text: Field
+                  - code [ref=e193]: amount
+                - cell "Type number" [ref=e194]:
+                  - text: Type
+                  - code [ref=e195]: number
+                - cell "Values 10 | 25 | 50 | 100 | 200 | 500" [ref=e196]:
+                  - text: Values
+                  - code [ref=e197]: 10 | 25 | 50 | 100 | 200 | 500
+              - row "Field cardId Type string Values UUID of existing card" [ref=e198]:
+                - cell "Field cardId" [ref=e199]:
+                  - text: Field
+                  - code [ref=e200]: cardId
+                - cell "Type string" [ref=e201]:
+                  - text: Type
+                  - code [ref=e202]: string
+                - cell "Values UUID of existing card" [ref=e203]
+          - generic [ref=e204]:
+            - generic [ref=e205]:
+              - generic [ref=e206]: typescript
+              - button "Copy code" [ref=e207] [cursor=pointer]:
+                - img [ref=e208]
+                - generic [ref=e211]: Copy
+            - code [ref=e213]: "const result = await client.fundCard({ amount: 25, cardId: 'card-uuid', });"
+          - 'heading "client.getTiers(): Promise<TierResponse>" [level=4] [ref=e214]':
+            - code [ref=e215]: "client.getTiers(): Promise<TierResponse>"
+          - paragraph [ref=e216]: Get pricing tiers and fee breakdown (no payment required).
+          - 'heading "client.health(): Promise<HealthResponse>" [level=4] [ref=e217]':
+            - code [ref=e218]: "client.health(): Promise<HealthResponse>"
+          - paragraph [ref=e219]: Check if the ASG Card API is reachable.
+          - 'heading "client.address: string" [level=4] [ref=e220]':
+            - code [ref=e221]: "client.address: string"
+          - paragraph [ref=e222]: The Solana wallet address (base58) being used for payments.
+          - separator [ref=e223]
+          - heading "Error Handling" [level=3] [ref=e224]
+          - generic [ref=e225]:
+            - generic [ref=e226]:
+              - generic [ref=e227]: typescript
+              - button "Copy code" [ref=e228] [cursor=pointer]:
+                - img [ref=e229]
+                - generic [ref=e232]: Copy
+            - code [ref=e234]: "import { ASGCardClient, InsufficientBalanceError, PaymentError, ApiError, TimeoutError, } from '@asgcard/sdk'; try { const card = await client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com' }); } catch (error) { if (error instanceof InsufficientBalanceError) { console.log(`Need ${error.required}, have ${error.available}`); } else if (error instanceof PaymentError) { console.log(`Payment failed: ${error.message}, tx: ${error.txHash}`); } else if (error instanceof ApiError) { console.log(`Server error ${error.status}:`, error.body); } else if (error instanceof TimeoutError) { console.log('Request timed out'); } }"
+          - table [ref=e236]:
+            - rowgroup [ref=e237]:
+              - row "Class InsufficientBalanceError Fields required , available When USDC balance < required" [ref=e238]:
+                - cell "Class InsufficientBalanceError" [ref=e239]:
+                  - text: Class
+                  - code [ref=e240]: InsufficientBalanceError
+                - cell "Fields required , available" [ref=e241]:
+                  - text: Fields
+                  - code [ref=e242]: required
+                  - text: ","
+                  - code [ref=e243]: available
+                - cell "When USDC balance < required" [ref=e244]
+              - row "Class PaymentError Fields message , txHash? When Solana tx failed" [ref=e245]:
+                - cell "Class PaymentError" [ref=e246]:
+                  - text: Class
+                  - code [ref=e247]: PaymentError
+                - cell "Fields message , txHash?" [ref=e248]:
+                  - text: Fields
+                  - code [ref=e249]: message
+                  - text: ","
+                  - code [ref=e250]: txHash?
+                - cell "When Solana tx failed" [ref=e251]
+              - row "Class ApiError Fields status , body When Server returned non-2xx" [ref=e252]:
+                - cell "Class ApiError" [ref=e253]:
+                  - text: Class
+                  - code [ref=e254]: ApiError
+                - cell "Fields status , body" [ref=e255]:
+                  - text: Fields
+                  - code [ref=e256]: status
+                  - text: ","
+                  - code [ref=e257]: body
+                - cell "When Server returned non-2xx" [ref=e258]
+              - row "Class TimeoutError Fields message When Request exceeded timeout" [ref=e259]:
+                - cell "Class TimeoutError" [ref=e260]:
+                  - text: Class
+                  - code [ref=e261]: TimeoutError
+                - cell "Fields message" [ref=e262]:
+                  - text: Fields
+                  - code [ref=e263]: message
+                - cell "When Request exceeded timeout" [ref=e264]
+          - separator [ref=e265]
+          - heading "Low-Level x402 Utilities" [level=3] [ref=e266]
+          - paragraph [ref=e267]: "For full control over the payment flow:"
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - generic [ref=e270]: typescript
+              - button "Copy code" [ref=e271] [cursor=pointer]:
+                - img [ref=e272]
+                - generic [ref=e275]: Copy
+            - code [ref=e277]: "import { parseChallenge, checkBalance, executePayment, buildPaymentProof, handleX402Payment, } from '@asgcard/sdk';"
+          - table [ref=e279]:
+            - rowgroup [ref=e280]:
+              - 'row "Function parseChallenge Signature (input: unknown) → X402Accept Description Parse 402 challenge, returns first accepted method" [ref=e281]':
+                - cell "Function parseChallenge" [ref=e282]:
+                  - text: Function
+                  - code [ref=e283]: parseChallenge
+                - 'cell "Signature (input: unknown) → X402Accept" [ref=e284]':
+                  - text: Signature
+                  - code [ref=e285]: "(input: unknown) → X402Accept"
+                - cell "Description Parse 402 challenge, returns first accepted method" [ref=e286]
+              - row "Function checkBalance Signature (params) → Promise<void> Description Throws InsufficientBalanceError if USDC < required" [ref=e287]:
+                - cell "Function checkBalance" [ref=e288]:
+                  - text: Function
+                  - code [ref=e289]: checkBalance
+                - cell "Signature (params) → Promise<void>" [ref=e290]:
+                  - text: Signature
+                  - code [ref=e291]: (params) → Promise<void>
+                - cell "Description Throws InsufficientBalanceError if USDC < required" [ref=e292]:
+                  - text: Description Throws
+                  - code [ref=e293]: InsufficientBalanceError
+                  - text: if USDC < required
+              - row "Function executePayment Signature (params) → Promise<string> Description Sends USDC on Solana, returns txHash" [ref=e294]:
+                - cell "Function executePayment" [ref=e295]:
+                  - text: Function
+                  - code [ref=e296]: executePayment
+                - cell "Signature (params) → Promise<string>" [ref=e297]:
+                  - text: Signature
+                  - code [ref=e298]: (params) → Promise<string>
+                - cell "Description Sends USDC on Solana, returns txHash" [ref=e299]
+              - row "Function buildPaymentProof Signature (input) → string Description Builds base64-encoded X-Payment header value" [ref=e300]:
+                - cell "Function buildPaymentProof" [ref=e301]:
+                  - text: Function
+                  - code [ref=e302]: buildPaymentProof
+                - cell "Signature (input) → string" [ref=e303]:
+                  - text: Signature
+                  - code [ref=e304]: (input) → string
+                - cell "Description Builds base64-encoded X-Payment header value" [ref=e305]
+              - 'row "Function handleX402Payment Signature (params) → Promise<string> Description Full cycle: parse → pay → build proof" [ref=e306]':
+                - cell "Function handleX402Payment" [ref=e307]:
+                  - text: Function
+                  - code [ref=e308]: handleX402Payment
+                - cell "Signature (params) → Promise<string>" [ref=e309]:
+                  - text: Signature
+                  - code [ref=e310]: (params) → Promise<string>
+                - 'cell "Description Full cycle: parse → pay → build proof" [ref=e311]'
+          - separator [ref=e312]
+          - heading "How It Works" [level=3] [ref=e313]
+          - paragraph [ref=e314]: "Sequence diagram showing the SDK flow:"
+          - 'img "SDK payment sequence: Your Code calls createCard on SDK, SDK sends POST to ASG API, receives 402, pays USDC on Solana, retries with X-Payment header, receives 201 with card details." [ref=e315]':
+            - img [ref=e316]:
+              - generic [ref=e317]: Your Code
+              - generic [ref=e318]: SDK
+              - generic [ref=e319]: ASG API
+              - generic [ref=e320]: Solana
+              - generic [ref=e322]: createCard()
+              - generic [ref=e324]: POST /cards/create
+              - generic [ref=e326]: 402 + challenge
+              - generic [ref=e328]: SPL USDC transfer
+              - generic [ref=e330]: txHash
+              - generic [ref=e332]: POST + X-Payment
+              - generic [ref=e334]: 201 + card details
+              - generic [ref=e336]: CardResult
+            - paragraph [ref=e337]: SDK handles the 402 → pay → retry cycle automatically.
+        - region "Authentication" [ref=e338]:
+          - heading "Authentication" [level=2] [ref=e339]
+          - paragraph [ref=e340]: ASG Card uses two authentication modes depending on the endpoint.
+          - heading "x402 Payment Flow" [level=3] [ref=e341]
+          - paragraph [ref=e342]:
+            - text: Paid endpoints (
+            - code [ref=e343]: POST /cards/create/tier/:amount
+            - text: ","
+            - code [ref=e344]: POST /cards/fund/tier/:amount
+            - text: ") use the x402 protocol. The flow has 4 steps:"
+          - heading "Step 1 — Request without payment" [level=4] [ref=e345]
+          - generic [ref=e346]:
+            - generic [ref=e347]:
+              - generic [ref=e348]: bash
+              - button "Copy code" [ref=e349] [cursor=pointer]:
+                - img [ref=e350]
+                - generic [ref=e353]: Copy
+            - code [ref=e355]: "curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\ -H \"Content-Type: application/json\" \\ -d '{\"nameOnCard\": \"AGENT ALPHA\", \"email\": \"agent@example.com\"}'"
+          - heading "Step 2 — Receive 402 with payment instructions" [level=4] [ref=e356]
+          - paragraph [ref=e357]:
+            - text: The server responds with
+            - code [ref=e358]: HTTP 402
+            - text: "and a challenge JSON:"
+          - generic [ref=e359]:
+            - generic [ref=e360]:
+              - generic [ref=e361]: json
+              - button "Copy code" [ref=e362] [cursor=pointer]:
+                - img [ref=e363]
+                - generic [ref=e366]: Copy
+            - code [ref=e368]: "{ \"x402Version\": 1, \"accepts\": [{ \"scheme\": \"exact\", \"network\": \"solana:mainnet\", \"asset\": \"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\", \"maxAmountRequired\": \"17200000\", \"payTo\": \"<TREASURY_PUBKEY>\", \"maxTimeoutSeconds\": 300, \"resource\": \"/cards/create/tier/10\", \"description\": \"Create ASG Card with $10 load\" }] }"
+          - table [ref=e370]:
+            - rowgroup [ref=e371]:
+              - row "Field scheme Description Always \"exact\"" [ref=e372]:
+                - cell "Field scheme" [ref=e373]:
+                  - text: Field
+                  - code [ref=e374]: scheme
+                - cell "Description Always \"exact\"" [ref=e375]:
+                  - text: Description Always
+                  - code [ref=e376]: "\"exact\""
+              - row "Field network Description \"solana:mainnet\"" [ref=e377]:
+                - cell "Field network" [ref=e378]:
+                  - text: Field
+                  - code [ref=e379]: network
+                - cell "Description \"solana:mainnet\"" [ref=e380]:
+                  - text: Description
+                  - code [ref=e381]: "\"solana:mainnet\""
+              - row "Field asset Description USDC SPL mint address" [ref=e382]:
+                - cell "Field asset" [ref=e383]:
+                  - text: Field
+                  - code [ref=e384]: asset
+                - cell "Description USDC SPL mint address" [ref=e385]
+              - row "Field maxAmountRequired Description Amount in atomic USDC (6 decimals)" [ref=e386]:
+                - cell "Field maxAmountRequired" [ref=e387]:
+                  - text: Field
+                  - code [ref=e388]: maxAmountRequired
+                - cell "Description Amount in atomic USDC (6 decimals)" [ref=e389]
+              - row "Field payTo Description ASG Treasury public key" [ref=e390]:
+                - cell "Field payTo" [ref=e391]:
+                  - text: Field
+                  - code [ref=e392]: payTo
+                - cell "Description ASG Treasury public key" [ref=e393]
+              - row "Field maxTimeoutSeconds Description Payment window (300s)" [ref=e394]:
+                - cell "Field maxTimeoutSeconds" [ref=e395]:
+                  - text: Field
+                  - code [ref=e396]: maxTimeoutSeconds
+                - cell "Description Payment window (300s)" [ref=e397]
+          - heading "Step 3 — Agent pays USDC on Solana" [level=4] [ref=e398]
+          - paragraph [ref=e399]:
+            - text: Parse the
+            - code [ref=e400]: accepts
+            - text: array and send the specified USDC amount to the
+            - code [ref=e401]: payTo
+            - text: address using an SPL token transfer on Solana.
+          - heading "Step 4 — Retry with payment proof" [level=4] [ref=e402]
+          - paragraph [ref=e403]:
+            - text: Re-send the original request with an
+            - code [ref=e404]: X-Payment
+            - text: "header containing base64-encoded JSON:"
+          - generic [ref=e405]:
+            - generic [ref=e406]:
+              - generic [ref=e407]: json
+              - button "Copy code" [ref=e408] [cursor=pointer]:
+                - img [ref=e409]
+                - generic [ref=e412]: Copy
+            - code [ref=e414]: "{ \"scheme\": \"exact\", \"network\": \"solana:mainnet\", \"payload\": { \"authorization\": { \"from\": \"<AGENT_PUBKEY>\", \"to\": \"<TREASURY_PUBKEY>\", \"value\": \"17200000\" }, \"txHash\": \"<SOLANA_TX_SIGNATURE>\" } }"
+          - generic [ref=e415]:
+            - strong [ref=e416]: "Transport:"
+            - code [ref=e417]: "X-Payment: base64(JSON)"
+            - text: — the SDK handles this automatically.
+          - separator [ref=e418]
+          - heading "Wallet Signature — Free Endpoints" [level=3] [ref=e419]
+          - paragraph [ref=e420]: Wallet-signed endpoints (card management) require Ed25519 signature authentication.
+          - heading "Required Headers" [level=4] [ref=e421]
+          - table [ref=e423]:
+            - rowgroup [ref=e424]:
+              - row "Header X-WALLET-ADDRESS Description Solana public key (base58)" [ref=e425]:
+                - cell "Header X-WALLET-ADDRESS" [ref=e426]:
+                  - text: Header
+                  - code [ref=e427]: X-WALLET-ADDRESS
+                - cell "Description Solana public key (base58)" [ref=e428]
+              - row "Header X-WALLET-SIGNATURE Description Ed25519 detached signature (base58)" [ref=e429]:
+                - cell "Header X-WALLET-SIGNATURE" [ref=e430]:
+                  - text: Header
+                  - code [ref=e431]: X-WALLET-SIGNATURE
+                - cell "Description Ed25519 detached signature (base58)" [ref=e432]
+              - row "Header X-WALLET-TIMESTAMP Description Unix timestamp (seconds)" [ref=e433]:
+                - cell "Header X-WALLET-TIMESTAMP" [ref=e434]:
+                  - text: Header
+                  - code [ref=e435]: X-WALLET-TIMESTAMP
+                - cell "Description Unix timestamp (seconds)" [ref=e436]
+          - heading "Signature Protocol" [level=4] [ref=e437]
+          - generic [ref=e438]:
+            - generic [ref=e439]:
+              - generic [ref=e440]: text
+              - button "Copy code" [ref=e441] [cursor=pointer]:
+                - img [ref=e442]
+                - generic [ref=e445]: Copy
+            - code [ref=e447]: message = "asgcard-auth:<unixTimestamp>" algorithm = Ed25519 detached validity window = ±5 minutes
+          - generic [ref=e448]:
+            - generic [ref=e449]:
+              - generic [ref=e450]: typescript
+              - button "Copy code" [ref=e451] [cursor=pointer]:
+                - img [ref=e452]
+                - generic [ref=e455]: Copy
+            - code [ref=e457]: "import nacl from 'tweetnacl'; import bs58 from 'bs58'; import { Keypair } from '@solana/web3.js'; const keypair = Keypair.fromSecretKey(/* base58-decoded secret key */); const timestamp = Math.floor(Date.now() / 1000); const message = `asgcard-auth:${timestamp}`; const signature = nacl.sign.detached( Buffer.from(message), keypair.secretKey, ); const response = await fetch('https://api.asgcard.dev/cards', { headers: { 'X-WALLET-ADDRESS': keypair.publicKey.toBase58(), 'X-WALLET-SIGNATURE': bs58.encode(signature), 'X-WALLET-TIMESTAMP': String(timestamp), }, });"
+        - region "Pricing" [ref=e458]:
+          - heading "Pricing" [level=2] [ref=e459]
+          - generic [ref=e460]:
+            - text: Pricing is served by
+            - code [ref=e461]: GET /pricing
+            - text: and reflected in the tables below.
+          - paragraph [ref=e462]: All amounts are in USD. 1 USDC = 1,000,000 atomic units.
+          - heading "Card Creation" [level=3] [ref=e463]
+          - paragraph [ref=e464]: Creating a new virtual card includes the card load amount plus fees.
+          - table [ref=e466]:
+            - rowgroup [ref=e467]:
+              - row "Load $10.00 Issuance $3.00 Top-Up $2.20 Service $2.00 Total $17.20 Endpoint /cards/create/tier/10" [ref=e468]:
+                - cell "Load $10.00" [ref=e469]
+                - cell "Issuance $3.00" [ref=e470]
+                - cell "Top-Up $2.20" [ref=e471]
+                - cell "Service $2.00" [ref=e472]
+                - cell "Total $17.20" [ref=e473]:
+                  - text: Total
+                  - strong [ref=e474]: $17.20
+                - cell "Endpoint /cards/create/tier/10" [ref=e475]:
+                  - text: Endpoint
+                  - code [ref=e476]: /cards/create/tier/10
+              - row "Load $25.00 Issuance $3.00 Top-Up $2.50 Service $2.00 Total $32.50 Endpoint /cards/create/tier/25" [ref=e477]:
+                - cell "Load $25.00" [ref=e478]
+                - cell "Issuance $3.00" [ref=e479]
+                - cell "Top-Up $2.50" [ref=e480]
+                - cell "Service $2.00" [ref=e481]
+                - cell "Total $32.50" [ref=e482]:
+                  - text: Total
+                  - strong [ref=e483]: $32.50
+                - cell "Endpoint /cards/create/tier/25" [ref=e484]:
+                  - text: Endpoint
+                  - code [ref=e485]: /cards/create/tier/25
+              - row "Load $50.00 Issuance $3.00 Top-Up $3.00 Service $2.00 Total $58.00 Endpoint /cards/create/tier/50" [ref=e486]:
+                - cell "Load $50.00" [ref=e487]
+                - cell "Issuance $3.00" [ref=e488]
+                - cell "Top-Up $3.00" [ref=e489]
+                - cell "Service $2.00" [ref=e490]
+                - cell "Total $58.00" [ref=e491]:
+                  - text: Total
+                  - strong [ref=e492]: $58.00
+                - cell "Endpoint /cards/create/tier/50" [ref=e493]:
+                  - text: Endpoint
+                  - code [ref=e494]: /cards/create/tier/50
+              - row "Load $100.00 Issuance $3.00 Top-Up $4.00 Service $3.00 Total $110.00 Endpoint /cards/create/tier/100" [ref=e495]:
+                - cell "Load $100.00" [ref=e496]
+                - cell "Issuance $3.00" [ref=e497]
+                - cell "Top-Up $4.00" [ref=e498]
+                - cell "Service $3.00" [ref=e499]
+                - cell "Total $110.00" [ref=e500]:
+                  - text: Total
+                  - strong [ref=e501]: $110.00
+                - cell "Endpoint /cards/create/tier/100" [ref=e502]:
+                  - text: Endpoint
+                  - code [ref=e503]: /cards/create/tier/100
+              - row "Load $200.00 Issuance $3.00 Top-Up $6.00 Service $5.00 Total $214.00 Endpoint /cards/create/tier/200" [ref=e504]:
+                - cell "Load $200.00" [ref=e505]
+                - cell "Issuance $3.00" [ref=e506]
+                - cell "Top-Up $6.00" [ref=e507]
+                - cell "Service $5.00" [ref=e508]
+                - cell "Total $214.00" [ref=e509]:
+                  - text: Total
+                  - strong [ref=e510]: $214.00
+                - cell "Endpoint /cards/create/tier/200" [ref=e511]:
+                  - text: Endpoint
+                  - code [ref=e512]: /cards/create/tier/200
+              - row "Load $500.00 Issuance $3.00 Top-Up $12.00 Service $7.00 Total $522.00 Endpoint /cards/create/tier/500" [ref=e513]:
+                - cell "Load $500.00" [ref=e514]
+                - cell "Issuance $3.00" [ref=e515]
+                - cell "Top-Up $12.00" [ref=e516]
+                - cell "Service $7.00" [ref=e517]
+                - cell "Total $522.00" [ref=e518]:
+                  - text: Total
+                  - strong [ref=e519]: $522.00
+                - cell "Endpoint /cards/create/tier/500" [ref=e520]:
+                  - text: Endpoint
+                  - code [ref=e521]: /cards/create/tier/500
+          - separator [ref=e522]
+          - heading "Card Funding" [level=3] [ref=e523]
+          - paragraph [ref=e524]: Adding funds to an existing card — no issuance fee.
+          - table [ref=e526]:
+            - rowgroup [ref=e527]:
+              - row "Fund $10.00 Top-Up $2.20 Service $2.00 Total $14.20 Endpoint /cards/fund/tier/10" [ref=e528]:
+                - cell "Fund $10.00" [ref=e529]
+                - cell "Top-Up $2.20" [ref=e530]
+                - cell "Service $2.00" [ref=e531]
+                - cell "Total $14.20" [ref=e532]:
+                  - text: Total
+                  - strong [ref=e533]: $14.20
+                - cell "Endpoint /cards/fund/tier/10" [ref=e534]:
+                  - text: Endpoint
+                  - code [ref=e535]: /cards/fund/tier/10
+              - row "Fund $25.00 Top-Up $2.50 Service $2.00 Total $29.50 Endpoint /cards/fund/tier/25" [ref=e536]:
+                - cell "Fund $25.00" [ref=e537]
+                - cell "Top-Up $2.50" [ref=e538]
+                - cell "Service $2.00" [ref=e539]
+                - cell "Total $29.50" [ref=e540]:
+                  - text: Total
+                  - strong [ref=e541]: $29.50
+                - cell "Endpoint /cards/fund/tier/25" [ref=e542]:
+                  - text: Endpoint
+                  - code [ref=e543]: /cards/fund/tier/25
+              - row "Fund $50.00 Top-Up $3.00 Service $2.00 Total $55.00 Endpoint /cards/fund/tier/50" [ref=e544]:
+                - cell "Fund $50.00" [ref=e545]
+                - cell "Top-Up $3.00" [ref=e546]
+                - cell "Service $2.00" [ref=e547]
+                - cell "Total $55.00" [ref=e548]:
+                  - text: Total
+                  - strong [ref=e549]: $55.00
+                - cell "Endpoint /cards/fund/tier/50" [ref=e550]:
+                  - text: Endpoint
+                  - code [ref=e551]: /cards/fund/tier/50
+              - row "Fund $100.00 Top-Up $4.00 Service $3.00 Total $107.00 Endpoint /cards/fund/tier/100" [ref=e552]:
+                - cell "Fund $100.00" [ref=e553]
+                - cell "Top-Up $4.00" [ref=e554]
+                - cell "Service $3.00" [ref=e555]
+                - cell "Total $107.00" [ref=e556]:
+                  - text: Total
+                  - strong [ref=e557]: $107.00
+                - cell "Endpoint /cards/fund/tier/100" [ref=e558]:
+                  - text: Endpoint
+                  - code [ref=e559]: /cards/fund/tier/100
+              - row "Fund $200.00 Top-Up $6.00 Service $5.00 Total $211.00 Endpoint /cards/fund/tier/200" [ref=e560]:
+                - cell "Fund $200.00" [ref=e561]
+                - cell "Top-Up $6.00" [ref=e562]
+                - cell "Service $5.00" [ref=e563]
+                - cell "Total $211.00" [ref=e564]:
+                  - text: Total
+                  - strong [ref=e565]: $211.00
+                - cell "Endpoint /cards/fund/tier/200" [ref=e566]:
+                  - text: Endpoint
+                  - code [ref=e567]: /cards/fund/tier/200
+              - row "Fund $500.00 Top-Up $12.00 Service $7.00 Total $519.00 Endpoint /cards/fund/tier/500" [ref=e568]:
+                - cell "Fund $500.00" [ref=e569]
+                - cell "Top-Up $12.00" [ref=e570]
+                - cell "Service $7.00" [ref=e571]
+                - cell "Total $519.00" [ref=e572]:
+                  - text: Total
+                  - strong [ref=e573]: $519.00
+                - cell "Endpoint /cards/fund/tier/500" [ref=e574]:
+                  - text: Endpoint
+                  - code [ref=e575]: /cards/fund/tier/500
+        - region "Endpoints" [ref=e576]:
+          - heading "Endpoints" [level=2] [ref=e577]
+          - heading "Public Endpoints" [level=3] [ref=e578]
+          - paragraph [ref=e579]: No authentication required.
+          - generic [ref=e580]:
+            - generic [ref=e581]:
+              - generic [ref=e582]: GET
+              - code [ref=e583]: /health
+            - paragraph [ref=e584]: Health check. No authentication required.
+            - strong [ref=e585]: "Response 200:"
+            - generic [ref=e586]:
+              - generic [ref=e587]:
+                - generic [ref=e588]: json
+                - button "Copy code" [ref=e589] [cursor=pointer]:
+                  - img [ref=e590]
+                  - generic [ref=e593]: Copy
+              - code [ref=e595]: "{ \"status\": \"ok\", \"timestamp\": \"2026-02-11T14:00:00.000Z\", \"version\": \"1.0.0\" }"
+          - generic [ref=e596]:
+            - generic [ref=e597]:
+              - generic [ref=e598]: GET
+              - code [ref=e599]: /pricing
+            - paragraph [ref=e600]: Returns full pricing breakdown for all creation and funding tiers.
+            - strong [ref=e601]: "Response 200:"
+            - generic [ref=e602]:
+              - generic [ref=e603]:
+                - generic [ref=e604]: json
+                - button "Copy code" [ref=e605] [cursor=pointer]:
+                  - img [ref=e606]
+                  - generic [ref=e609]: Copy
+              - code [ref=e611]: "{ \"creation\": { \"tiers\": [{ \"loadAmount\": 10, \"totalCost\": 17.2, \"issuanceFee\": 3.0, \"topUpFee\": 2.2, \"ourFee\": 2.0, \"endpoint\": \"/cards/create/tier/10\" }] }, \"funding\": { \"tiers\": [{ \"fundAmount\": 10, \"totalCost\": 14.2, \"topUpFee\": 2.2, \"ourFee\": 2.0, \"endpoint\": \"/cards/fund/tier/10\" }] } }"
+          - generic [ref=e612]:
+            - generic [ref=e613]:
+              - generic [ref=e614]: GET
+              - code [ref=e615]: /cards/tiers
+            - paragraph [ref=e616]: Returns available tiers with endpoints and detailed fee breakdowns.
+            - strong [ref=e617]: "Response 200:"
+            - generic [ref=e618]:
+              - generic [ref=e619]:
+                - generic [ref=e620]: json
+                - button "Copy code" [ref=e621] [cursor=pointer]:
+                  - img [ref=e622]
+                  - generic [ref=e625]: Copy
+              - code [ref=e627]: "{ \"creation\": [{ \"loadAmount\": 10, \"totalCost\": 17.2, \"endpoint\": \"/cards/create/tier/10\", \"breakdown\": { \"cardLoad\": 10, \"issuanceFee\": 3, \"topUpFee\": 2.2, \"ourFee\": 2, \"buffer\": 0 } }], \"funding\": [{ \"fundAmount\": 10, \"totalCost\": 14.2, \"endpoint\": \"/cards/fund/tier/10\", \"breakdown\": { \"fundAmount\": 10, \"topUpFee\": 2.2, \"ourFee\": 2 } }] }"
+          - separator [ref=e628]
+          - heading "Paid Endpoints — x402" [level=3] [ref=e629]
+          - paragraph [ref=e630]:
+            - text: These endpoints require USDC payment via the x402 protocol on Solana. See
+            - link "Authentication → x402 Payment Flow" [ref=e631] [cursor=pointer]:
+              - /url: "#x402-payment-flow"
+            - text: .
+          - generic [ref=e632]:
+            - generic [ref=e633]:
+              - generic [ref=e634]: POST
+              - code [ref=e635]: /cards/create/tier/:amount
+            - paragraph [ref=e636]: Create a new virtual card loaded with the specified tier amount.
+            - paragraph [ref=e637]:
+              - strong [ref=e638]: "Available tiers:"
+              - code [ref=e639]: "10"
+              - text: ","
+              - code [ref=e640]: "25"
+              - text: ","
+              - code [ref=e641]: "50"
+              - text: ","
+              - code [ref=e642]: "100"
+              - text: ","
+              - code [ref=e643]: "200"
+              - text: ","
+              - code [ref=e644]: "500"
+            - strong [ref=e645]: "Request body:"
+            - table [ref=e647]:
+              - rowgroup [ref=e648]:
+                - row "Field nameOnCard Type string Required Yes Description Min 1 char" [ref=e649]:
+                  - cell "Field nameOnCard" [ref=e650]:
+                    - text: Field
+                    - code [ref=e651]: nameOnCard
+                  - cell "Type string" [ref=e652]:
+                    - text: Type
+                    - code [ref=e653]: string
+                  - cell "Required Yes" [ref=e654]
+                  - cell "Description Min 1 char" [ref=e655]
+                - row "Field email Type string Required Yes Description Valid email" [ref=e656]:
+                  - cell "Field email" [ref=e657]:
+                    - text: Field
+                    - code [ref=e658]: email
+                  - cell "Type string" [ref=e659]:
+                    - text: Type
+                    - code [ref=e660]: string
+                  - cell "Required Yes" [ref=e661]
+                  - cell "Description Valid email" [ref=e662]
+            - strong [ref=e663]: "Response 201 Created:"
+            - generic [ref=e664]:
+              - generic [ref=e665]:
+                - generic [ref=e666]: json
+                - button "Copy code" [ref=e667] [cursor=pointer]:
+                  - img [ref=e668]
+                  - generic [ref=e671]: Copy
+              - code [ref=e673]: "{ \"success\": true, \"card\": { \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"nameOnCard\": \"AGENT ALPHA\", \"balance\": 10, \"status\": \"active\", \"createdAt\": \"2026-02-11T14:00:00.000Z\" }, \"payment\": { \"amountCharged\": 17.2, \"txHash\": \"<solana_signature>\", \"network\": \"solana\" }, \"details\": { \"cardNumber\": \"4111111111111111\", \"expiryMonth\": 12, \"expiryYear\": 2028, \"cvv\": \"123\", \"billingAddress\": { \"street\": \"123 Main St\", \"city\": \"San Francisco\", \"state\": \"CA\", \"zip\": \"94105\", \"country\": \"US\" } } }"
+          - generic [ref=e674]:
+            - generic [ref=e675]:
+              - generic [ref=e676]: POST
+              - code [ref=e677]: /cards/fund/tier/:amount
+            - paragraph [ref=e678]: Add funds to an existing card.
+            - strong [ref=e679]: "Request body:"
+            - table [ref=e681]:
+              - rowgroup [ref=e682]:
+                - row "Field cardId Type string Required Yes Description UUID of existing card" [ref=e683]:
+                  - cell "Field cardId" [ref=e684]:
+                    - text: Field
+                    - code [ref=e685]: cardId
+                  - cell "Type string" [ref=e686]:
+                    - text: Type
+                    - code [ref=e687]: string
+                  - cell "Required Yes" [ref=e688]
+                  - cell "Description UUID of existing card" [ref=e689]
+            - strong [ref=e690]: "Response 200 OK:"
+            - generic [ref=e691]:
+              - generic [ref=e692]:
+                - generic [ref=e693]: json
+                - button "Copy code" [ref=e694] [cursor=pointer]:
+                  - img [ref=e695]
+                  - generic [ref=e698]: Copy
+              - code [ref=e700]: "{ \"success\": true, \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"fundedAmount\": 25, \"newBalance\": 35.0, \"payment\": { \"amountCharged\": 29.5, \"txHash\": \"<solana_signature>\", \"network\": \"solana\" } }"
+          - separator [ref=e701]
+          - heading "Wallet-Signed Endpoints" [level=3] [ref=e702]
+          - paragraph [ref=e703]:
+            - text: These endpoints are free but require wallet signature authentication. See
+            - link "Authentication → Wallet Signature" [ref=e704] [cursor=pointer]:
+              - /url: "#wallet-signature"
+            - text: .
+          - generic [ref=e705]:
+            - generic [ref=e706]:
+              - generic [ref=e707]: GET
+              - code [ref=e708]: /cards
+            - paragraph [ref=e709]: List all cards owned by the authenticated wallet.
+            - strong [ref=e710]: "Response 200:"
+            - generic [ref=e711]:
+              - generic [ref=e712]:
+                - generic [ref=e713]: json
+                - button "Copy code" [ref=e714] [cursor=pointer]:
+                  - img [ref=e715]
+                  - generic [ref=e718]: Copy
+              - code [ref=e720]: "{ \"cards\": [{ \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"nameOnCard\": \"AGENT ALPHA\", \"lastFour\": \"1111\", \"balance\": 10.0, \"status\": \"active\", \"createdAt\": \"2026-02-11T14:00:00.000Z\" }] }"
+          - generic [ref=e721]:
+            - generic [ref=e722]:
+              - generic [ref=e723]: GET
+              - code [ref=e724]: /cards/:cardId
+            - paragraph [ref=e725]: Get detailed info for a specific card.
+            - strong [ref=e726]: "Response 200:"
+            - generic [ref=e727]:
+              - generic [ref=e728]:
+                - generic [ref=e729]: json
+                - button "Copy code" [ref=e730] [cursor=pointer]:
+                  - img [ref=e731]
+                  - generic [ref=e734]: Copy
+              - code [ref=e736]: "{ \"card\": { \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"nameOnCard\": \"AGENT ALPHA\", \"email\": \"agent@example.com\", \"balance\": 8.5, \"initialAmountUsd\": 10, \"status\": \"active\", \"createdAt\": \"2026-02-11T14:00:00.000Z\", \"updatedAt\": \"2026-02-11T15:30:00.000Z\" } }"
+          - generic [ref=e737]:
+            - generic [ref=e738]:
+              - generic [ref=e739]: GET
+              - code [ref=e740]: /cards/:cardId/details
+            - paragraph [ref=e741]: Retrieve sensitive card details — full card number, CVV, expiry, and billing address.
+            - generic [ref=e742]:
+              - text: Rate limited to
+              - strong [ref=e743]: 3 requests per card per hour
+              - text: .
+            - strong [ref=e744]: "Response 200:"
+            - generic [ref=e745]:
+              - generic [ref=e746]:
+                - generic [ref=e747]: json
+                - button "Copy code" [ref=e748] [cursor=pointer]:
+                  - img [ref=e749]
+                  - generic [ref=e752]: Copy
+              - code [ref=e754]: "{ \"details\": { \"cardNumber\": \"4111111111111111\", \"expiryMonth\": 12, \"expiryYear\": 2028, \"cvv\": \"123\", \"billingAddress\": { \"street\": \"123 Main St\", \"city\": \"San Francisco\", \"state\": \"CA\", \"zip\": \"94105\", \"country\": \"US\" } } }"
+          - generic [ref=e755]:
+            - generic [ref=e756]:
+              - generic [ref=e757]: POST
+              - code [ref=e758]: /cards/:cardId/freeze
+            - paragraph [ref=e759]: Freeze a card. Blocks all transactions until unfrozen.
+            - strong [ref=e760]: "Response 200:"
+            - generic [ref=e761]:
+              - generic [ref=e762]:
+                - generic [ref=e763]: json
+                - button "Copy code" [ref=e764] [cursor=pointer]:
+                  - img [ref=e765]
+                  - generic [ref=e768]: Copy
+              - code [ref=e770]: "{ \"success\": true, \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"status\": \"frozen\" }"
+          - generic [ref=e771]:
+            - generic [ref=e772]:
+              - generic [ref=e773]: POST
+              - code [ref=e774]: /cards/:cardId/unfreeze
+            - paragraph [ref=e775]: Unfreeze a previously frozen card.
+            - strong [ref=e776]: "Response 200:"
+            - generic [ref=e777]:
+              - generic [ref=e778]:
+                - generic [ref=e779]: json
+                - button "Copy code" [ref=e780] [cursor=pointer]:
+                  - img [ref=e781]
+                  - generic [ref=e784]: Copy
+              - code [ref=e786]: "{ \"success\": true, \"cardId\": \"550e8400-e29b-41d4-a716-446655440000\", \"status\": \"active\" }"
+        - region "Errors" [ref=e787]:
+          - heading "Errors" [level=2] [ref=e788]
+          - paragraph [ref=e789]: "All non-2xx responses return:"
+          - generic [ref=e790]:
+            - generic [ref=e791]:
+              - generic [ref=e792]: json
+              - button "Copy code" [ref=e793] [cursor=pointer]:
+                - img [ref=e794]
+                - generic [ref=e797]: Copy
+            - code [ref=e799]: "{ \"error\": \"Human-readable error message\" }"
+          - table [ref=e801]:
+            - rowgroup [ref=e802]:
+              - 'row "Code 400 When Unsupported tier, invalid body Example {\"error\":\"Unsupported tier amount\"}" [ref=e803]':
+                - cell "Code 400" [ref=e804]:
+                  - text: Code
+                  - code [ref=e805]: "400"
+                - cell "When Unsupported tier, invalid body" [ref=e806]
+                - 'cell "Example {\"error\":\"Unsupported tier amount\"}" [ref=e807]':
+                  - text: Example
+                  - code [ref=e808]: "{\"error\":\"Unsupported tier amount\"}"
+              - 'row "Code 401 When Invalid wallet auth or X-Payment proof Example {\"error\":\"Invalid wallet signature\"}" [ref=e809]':
+                - cell "Code 401" [ref=e810]:
+                  - text: Code
+                  - code [ref=e811]: "401"
+                - cell "When Invalid wallet auth or X-Payment proof" [ref=e812]
+                - 'cell "Example {\"error\":\"Invalid wallet signature\"}" [ref=e813]':
+                  - text: Example
+                  - code [ref=e814]: "{\"error\":\"Invalid wallet signature\"}"
+              - row "Code 402 When x402 challenge (no X-Payment header) Example Challenge JSON (see x402 Flow)" [ref=e815]:
+                - cell "Code 402" [ref=e816]:
+                  - text: Code
+                  - code [ref=e817]: "402"
+                - cell "When x402 challenge (no X-Payment header)" [ref=e818]:
+                  - text: When x402 challenge (no
+                  - code [ref=e819]: X-Payment
+                  - text: header)
+                - cell "Example Challenge JSON (see x402 Flow)" [ref=e820]:
+                  - text: Example Challenge JSON (see
+                  - link "x402 Flow" [ref=e821] [cursor=pointer]:
+                    - /url: "#x402-payment-flow"
+                  - text: )
+              - 'row "Code 404 When Card not found Example {\"error\":\"Card not found\"}" [ref=e822]':
+                - cell "Code 404" [ref=e823]:
+                  - text: Code
+                  - code [ref=e824]: "404"
+                - cell "When Card not found" [ref=e825]
+                - 'cell "Example {\"error\":\"Card not found\"}" [ref=e826]':
+                  - text: Example
+                  - code [ref=e827]: "{\"error\":\"Card not found\"}"
+              - 'row "Code 429 When Details endpoint rate limit Example {\"error\":\"Card details rate limit exceeded (3 requests / hour)\"}" [ref=e828]':
+                - cell "Code 429" [ref=e829]:
+                  - text: Code
+                  - code [ref=e830]: "429"
+                - cell "When Details endpoint rate limit" [ref=e831]
+                - 'cell "Example {\"error\":\"Card details rate limit exceeded (3 requests / hour)\"}" [ref=e832]':
+                  - text: Example
+                  - code [ref=e833]: "{\"error\":\"Card details rate limit exceeded (3 requests / hour)\"}"
+              - 'row "Code 500 When Unexpected internal error Example {\"error\":\"Internal server error\"}" [ref=e834]':
+                - cell "Code 500" [ref=e835]:
+                  - text: Code
+                  - code [ref=e836]: "500"
+                - cell "When Unexpected internal error" [ref=e837]
+                - 'cell "Example {\"error\":\"Internal server error\"}" [ref=e838]':
+                  - text: Example
+                  - code [ref=e839]: "{\"error\":\"Internal server error\"}"
+        - region "Rate Limits" [ref=e840]:
+          - heading "Rate Limits" [level=2] [ref=e841]
+          - table [ref=e843]:
+            - rowgroup [ref=e844]:
+              - row "Endpoint GET /cards/:cardId/details Limit 3 requests per card Window 1 hour" [ref=e845]:
+                - cell "Endpoint GET /cards/:cardId/details" [ref=e846]:
+                  - text: Endpoint
+                  - code [ref=e847]: GET /cards/:cardId/details
+                - cell "Limit 3 requests per card" [ref=e848]
+                - cell "Window 1 hour" [ref=e849]
+              - row "Endpoint All other endpoints Limit Standard per-IP limits apply Window —" [ref=e850]:
+                - cell "Endpoint All other endpoints" [ref=e851]
+                - cell "Limit Standard per-IP limits apply" [ref=e852]
+                - cell "Window —" [ref=e853]
+          - paragraph [ref=e854]:
+            - text: Exceeding a rate limit returns
+            - code [ref=e855]: 429 Too Many Requests
+            - text: . If the response includes a
+            - code [ref=e856]: Retry-After
+            - text: header, wait the indicated duration before retrying.
+        - region "Architecture" [ref=e857]:
+          - heading "Architecture" [level=2] [ref=e858]
+          - heading "Request Lifecycle" [level=3] [ref=e859]
+          - paragraph [ref=e860]: End-to-end sequence for a paid card creation via x402.
+          - 'img "x402 payment lifecycle: Agent sends POST, receives 402, pays USDC on Solana, retries with X-Payment proof, API verifies on-chain, returns 201." [ref=e861]':
+            - img [ref=e862]:
+              - generic [ref=e863]: Agent / App
+              - generic [ref=e864]: ASG Card API
+              - generic [ref=e865]: Solana
+              - generic [ref=e867]: POST /cards/create/tier/10
+              - generic [ref=e869]: 402 + x402 challenge
+              - generic [ref=e871]: SPL USDC transfer
+              - generic [ref=e873]: txHash confirmed
+              - generic [ref=e875]: POST + X-Payment proof
+              - generic [ref=e877]: verify on-chain
+              - generic [ref=e879]: confirmed ✓
+              - generic [ref=e881]: 201 + card details
+            - paragraph [ref=e882]: x402 payment lifecycle — agent pays USDC on Solana, API verifies on-chain before issuing the card.
+          - separator [ref=e883]
+          - heading "Runtime Components" [level=3] [ref=e884]
+          - paragraph [ref=e885]: Internal routing and middleware layout of the ASG Card API.
+          - 'img "Runtime components: Public routes (health, pricing, tiers) connect directly. Paid routes go through x402 middleware. Wallet routes go through Ed25519 auth. Both middleware layers feed into Card Service." [ref=e886]':
+            - img [ref=e887]:
+              - generic [ref=e889]: ASG Card API
+              - generic [ref=e891]: PUBLIC
+              - generic [ref=e892]: /health
+              - generic [ref=e893]: /pricing
+              - generic [ref=e894]: /cards/tiers
+              - generic [ref=e896]: x402 MIDDLEWARE
+              - generic [ref=e897]: parse challenge
+              - generic [ref=e898]: verify payment proof
+              - generic [ref=e899]: confirm on-chain tx
+              - generic [ref=e901]: WALLET AUTH
+              - generic [ref=e902]: Ed25519 verification
+              - generic [ref=e903]: /cards/:cardId
+              - generic [ref=e904]: /cards/:cardId/freeze
+              - generic [ref=e905]: /cards/:cardId/unfreeze
+              - generic [ref=e907]: Card Service
+              - generic [ref=e908]: create · fund · freeze · query
+            - paragraph [ref=e912]: Public routes require no auth. Paid routes pass through x402. Wallet routes use Ed25519 signatures. All converge on Card Service.

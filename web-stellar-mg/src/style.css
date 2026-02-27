@@ -1,0 +1,519 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════
+   ASG Card — Design System
+   Palette: neutral black / restrained accent
+   ══════════════════════════════════════════════════ */
+
+@layer base {
+    html {
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        background-color: #09090b;
+        color: #fafafa;
+    }
+
+    ::selection {
+        background: rgba(153, 69, 255, 0.25);
+        color: white;
+    }
+
+    /* Global focus style for keyboard navigation */
+    *:focus-visible {
+        outline: 2px solid #9945FF;
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+@layer components {
+
+    /* ── Primary CTA button ── */
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.75rem;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        border-radius: 0.5rem;
+        background: #9945FF;
+        color: #fff;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background: #8836e6;
+        box-shadow: 0 0 0 1px rgba(153, 69, 255, 0.3);
+    }
+
+    /* ── Secondary / ghost button ── */
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.75rem;
+        font-weight: 500;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        border-radius: 0.5rem;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(250, 250, 250, 0.8);
+        transition: border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fafafa;
+    }
+
+    /* ── Navigation link ── */
+    .nav-link {
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: rgba(250, 250, 250, 0.5);
+        transition: color 0.15s ease;
+        letter-spacing: -0.01em;
+    }
+
+    .nav-link:hover {
+        color: #fafafa;
+    }
+
+    /* ── Section heading label ── */
+    .section-label {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9945FF;
+        margin-bottom: 0.75rem;
+    }
+
+    /* ── Surface card ── */
+    .surface {
+        background: #111113;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0.75rem;
+    }
+
+    /* ── 3D card ── */
+    .card-3d-wrapper {
+        perspective: 1200px;
+    }
+
+    .card-3d {
+        transform-style: preserve-3d;
+        will-change: transform;
+        transition: transform 0.15s ease-out;
+        transform: rotateX(6deg) rotateY(-4deg);
+    }
+
+    /* ═══════════════ HERO — Trust Points + Easy Install ═══════════════ */
+
+    .hero-trust-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0;
+    }
+
+    .hero-trust-item {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.55);
+        letter-spacing: -0.005em;
+    }
+
+    .hero-trust-sep {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 0 0.625rem;
+        flex-shrink: 0;
+    }
+
+    .hero-install {
+        padding-top: 0.25rem;
+    }
+
+    .hero-install-label {
+        display: block;
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.25);
+        margin-bottom: 0.5rem;
+    }
+
+    .hero-install-cmd {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.5rem 0.5rem 0.875rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0.5rem;
+        max-width: 100%;
+    }
+
+    .hero-install-cmd code {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.8125rem;
+        color: #14F195;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .hero-copy-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.35);
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+        flex-shrink: 0;
+    }
+
+    .hero-copy-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .hero-copy-btn:focus-visible {
+        outline: 2px solid #14F195;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .hero-trust-row {
+            gap: 0.375rem 0;
+        }
+
+        .hero-trust-sep {
+            margin: 0 0.5rem;
+        }
+
+        .hero-install-cmd {
+            width: 100%;
+        }
+    }
+
+    /* ═══════════════ HOW IT WORKS — Editorial v2 ═══════════════ */
+
+    .hiw-section {
+        position: relative;
+        padding: 8rem 0 9rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+    }
+
+    /* Subtle radial glow for depth — not a flat black box */
+    .hiw-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 70% 50% at 50% 40%, rgba(20, 241, 149, 0.025) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 60% at 60% 60%, rgba(153, 69, 255, 0.015) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .hiw-container {
+        position: relative;
+        max-width: 72rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    /* ── Header ── */
+    .hiw-header {
+        text-align: center;
+        max-width: 38rem;
+        margin: 0 auto 6rem;
+    }
+
+    .hiw-label {
+        display: inline-block;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(20, 241, 149, 0.7);
+        margin-bottom: 1rem;
+    }
+
+    .hiw-heading {
+        font-size: clamp(2rem, 4.5vw, 2.75rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .hiw-heading-muted {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .hiw-subheading {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.38);
+        margin-top: 1rem;
+        line-height: 1.6;
+        letter-spacing: -0.005em;
+    }
+
+    /* ── Grid — 4-column, no gap, dividers between ── */
+    .hiw-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        max-width: 60rem;
+        margin: 0 auto;
+    }
+
+    /* ── Step ── */
+    .hiw-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 2rem;
+        position: relative;
+    }
+
+    /* Vertical divider between columns */
+    .hiw-step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 2rem;
+        width: 1px;
+        background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.05) 80%,
+                transparent 100%);
+    }
+
+    /* ── Icon container — rounded square, neutral ── */
+    .hiw-step-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 1.75rem;
+        flex-shrink: 0;
+    }
+
+    .hiw-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* ── Step number — muted green ordinal ── */
+    .hiw-step-num {
+        display: block;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: rgba(20, 241, 149, 0.55);
+        letter-spacing: 0.12em;
+        margin-bottom: 0.625rem;
+    }
+
+    /* ── Step title ── */
+    .hiw-step-title {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: rgba(255, 255, 255, 0.92);
+        margin-bottom: 0.625rem;
+        line-height: 1.3;
+    }
+
+    /* ── Step body wrapper (groups text under icon) ── */
+    .hiw-step-body {
+        display: contents;
+        /* Desktop: body is transparent, children flow in step column */
+    }
+
+    /* ── Step description ── */
+    .hiw-step-desc {
+        font-size: 0.8125rem;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.55);
+        max-width: 14rem;
+        margin: 0 auto 1.25rem;
+    }
+
+    /* ── Protocol hint — ghost text ── */
+    .hiw-step-hint {
+        display: block;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.625rem;
+        color: rgba(255, 255, 255, 0.30);
+        letter-spacing: 0.03em;
+        line-height: 1.4;
+    }
+
+    /* ── Mobile (≤ 768px) ── */
+    @media (max-width: 768px) {
+        .hiw-section {
+            padding: 4rem 0 5rem;
+        }
+
+        .hiw-header {
+            margin-bottom: 3rem;
+            text-align: left;
+            max-width: 100%;
+        }
+
+        .hiw-grid {
+            grid-template-columns: 1fr;
+            max-width: 100%;
+        }
+
+        .hiw-step {
+            flex-direction: row;
+            align-items: flex-start;
+            text-align: left;
+            padding: 0 0 2.5rem 0;
+            gap: 1.25rem;
+        }
+
+        /* Mobile: bottom divider instead of right */
+        .hiw-step:not(:last-child)::after {
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: auto;
+            height: 1px;
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0.04) 0%,
+                    rgba(255, 255, 255, 0.04) 80%,
+                    transparent 100%);
+        }
+
+        .hiw-step:last-child {
+            padding-bottom: 0;
+        }
+
+        .hiw-step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            margin-bottom: 0;
+            margin-top: 0.125rem;
+            flex-shrink: 0;
+        }
+
+        .hiw-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Mobile: activate body as a real block container */
+        .hiw-step-body {
+            display: block;
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Group text content naturally */
+        .hiw-step-desc {
+            max-width: 100%;
+            margin: 0 0 0.75rem;
+        }
+    }
+}
+
+@layer utilities {
+
+    /* Screen-reader only utility for skip link */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+
+    .sr-only:focus {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        width: auto;
+        height: auto;
+        padding: 1rem 1.5rem;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        background: #9945FF;
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        white-space: normal;
+    }
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}

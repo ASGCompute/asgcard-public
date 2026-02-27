@@ -1,0 +1,266 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "4payments API Logo 4payments API" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "4payments API Logo" [ref=e9]
+          - generic [ref=e10]: 4payments API
+        - link "Documentation" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+        - link "Help" [ref=e12] [cursor=pointer]:
+          - /url: mailto:info@4payments.io
+      - button "Switch between dark and light mode (currently light mode)" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - navigation "Docs sidebar" [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Introduction" [ref=e27] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e28]:
+            - link "Authorization" [ref=e29] [cursor=pointer]:
+              - /url: /docs/auth
+          - listitem [ref=e30]:
+            - button "API reference" [expanded] [ref=e32] [cursor=pointer]
+            - list [ref=e33]:
+              - listitem [ref=e34]:
+                - button "Account" [ref=e36] [cursor=pointer]
+              - listitem [ref=e37]:
+                - button "Accounts" [ref=e39] [cursor=pointer]
+              - listitem [ref=e40]:
+                - button "Budgets" [ref=e42] [cursor=pointer]
+              - listitem [ref=e43]:
+                - button "Cards" [expanded] [ref=e45] [cursor=pointer]
+                - list [ref=e46]:
+                  - listitem [ref=e47]:
+                    - link "List of cards" [ref=e48] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-list
+                  - listitem [ref=e49]:
+                    - link "List of types" [ref=e50] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-types
+                  - listitem [ref=e51]:
+                    - link "Card type details" [ref=e52] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-type
+                  - listitem [ref=e53]:
+                    - link "Issue a new card" [ref=e54] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-issue
+                  - listitem [ref=e55]:
+                    - link "Card details" [ref=e56] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-details
+                  - listitem [ref=e57]:
+                    - link "Get sensitive information" [ref=e58] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-sensitive
+                  - listitem [ref=e59]:
+                    - link "Get transactions for a card" [ref=e60] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transactions
+                  - listitem [ref=e61]:
+                    - link "Get transaction for a card" [ref=e62] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transaction
+                  - listitem [ref=e63]:
+                    - link "Top up a card" [ref=e64] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-topup
+                  - listitem [ref=e65]:
+                    - link "Withdraw funds" [ref=e66] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-withdraw
+                  - listitem [ref=e67]:
+                    - link "Freeze a card" [ref=e68] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-freeze
+                  - listitem [ref=e69]:
+                    - link "Unfreeze a card" [ref=e70] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-unfreeze
+                  - listitem [ref=e71]:
+                    - link "Delete a card" [ref=e72] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-delete
+                  - listitem [ref=e73]:
+                    - link "Reissue a card" [ref=e74] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-reissue
+                  - listitem [ref=e75]:
+                    - link "Set PIN for a card" [ref=e76] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-set-pin
+                  - listitem [ref=e77]:
+                    - link "Update email for a card" [ref=e78] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-email
+                  - listitem [ref=e79]:
+                    - link "Update phone for a card" [ref=e80] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-phone
+              - listitem [ref=e81]:
+                - button "Budget Cards" [ref=e83] [cursor=pointer]
+              - listitem [ref=e84]:
+                - button "Transactions" [ref=e86] [cursor=pointer]
+              - listitem [ref=e87]:
+                - button "Cardholders" [ref=e89] [cursor=pointer]
+              - listitem [ref=e90]:
+                - button "Members" [ref=e92] [cursor=pointer]
+          - listitem [ref=e93]:
+            - button "Webhooks" [ref=e95] [cursor=pointer]
+          - listitem [ref=e96]:
+            - button "Help" [ref=e98] [cursor=pointer]
+    - main [ref=e99]:
+      - generic [ref=e101]:
+        - generic [ref=e103]:
+          - article [ref=e104]:
+            - navigation "Breadcrumbs" [ref=e105]:
+              - list [ref=e106]:
+                - listitem [ref=e107]:
+                  - link "Home page" [ref=e108] [cursor=pointer]:
+                    - /url: /
+                    - img [ref=e109]
+                - listitem [ref=e111]:
+                  - generic [ref=e112]: API reference
+                - listitem [ref=e113]:
+                  - generic [ref=e114]: Cards
+                - listitem [ref=e115]:
+                  - generic [ref=e116]: List of cards
+            - generic [ref=e117]:
+              - heading "List of Cards" [level=1] [ref=e119]
+              - paragraph [ref=e120]: Use this endpoint to retrieve a paginated list of issued prepaid cards.
+              - separator [ref=e121]
+              - heading "📥 RequestDirect link to 📥 Request" [level=2] [ref=e122]:
+                - text: 📥 Request
+                - link "Direct link to 📥 Request" [ref=e123] [cursor=pointer]:
+                  - /url: "#-request"
+                  - text: "#"
+              - paragraph [ref=e124]:
+                - strong [ref=e125]: GET
+                - code [ref=e126]: /external/api/prepaid-cards/list
+              - paragraph [ref=e127]: Returns a paginated array of prepaid card objects.
+              - heading "🔐 AuthorizationDirect link to 🔐 Authorization" [level=2] [ref=e128]:
+                - text: 🔐 Authorization
+                - link "Direct link to 🔐 Authorization" [ref=e129] [cursor=pointer]:
+                  - /url: "#-authorization"
+                  - text: "#"
+              - paragraph [ref=e130]:
+                - text: This endpoint requires a valid bearer token in the
+                - code [ref=e131]: Authorization
+                - text: header.
+              - generic [ref=e133]:
+                - code [ref=e135]:
+                  - generic [ref=e136]: "Authorization: Bearer <your_token>"
+                - button "Copy code to clipboard" [ref=e138] [cursor=pointer]:
+                  - generic [ref=e139]:
+                    - img [ref=e140]
+                    - img [ref=e142]
+              - heading "Query ParametersDirect link to Query Parameters" [level=3] [ref=e144]:
+                - text: Query Parameters
+                - link "Direct link to Query Parameters" [ref=e145] [cursor=pointer]:
+                  - /url: "#query-parameters"
+                  - text: "#"
+              - table [ref=e146]:
+                - rowgroup [ref=e147]:
+                  - row "Name Type Description Default" [ref=e148]:
+                    - columnheader "Name" [ref=e149]
+                    - columnheader "Type" [ref=e150]
+                    - columnheader "Description" [ref=e151]
+                    - columnheader "Default" [ref=e152]
+                - rowgroup [ref=e153]:
+                  - row "page number Page number for pagination 1" [ref=e154]:
+                    - cell "page" [ref=e155]:
+                      - code [ref=e156]: page
+                    - cell "number" [ref=e157]
+                    - cell "Page number for pagination" [ref=e158]
+                    - cell "1" [ref=e159]:
+                      - code [ref=e160]: "1"
+                  - row "limit number Number of cards per page 10" [ref=e161]:
+                    - cell "limit" [ref=e162]:
+                      - code [ref=e163]: limit
+                    - cell "number" [ref=e164]
+                    - cell "Number of cards per page" [ref=e165]
+                    - cell "10" [ref=e166]:
+                      - code [ref=e167]: "10"
+              - separator [ref=e168]
+              - heading "✅ ResponsesDirect link to ✅ Responses" [level=2] [ref=e169]:
+                - text: ✅ Responses
+                - link "Direct link to ✅ Responses" [ref=e170] [cursor=pointer]:
+                  - /url: "#-responses"
+                  - text: "#"
+              - heading "200 — Successfully retrieved card listDirect link to 200--successfully-retrieved-card-list" [level=3] [ref=e171]:
+                - code [ref=e172]: "200"
+                - text: — Successfully retrieved card list
+                - link "Direct link to 200--successfully-retrieved-card-list" [ref=e173] [cursor=pointer]:
+                  - /url: "#200--successfully-retrieved-card-list"
+                  - text: "#"
+              - generic [ref=e175]:
+                - code [ref=e177]:
+                  - generic [ref=e178]: "{"
+                  - generic [ref=e179]: "\"status\": \"success\","
+                  - generic [ref=e180]: "\"data\": {"
+                  - generic [ref=e181]: "\"cards\": ["
+                  - generic [ref=e182]: "{"
+                  - generic [ref=e183]: "\"id\": string,"
+                  - generic [ref=e184]: "\"maskedCardNumber\": string,"
+                  - generic [ref=e185]: "\"balance\": {"
+                  - generic [ref=e186]: "\"value\": number,"
+                  - generic [ref=e187]: "\"currency\": string,"
+                  - generic [ref=e188]: "},"
+                  - generic [ref=e189]: "\"brand\": string,"
+                  - generic [ref=e190]: "\"label\": string,"
+                  - generic [ref=e191]: "\"status\": [\"active\", \"deleted\", \"freezed\", \"pending\", \"failed\", \"expired\", \"blocked\"],"
+                  - generic [ref=e192]: "\"externalCardId\": string,"
+                  - generic [ref=e193]: "}"
+                  - generic [ref=e194]: "],"
+                  - generic [ref=e195]: "\"page\": 1,"
+                  - generic [ref=e196]: "\"limit\": 10"
+                  - generic [ref=e197]: "}"
+                  - generic [ref=e198]: "}"
+                - generic [ref=e199]:
+                  - button "Toggle word wrap" [ref=e200] [cursor=pointer]:
+                    - img [ref=e201]
+                  - button "Copy code to clipboard" [ref=e203] [cursor=pointer]:
+                    - generic [ref=e204]:
+                      - img [ref=e205]
+                      - img [ref=e207]
+              - heading "500 — Internal server errorDirect link to 500--internal-server-error" [level=3] [ref=e209]:
+                - code [ref=e210]: "500"
+                - text: — Internal server error
+                - link "Direct link to 500--internal-server-error" [ref=e211] [cursor=pointer]:
+                  - /url: "#500--internal-server-error"
+                  - text: "#"
+              - generic [ref=e213]:
+                - code [ref=e215]:
+                  - generic [ref=e216]: "{"
+                  - generic [ref=e217]: "\"status\": \"error\","
+                  - generic [ref=e218]: "\"message\": \"Internal server error\""
+                  - generic [ref=e219]: "}"
+                - button "Copy code to clipboard" [ref=e221] [cursor=pointer]:
+                  - generic [ref=e222]:
+                    - img [ref=e223]
+                    - img [ref=e225]
+          - navigation "Docs pages" [ref=e227]:
+            - link "Previous « Budget transfers" [ref=e228] [cursor=pointer]:
+              - /url: /docs/API reference/Budgets/budget-transfers
+              - generic [ref=e229]: Previous
+              - generic [ref=e230]: « Budget transfers
+            - link "Next List of types »" [ref=e231] [cursor=pointer]:
+              - /url: /docs/API reference/Cards/cards-types
+              - generic [ref=e232]: Next
+              - generic [ref=e233]: List of types »
+        - list [ref=e236]:
+          - listitem [ref=e237]:
+            - link "📥 Request" [ref=e238] [cursor=pointer]:
+              - /url: "#-request"
+          - listitem [ref=e239]:
+            - link "🔐 Authorization" [ref=e240] [cursor=pointer]:
+              - /url: "#-authorization"
+            - list [ref=e241]:
+              - listitem [ref=e242]:
+                - link "Query Parameters" [ref=e243] [cursor=pointer]:
+                  - /url: "#query-parameters"
+          - listitem [ref=e244]:
+            - link "✅ Responses" [ref=e245] [cursor=pointer]:
+              - /url: "#-responses"
+            - list [ref=e246]:
+              - listitem [ref=e247]:
+                - link "200 — Successfully retrieved card list" [ref=e248] [cursor=pointer]:
+                  - /url: "#200--successfully-retrieved-card-list"
+                  - code [ref=e249]: "200"
+                  - text: — Successfully retrieved card list
+              - listitem [ref=e250]:
+                - link "500 — Internal server error" [ref=e251] [cursor=pointer]:
+                  - /url: "#500--internal-server-error"
+                  - code [ref=e252]: "500"
+                  - text: — Internal server error

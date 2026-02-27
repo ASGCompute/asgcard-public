@@ -1,0 +1,238 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "4payments API Logo 4payments API" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "4payments API Logo" [ref=e9]
+          - generic [ref=e10]: 4payments API
+        - link "Documentation" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+        - link "Help" [ref=e12] [cursor=pointer]:
+          - /url: mailto:info@4payments.io
+      - button "Switch between dark and light mode (currently light mode)" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - navigation "Docs sidebar" [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Introduction" [ref=e27] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e28]:
+            - link "Authorization" [ref=e29] [cursor=pointer]:
+              - /url: /docs/auth
+          - listitem [ref=e30]:
+            - button "API reference" [expanded] [ref=e32] [cursor=pointer]
+            - list [ref=e33]:
+              - listitem [ref=e34]:
+                - button "Account" [ref=e36] [cursor=pointer]
+              - listitem [ref=e37]:
+                - button "Accounts" [ref=e39] [cursor=pointer]
+              - listitem [ref=e40]:
+                - button "Budgets" [ref=e42] [cursor=pointer]
+              - listitem [ref=e43]:
+                - button "Cards" [expanded] [ref=e45] [cursor=pointer]
+                - list [ref=e46]:
+                  - listitem [ref=e47]:
+                    - link "List of cards" [ref=e48] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-list
+                  - listitem [ref=e49]:
+                    - link "List of types" [ref=e50] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-types
+                  - listitem [ref=e51]:
+                    - link "Card type details" [ref=e52] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-type
+                  - listitem [ref=e53]:
+                    - link "Issue a new card" [ref=e54] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-issue
+                  - listitem [ref=e55]:
+                    - link "Card details" [ref=e56] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-details
+                  - listitem [ref=e57]:
+                    - link "Get sensitive information" [ref=e58] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-sensitive
+                  - listitem [ref=e59]:
+                    - link "Get transactions for a card" [ref=e60] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transactions
+                  - listitem [ref=e61]:
+                    - link "Get transaction for a card" [ref=e62] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transaction
+                  - listitem [ref=e63]:
+                    - link "Top up a card" [ref=e64] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-topup
+                  - listitem [ref=e65]:
+                    - link "Withdraw funds" [ref=e66] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-withdraw
+                  - listitem [ref=e67]:
+                    - link "Freeze a card" [ref=e68] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-freeze
+                  - listitem [ref=e69]:
+                    - link "Unfreeze a card" [ref=e70] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-unfreeze
+                  - listitem [ref=e71]:
+                    - link "Delete a card" [ref=e72] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-delete
+                  - listitem [ref=e73]:
+                    - link "Reissue a card" [ref=e74] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-reissue
+                  - listitem [ref=e75]:
+                    - link "Set PIN for a card" [ref=e76] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-set-pin
+                  - listitem [ref=e77]:
+                    - link "Update email for a card" [ref=e78] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-email
+                  - listitem [ref=e79]:
+                    - link "Update phone for a card" [ref=e80] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-phone
+              - listitem [ref=e81]:
+                - button "Budget Cards" [ref=e83] [cursor=pointer]
+              - listitem [ref=e84]:
+                - button "Transactions" [ref=e86] [cursor=pointer]
+              - listitem [ref=e87]:
+                - button "Cardholders" [ref=e89] [cursor=pointer]
+              - listitem [ref=e90]:
+                - button "Members" [ref=e92] [cursor=pointer]
+          - listitem [ref=e93]:
+            - button "Webhooks" [ref=e95] [cursor=pointer]
+          - listitem [ref=e96]:
+            - button "Help" [ref=e98] [cursor=pointer]
+    - main [ref=e99]:
+      - generic [ref=e101]:
+        - generic [ref=e103]:
+          - article [ref=e104]:
+            - navigation "Breadcrumbs" [ref=e105]:
+              - list [ref=e106]:
+                - listitem [ref=e107]:
+                  - link "Home page" [ref=e108] [cursor=pointer]:
+                    - /url: /
+                    - img [ref=e109]
+                - listitem [ref=e111]:
+                  - generic [ref=e112]: API reference
+                - listitem [ref=e113]:
+                  - generic [ref=e114]: Cards
+                - listitem [ref=e115]:
+                  - generic [ref=e116]: List of types
+            - generic [ref=e117]:
+              - heading "List of Card Types" [level=1] [ref=e119]
+              - paragraph [ref=e120]: Use this endpoint to retrieve a list of types.
+              - separator [ref=e121]
+              - heading "📥 RequestDirect link to 📥 Request" [level=2] [ref=e122]:
+                - text: 📥 Request
+                - link "Direct link to 📥 Request" [ref=e123] [cursor=pointer]:
+                  - /url: "#-request"
+                  - text: "#"
+              - paragraph [ref=e124]:
+                - strong [ref=e125]: GET
+                - code [ref=e126]: /external/api/prepaid-cards/types
+              - paragraph [ref=e127]: Returns a array of types objects.
+              - heading "🔐 AuthorizationDirect link to 🔐 Authorization" [level=2] [ref=e128]:
+                - text: 🔐 Authorization
+                - link "Direct link to 🔐 Authorization" [ref=e129] [cursor=pointer]:
+                  - /url: "#-authorization"
+                  - text: "#"
+              - paragraph [ref=e130]:
+                - text: This endpoint requires a valid bearer token in the
+                - code [ref=e131]: Authorization
+                - text: header.
+              - generic [ref=e133]:
+                - code [ref=e135]:
+                  - generic [ref=e136]: "Authorization: Bearer <your_token>"
+                - button "Copy code to clipboard" [ref=e138] [cursor=pointer]:
+                  - generic [ref=e139]:
+                    - img [ref=e140]
+                    - img [ref=e142]
+              - separator [ref=e144]
+              - heading "✅ ResponsesDirect link to ✅ Responses" [level=2] [ref=e145]:
+                - text: ✅ Responses
+                - link "Direct link to ✅ Responses" [ref=e146] [cursor=pointer]:
+                  - /url: "#-responses"
+                  - text: "#"
+              - heading "200 — Successfully retrieved types listDirect link to 200--successfully-retrieved-types-list" [level=3] [ref=e147]:
+                - code [ref=e148]: "200"
+                - text: — Successfully retrieved types list
+                - link "Direct link to 200--successfully-retrieved-types-list" [ref=e149] [cursor=pointer]:
+                  - /url: "#200--successfully-retrieved-types-list"
+                  - text: "#"
+              - generic [ref=e151]:
+                - code [ref=e153]:
+                  - generic [ref=e154]: "{"
+                  - generic [ref=e155]: "\"status\": \"success\","
+                  - generic [ref=e156]: "\"data\": ["
+                  - generic [ref=e157]: "{"
+                  - generic [ref=e158]: "\"id\": string,"
+                  - generic [ref=e159]: "\"price\": number,"
+                  - generic [ref=e160]: "\"currency\": string,"
+                  - generic [ref=e161]: "\"brand\": string,"
+                  - generic [ref=e162]: "\"minInitialAmount\": number,"
+                  - generic [ref=e163]: "\"bins\": [string],"
+                  - generic [ref=e164]: "\"country\": string,"
+                  - generic [ref=e165]: "\"tokenization\": [string],"
+                  - generic [ref=e166]: "\"canReissue\": boolean,"
+                  - generic [ref=e167]: "\"comissions\": {"
+                  - generic [ref=e168]: "\"topupFee\": percent,"
+                  - generic [ref=e169]: "\"withdrawFee\": percent,"
+                  - generic [ref=e170]: "\"fxFee\": percent,"
+                  - generic [ref=e171]: "\"transactionFee\": number,"
+                  - generic [ref=e172]: "\"declineFee\": number,"
+                  - generic [ref=e173]: "\"refundFee\": number,"
+                  - generic [ref=e174]: "},"
+                  - generic [ref=e175]: "\"actions\": [\"pin\", \"email\", \"phone\"],"
+                  - generic [ref=e176]: "\"isCustom\": boolean,"
+                  - generic [ref=e177]: "\"recommended\": string,"
+                  - generic [ref=e178]: "}"
+                  - generic [ref=e179]: "]"
+                  - generic [ref=e180]: "}"
+                - button "Copy code to clipboard" [ref=e182] [cursor=pointer]:
+                  - generic [ref=e183]:
+                    - img [ref=e184]
+                    - img [ref=e186]
+              - heading "500 — Internal server errorDirect link to 500--internal-server-error" [level=3] [ref=e188]:
+                - code [ref=e189]: "500"
+                - text: — Internal server error
+                - link "Direct link to 500--internal-server-error" [ref=e190] [cursor=pointer]:
+                  - /url: "#500--internal-server-error"
+                  - text: "#"
+              - generic [ref=e192]:
+                - code [ref=e194]:
+                  - generic [ref=e195]: "{"
+                  - generic [ref=e196]: "\"status\": \"error\","
+                  - generic [ref=e197]: "\"message\": \"Internal server error\""
+                  - generic [ref=e198]: "}"
+                - button "Copy code to clipboard" [ref=e200] [cursor=pointer]:
+                  - generic [ref=e201]:
+                    - img [ref=e202]
+                    - img [ref=e204]
+          - navigation "Docs pages" [ref=e206]:
+            - link "Previous « List of cards" [ref=e207] [cursor=pointer]:
+              - /url: /docs/API reference/Cards/cards-list
+              - generic [ref=e208]: Previous
+              - generic [ref=e209]: « List of cards
+            - link "Next Card type details »" [ref=e210] [cursor=pointer]:
+              - /url: /docs/API reference/Cards/cards-type
+              - generic [ref=e211]: Next
+              - generic [ref=e212]: Card type details »
+        - list [ref=e215]:
+          - listitem [ref=e216]:
+            - link "📥 Request" [ref=e217] [cursor=pointer]:
+              - /url: "#-request"
+          - listitem [ref=e218]:
+            - link "🔐 Authorization" [ref=e219] [cursor=pointer]:
+              - /url: "#-authorization"
+          - listitem [ref=e220]:
+            - link "✅ Responses" [ref=e221] [cursor=pointer]:
+              - /url: "#-responses"
+            - list [ref=e222]:
+              - listitem [ref=e223]:
+                - link "200 — Successfully retrieved types list" [ref=e224] [cursor=pointer]:
+                  - /url: "#200--successfully-retrieved-types-list"
+                  - code [ref=e225]: "200"
+                  - text: — Successfully retrieved types list
+              - listitem [ref=e226]:
+                - link "500 — Internal server error" [ref=e227] [cursor=pointer]:
+                  - /url: "#500--internal-server-error"
+                  - code [ref=e228]: "500"
+                  - text: — Internal server error

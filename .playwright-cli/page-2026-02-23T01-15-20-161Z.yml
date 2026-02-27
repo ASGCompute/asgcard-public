@@ -1,0 +1,28 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: Powered by x402 on Stellar
+    - heading "ASG Card for AI Agents." [level=1] [ref=e6]:
+      - text: ASG Card
+      - text: for AI Agents.
+    - paragraph [ref=e7]: Issue virtual Visa cards programmatically. Pay with USDC on Stellar via x402 and receive card details in seconds.
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: Virtual Card
+          - generic [ref=e16]: ASG Card
+        - img "Stellar" [ref=e17]
+      - generic [ref=e20]:
+        - generic [ref=e21]: 4111 •••• •••• 4444
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e24]: Expires
+            - generic [ref=e25]: 12/28
+          - generic [ref=e26]:
+            - generic [ref=e27]: CVV
+            - generic [ref=e28]: •••
+          - generic [ref=e29]:
+            - generic [ref=e30]: Balance
+            - generic [ref=e31]: $50.00
+          - generic [ref=e32]: VISA
+    - generic [ref=e35]: "const scanX = lerp(prevX, nextX, dt) ; response.headers.set(\"X-Payment\", proof) wallet.sign(txEnvelope) ; verifySignature(payload, nonce) ; requestAnimationFrame(render) ctx.globalCompositeOperation = \"lighter\" ; particle.alpha *= 0.98 ; scanner.intensity = 0.85 if (packet.accepts[0].network === \"stellar\") verifyPayment(txHash) ; const clip = clamp(progress) const v0 = (7 + 42) * 0.6 ; const v1 = (1 + 83) * 0.2 ; const v2 = (6 + 37) * 0.9 stream.write(chunk) ; const retry = paymentRequired ? sendUSDC() : next() ; response.status = 201 const card = await issueVirtualCard({ tier: 50, protocol: \"x402\" }) ; const auth = \"wallet-signed\" ctx.drawImage(gradient, p.x - p.r, p.y - p.r, p.r * 2, p.r * 2) ; const glow = 3.5 for (let i = 0; i < particles.length; i++) particles[i].step(dt) ; clipLeft = scanProgress function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); } ; const now = performance.now() const proof = parseX402(headers) ; const amount = accepts[0].amount ; const asset = \"USDC\" if (status === 402) { pay(); retry(); } ; if (status === 201) { return cardDetails; } walletAdapter.signTransaction(tx) ; submitToStellar(tx) ; verifyTreasuryTransfer(txHash) const scanner = { width: 8, glow: 3.5 } ; const fadeZone = 35 ; const maxParticles = 2500 requestAnimationFrame(frame) ; drawParticle(ctx, p) ; ctx.globalAlpha = clamp(p.alpha, 0, 1) const state = { network: \"stellar\", protocol: \"x402\", mode: \"agent-first\" } ; state.ready = true const res = await fetch(\"/cards/create/tier/50\") ; const json = await res.json() ; json.cardNumber scanner.glow += 0.01 ; particle.life -= decay ; if (x > width) resetParticle() ; y += Math.sin(t)"

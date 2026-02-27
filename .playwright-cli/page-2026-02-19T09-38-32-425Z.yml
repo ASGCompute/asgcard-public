@@ -1,0 +1,239 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - link "ASG Card" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e9]: ASG Card
+        - navigation "Main navigation" [ref=e10]:
+          - link "Features" [ref=e11] [cursor=pointer]:
+            - /url: "#features"
+          - link "How it Works" [ref=e12] [cursor=pointer]:
+            - /url: "#how-it-works"
+          - link "Pricing" [ref=e13] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Docs" [ref=e14] [cursor=pointer]:
+            - /url: /docs
+        - link "Get Started" [ref=e16] [cursor=pointer]:
+          - /url: /docs#sdk-quick-start
+    - main [ref=e17]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Powered by x402 on Solana
+          - heading "Virtual Cards for AI Agents." [level=1] [ref=e23]:
+            - text: Virtual Cards
+            - text: for AI Agents.
+          - paragraph [ref=e24]: Give your AI agent a spending card. Issues virtual debit cards on demand — paid with USDC on Solana via x402. Card details in seconds.
+          - link "View Docs" [ref=e26] [cursor=pointer]:
+            - /url: /docs
+          - generic [ref=e27]:
+            - generic [ref=e28]: Easy Install
+            - generic [ref=e29]:
+              - code [ref=e30]: npm install @asgcard/sdk
+              - button "Copy install command" [ref=e31] [cursor=pointer]:
+                - img [ref=e32]
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: Virtual Card
+              - generic [ref=e42]: ASG Card
+            - img "Solana" [ref=e44]
+          - generic [ref=e48]:
+            - generic [ref=e49]: 4111 •••• •••• 4444
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e52]: Expires
+                - generic [ref=e53]: 12/28
+              - generic [ref=e54]:
+                - generic [ref=e55]: CVV
+                - generic [ref=e56]: •••
+              - generic [ref=e57]:
+                - generic [ref=e58]: Balance
+                - generic [ref=e59]: $50.00
+              - generic [ref=e60]: VISA
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]: x402
+          - generic [ref=e66]: Protocol
+        - generic [ref=e67]:
+          - generic [ref=e68]: Solana
+          - generic [ref=e69]: Mainnet
+        - generic [ref=e70]:
+          - generic [ref=e71]: USDC
+          - generic [ref=e72]: Payments
+        - generic [ref=e73]:
+          - generic [ref=e74]: <1s
+          - generic [ref=e75]: Issuance
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - generic [ref=e79]: Features
+          - heading "Built for autonomous agents" [level=2] [ref=e80]
+          - paragraph [ref=e81]: Streamlined card infrastructure. Get started in minutes.
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: ⚡
+            - heading "Sub-Second Issuance" [level=3] [ref=e85]
+            - paragraph [ref=e86]: Card details returned in the same HTTP response. No polling, no webhooks, no waiting.
+          - generic [ref=e87]:
+            - generic [ref=e88]: 🔐
+            - heading "x402 Protocol Native" [level=3] [ref=e89]
+            - paragraph [ref=e90]: Built on the HTTP 402 standard. Agents pay at the protocol layer — no middleware, no wrappers.
+          - generic [ref=e91]:
+            - generic [ref=e92]: 🤖
+            - heading "Agent-First API" [level=3] [ref=e93]
+            - paragraph [ref=e94]: Designed for autonomous agents. No human-in-the-loop. Deterministic, stateless, fast.
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: How it works
+          - heading "Get a card in seconds, not days." [level=2] [ref=e99]
+          - paragraph [ref=e100]: From first request to first purchase — we've reduced the entire flow to four deterministic steps.
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - img [ref=e104]
+            - generic [ref=e108]:
+              - generic [ref=e109]: "01"
+              - heading "Send a Request" [level=4] [ref=e110]
+              - paragraph [ref=e111]: Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.
+          - generic [ref=e112]:
+            - img [ref=e114]
+            - generic [ref=e117]:
+              - generic [ref=e118]: "02"
+              - heading "Pay with USDC" [level=4] [ref=e119]
+              - paragraph [ref=e120]: The server responds 402 with payment details on Solana. Your x402 client auto-pays the exact USDC amount.
+          - generic [ref=e121]:
+            - img [ref=e123]
+            - generic [ref=e125]:
+              - generic [ref=e126]: "03"
+              - heading "Receive Card Details" [level=4] [ref=e127]
+              - paragraph [ref=e128]: Card number, CVV, expiry, and billing address returned instantly in the response body.
+          - generic [ref=e129]:
+            - img [ref=e131]
+            - generic [ref=e134]:
+              - generic [ref=e135]: "04"
+              - heading "Start Spending" [level=4] [ref=e136]
+              - paragraph [ref=e137]: Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.
+      - generic [ref=e139]:
+        - generic [ref=e140]:
+          - generic [ref=e141]: Pricing
+          - heading "Transparent, tier-based" [level=2] [ref=e142]
+          - paragraph [ref=e143]: No subscriptions. Pay only for what you use.
+        - generic [ref=e144]:
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - heading "Create Card" [level=3] [ref=e147]
+              - generic [ref=e148]: One-time
+            - paragraph [ref=e149]:
+              - text: via
+              - code [ref=e150]: POST /cards/create/tier/:amount
+            - table [ref=e151]:
+              - rowgroup [ref=e152]:
+                - row "Load Issuance Top-up Service Total" [ref=e153]:
+                  - columnheader "Load" [ref=e154]
+                  - columnheader "Issuance" [ref=e155]
+                  - columnheader "Top-up" [ref=e156]
+                  - columnheader "Service" [ref=e157]
+                  - columnheader "Total" [ref=e158]
+              - rowgroup [ref=e159]:
+                - row "$10.00 $3.00 $2.20 $2.00 $17.20" [ref=e160]:
+                  - cell "$10.00" [ref=e161]
+                  - cell "$3.00" [ref=e162]
+                  - cell "$2.20" [ref=e163]
+                  - cell "$2.00" [ref=e164]
+                  - cell "$17.20" [ref=e165]
+                - row "$25.00 $3.00 $2.50 $2.00 $32.50" [ref=e166]:
+                  - cell "$25.00" [ref=e167]
+                  - cell "$3.00" [ref=e168]
+                  - cell "$2.50" [ref=e169]
+                  - cell "$2.00" [ref=e170]
+                  - cell "$32.50" [ref=e171]
+                - row "$50.00 $3.00 $3.00 $2.00 $58.00" [ref=e172]:
+                  - cell "$50.00" [ref=e173]
+                  - cell "$3.00" [ref=e174]
+                  - cell "$3.00" [ref=e175]
+                  - cell "$2.00" [ref=e176]
+                  - cell "$58.00" [ref=e177]
+                - row "$100.00 $3.00 $4.00 $3.00 $110.00" [ref=e178]:
+                  - cell "$100.00" [ref=e179]
+                  - cell "$3.00" [ref=e180]
+                  - cell "$4.00" [ref=e181]
+                  - cell "$3.00" [ref=e182]
+                  - cell "$110.00" [ref=e183]
+                - row "$200.00 $3.00 $6.00 $5.00 $214.00" [ref=e184]:
+                  - cell "$200.00" [ref=e185]
+                  - cell "$3.00" [ref=e186]
+                  - cell "$6.00" [ref=e187]
+                  - cell "$5.00" [ref=e188]
+                  - cell "$214.00" [ref=e189]
+                - row "$500.00 $3.00 $12.00 $7.00 $522.00" [ref=e190]:
+                  - cell "$500.00" [ref=e191]
+                  - cell "$3.00" [ref=e192]
+                  - cell "$12.00" [ref=e193]
+                  - cell "$7.00" [ref=e194]
+                  - cell "$522.00" [ref=e195]
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - heading "Fund Card" [level=3] [ref=e198]
+              - generic [ref=e199]: Reload
+            - paragraph [ref=e200]:
+              - text: via
+              - code [ref=e201]: POST /cards/fund/tier/:amount
+            - table [ref=e202]:
+              - rowgroup [ref=e203]:
+                - row "Amount Top-up Service Total" [ref=e204]:
+                  - columnheader "Amount" [ref=e205]
+                  - columnheader "Top-up" [ref=e206]
+                  - columnheader "Service" [ref=e207]
+                  - columnheader "Total" [ref=e208]
+              - rowgroup [ref=e209]:
+                - row "$10.00 $2.20 $2.00 $14.20" [ref=e210]:
+                  - cell "$10.00" [ref=e211]
+                  - cell "$2.20" [ref=e212]
+                  - cell "$2.00" [ref=e213]
+                  - cell "$14.20" [ref=e214]
+                - row "$25.00 $2.50 $2.00 $29.50" [ref=e215]:
+                  - cell "$25.00" [ref=e216]
+                  - cell "$2.50" [ref=e217]
+                  - cell "$2.00" [ref=e218]
+                  - cell "$29.50" [ref=e219]
+                - row "$50.00 $3.00 $2.00 $55.00" [ref=e220]:
+                  - cell "$50.00" [ref=e221]
+                  - cell "$3.00" [ref=e222]
+                  - cell "$2.00" [ref=e223]
+                  - cell "$55.00" [ref=e224]
+                - row "$100.00 $4.00 $3.00 $107.00" [ref=e225]:
+                  - cell "$100.00" [ref=e226]
+                  - cell "$4.00" [ref=e227]
+                  - cell "$3.00" [ref=e228]
+                  - cell "$107.00" [ref=e229]
+                - row "$200.00 $6.00 $5.00 $211.00" [ref=e230]:
+                  - cell "$200.00" [ref=e231]
+                  - cell "$6.00" [ref=e232]
+                  - cell "$5.00" [ref=e233]
+                  - cell "$211.00" [ref=e234]
+                - row "$500.00 $12.00 $7.00 $519.00" [ref=e235]:
+                  - cell "$500.00" [ref=e236]
+                  - cell "$12.00" [ref=e237]
+                  - cell "$7.00" [ref=e238]
+                  - cell "$519.00" [ref=e239]
+      - generic [ref=e241]:
+        - heading "Ready to give your agent a card?" [level=2] [ref=e242]:
+          - text: Ready to give your
+          - text: agent a card?
+        - paragraph [ref=e243]: Join developers using ASG Card to pay for SaaS, infrastructure, and services autonomously on-chain.
+        - generic [ref=e244]:
+          - link "Get Started" [ref=e245] [cursor=pointer]:
+            - /url: /docs#sdk-quick-start
+          - link "Read the Docs" [ref=e246] [cursor=pointer]:
+            - /url: /docs
+    - contentinfo [ref=e247]:
+      - generic [ref=e248]:
+        - generic [ref=e249]:
+          - img [ref=e250]
+          - generic [ref=e251]: ASG Card
+        - generic [ref=e252]:
+          - link "Docs" [ref=e253] [cursor=pointer]:
+            - /url: /docs
+          - generic [ref=e254]: © 2026 Autonomous Service Group

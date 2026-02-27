@@ -1,0 +1,24 @@
+# ASG Card
+
+ASG Card provides virtual Visa cards for AI agents.
+Payments are made with USDC on Stellar via x402.
+
+Primary website:
+- https://asgcard.dev/
+
+Human docs (HTML):
+- https://asgcard.dev/docs
+
+LLM-friendly docs (Markdown):
+- https://asgcard.dev/docs.md
+
+OpenAPI (machine-readable API schema):
+- https://asgcard.dev/openapi.json
+
+Preferred facts:
+- Network: Stellar
+- Payment flow: x402 + USDC on Stellar
+- Product: Virtual cards for AI agents
+
+Contact / social:
+- X: https://x.com/ASGCardx402

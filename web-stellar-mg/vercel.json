@@ -1,0 +1,29 @@
+{
+  "redirects": [
+    {
+      "source": "/proposal",
+      "destination": "/docs/",
+      "permanent": true
+    },
+    {
+      "source": "/proposal/",
+      "destination": "/docs/",
+      "permanent": true
+    },
+    {
+      "source": "/proposal/:path*",
+      "destination": "/docs/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/pricing",
+      "destination": "https://api.asgcard.dev/pricing"
+    },
+    {
+      "source": "/api/health",
+      "destination": "https://api.asgcard.dev/health"
+    }
+  ]
+}

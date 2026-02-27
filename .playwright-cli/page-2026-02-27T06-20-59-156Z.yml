@@ -1,0 +1,307 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "4payments API Logo 4payments API" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "4payments API Logo" [ref=e9]
+          - generic [ref=e10]: 4payments API
+        - link "Documentation" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+        - link "Help" [ref=e12] [cursor=pointer]:
+          - /url: mailto:info@4payments.io
+      - button "Switch between dark and light mode (currently light mode)" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - navigation "Docs sidebar" [ref=e24]:
+        - list [ref=e25]:
+          - listitem [ref=e26]:
+            - link "Introduction" [ref=e27] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e28]:
+            - link "Authorization" [ref=e29] [cursor=pointer]:
+              - /url: /docs/auth
+          - listitem [ref=e30]:
+            - button "API reference" [expanded] [ref=e32] [cursor=pointer]
+            - list [ref=e33]:
+              - listitem [ref=e34]:
+                - button "Account" [ref=e36] [cursor=pointer]
+              - listitem [ref=e37]:
+                - button "Accounts" [ref=e39] [cursor=pointer]
+              - listitem [ref=e40]:
+                - button "Budgets" [ref=e42] [cursor=pointer]
+              - listitem [ref=e43]:
+                - button "Cards" [expanded] [ref=e45] [cursor=pointer]
+                - list [ref=e46]:
+                  - listitem [ref=e47]:
+                    - link "List of cards" [ref=e48] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-list
+                  - listitem [ref=e49]:
+                    - link "List of types" [ref=e50] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-types
+                  - listitem [ref=e51]:
+                    - link "Card type details" [ref=e52] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-type
+                  - listitem [ref=e53]:
+                    - link "Issue a new card" [ref=e54] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-issue
+                  - listitem [ref=e55]:
+                    - link "Card details" [ref=e56] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-details
+                  - listitem [ref=e57]:
+                    - link "Get sensitive information" [ref=e58] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-sensitive
+                  - listitem [ref=e59]:
+                    - link "Get transactions for a card" [ref=e60] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transactions
+                  - listitem [ref=e61]:
+                    - link "Get transaction for a card" [ref=e62] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-transaction
+                  - listitem [ref=e63]:
+                    - link "Top up a card" [ref=e64] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-topup
+                  - listitem [ref=e65]:
+                    - link "Withdraw funds" [ref=e66] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-withdraw
+                  - listitem [ref=e67]:
+                    - link "Freeze a card" [ref=e68] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-freeze
+                  - listitem [ref=e69]:
+                    - link "Unfreeze a card" [ref=e70] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-unfreeze
+                  - listitem [ref=e71]:
+                    - link "Delete a card" [ref=e72] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-delete
+                  - listitem [ref=e73]:
+                    - link "Reissue a card" [ref=e74] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-reissue
+                  - listitem [ref=e75]:
+                    - link "Set PIN for a card" [ref=e76] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-set-pin
+                  - listitem [ref=e77]:
+                    - link "Update email for a card" [ref=e78] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-email
+                  - listitem [ref=e79]:
+                    - link "Update phone for a card" [ref=e80] [cursor=pointer]:
+                      - /url: /docs/API reference/Cards/cards-update-phone
+              - listitem [ref=e81]:
+                - button "Budget Cards" [ref=e83] [cursor=pointer]
+              - listitem [ref=e84]:
+                - button "Transactions" [ref=e86] [cursor=pointer]
+              - listitem [ref=e87]:
+                - button "Cardholders" [ref=e89] [cursor=pointer]
+              - listitem [ref=e90]:
+                - button "Members" [ref=e92] [cursor=pointer]
+          - listitem [ref=e93]:
+            - button "Webhooks" [ref=e95] [cursor=pointer]
+          - listitem [ref=e96]:
+            - button "Help" [ref=e98] [cursor=pointer]
+    - main [ref=e99]:
+      - generic [ref=e101]:
+        - generic [ref=e103]:
+          - article [ref=e104]:
+            - navigation "Breadcrumbs" [ref=e105]:
+              - list [ref=e106]:
+                - listitem [ref=e107]:
+                  - link "Home page" [ref=e108] [cursor=pointer]:
+                    - /url: /
+                    - img [ref=e109]
+                - listitem [ref=e111]:
+                  - generic [ref=e112]: API reference
+                - listitem [ref=e113]:
+                  - generic [ref=e114]: Cards
+                - listitem [ref=e115]:
+                  - generic [ref=e116]: Unfreeze a card
+            - generic [ref=e117]:
+              - heading "Unfreeze a card" [level=1] [ref=e119]
+              - separator [ref=e120]
+              - heading "📥 RequestDirect link to 📥 Request" [level=2] [ref=e121]:
+                - text: 📥 Request
+                - link "Direct link to 📥 Request" [ref=e122] [cursor=pointer]:
+                  - /url: "#-request"
+                  - text: "#"
+              - paragraph [ref=e123]:
+                - strong [ref=e124]: POST
+                - code [ref=e125]: "/external/api/prepaid-cards/{id}/unfreeze"
+              - paragraph [ref=e126]: Unfreeze a specific card by its ID
+              - heading "🔐 AuthorizationDirect link to 🔐 Authorization" [level=2] [ref=e127]:
+                - text: 🔐 Authorization
+                - link "Direct link to 🔐 Authorization" [ref=e128] [cursor=pointer]:
+                  - /url: "#-authorization"
+                  - text: "#"
+              - paragraph [ref=e129]:
+                - text: This endpoint requires a valid bearer token in the
+                - code [ref=e130]: Authorization
+                - text: header.
+              - generic [ref=e132]:
+                - code [ref=e134]:
+                  - generic [ref=e135]: "Authorization: Bearer <your_token>"
+                - button "Copy code to clipboard" [ref=e137] [cursor=pointer]:
+                  - generic [ref=e138]:
+                    - img [ref=e139]
+                    - img [ref=e141]
+              - paragraph [ref=e143]:
+                - strong [ref=e144]: "Content-Type:"
+                - code [ref=e145]: application/json
+              - separator [ref=e146]
+              - heading "Path ParametersDirect link to Path Parameters" [level=3] [ref=e147]:
+                - text: Path Parameters
+                - link "Direct link to Path Parameters" [ref=e148] [cursor=pointer]:
+                  - /url: "#path-parameters"
+                  - text: "#"
+              - table [ref=e149]:
+                - rowgroup [ref=e150]:
+                  - row "Name Type Description Required" [ref=e151]:
+                    - columnheader "Name" [ref=e152]
+                    - columnheader "Type" [ref=e153]
+                    - columnheader "Description" [ref=e154]
+                    - columnheader "Required" [ref=e155]
+                - rowgroup [ref=e156]:
+                  - row "id string ID of the card true" [ref=e157]:
+                    - cell "id" [ref=e158]:
+                      - code [ref=e159]: id
+                    - cell "string" [ref=e160]
+                    - cell "ID of the card" [ref=e161]
+                    - cell "true" [ref=e162]:
+                      - code [ref=e163]: "true"
+              - heading "Query ParametersDirect link to Query Parameters" [level=3] [ref=e164]:
+                - text: Query Parameters
+                - link "Direct link to Query Parameters" [ref=e165] [cursor=pointer]:
+                  - /url: "#query-parameters"
+                  - text: "#"
+              - table [ref=e166]:
+                - rowgroup [ref=e167]:
+                  - row "Name Type Description Required" [ref=e168]:
+                    - columnheader "Name" [ref=e169]
+                    - columnheader "Type" [ref=e170]
+                    - columnheader "Description" [ref=e171]
+                    - columnheader "Required" [ref=e172]
+                - rowgroup [ref=e173]:
+                  - row "is_external string Set to 1 if you want to use your external id false" [ref=e174]:
+                    - cell "is_external" [ref=e175]:
+                      - code [ref=e176]: is_external
+                    - cell "string" [ref=e177]
+                    - cell "Set to 1 if you want to use your external id" [ref=e178]
+                    - cell "false" [ref=e179]:
+                      - code [ref=e180]: "false"
+              - separator [ref=e181]
+              - heading "✅ ResponsesDirect link to ✅ Responses" [level=2] [ref=e182]:
+                - text: ✅ Responses
+                - link "Direct link to ✅ Responses" [ref=e183] [cursor=pointer]:
+                  - /url: "#-responses"
+                  - text: "#"
+              - heading "200 — Successfully unfrozen the cardDirect link to 200--successfully-unfrozen-the-card" [level=3] [ref=e184]:
+                - code [ref=e185]: "200"
+                - text: — Successfully unfrozen the card
+                - link "Direct link to 200--successfully-unfrozen-the-card" [ref=e186] [cursor=pointer]:
+                  - /url: "#200--successfully-unfrozen-the-card"
+                  - text: "#"
+              - generic [ref=e188]:
+                - code [ref=e190]:
+                  - generic [ref=e191]: "{"
+                  - generic [ref=e192]: "\"status\": \"success\","
+                  - generic [ref=e193]: "\"message\": \"Card has been unfrozen\""
+                  - generic [ref=e194]: "}"
+                - button "Copy code to clipboard" [ref=e196] [cursor=pointer]:
+                  - generic [ref=e197]:
+                    - img [ref=e198]
+                    - img [ref=e200]
+              - heading "400 — Card not found or already frozenDirect link to 400--card-not-found-or-already-frozen" [level=3] [ref=e202]:
+                - code [ref=e203]: "400"
+                - text: — Card not found or already frozen
+                - link "Direct link to 400--card-not-found-or-already-frozen" [ref=e204] [cursor=pointer]:
+                  - /url: "#400--card-not-found-or-already-frozen"
+                  - text: "#"
+              - generic [ref=e206]:
+                - code [ref=e208]:
+                  - generic [ref=e209]: "{"
+                  - generic [ref=e210]: "\"status\": \"error\","
+                  - generic [ref=e211]: "\"message\": \"Card is already unfrozen or not found\""
+                  - generic [ref=e212]: "}"
+                - button "Copy code to clipboard" [ref=e214] [cursor=pointer]:
+                  - generic [ref=e215]:
+                    - img [ref=e216]
+                    - img [ref=e218]
+              - heading "401 — Unauthorized - User does not have permission to unfreeze this cardDirect link to 401--unauthorized---user-does-not-have-permission-to-unfreeze-this-card" [level=3] [ref=e220]:
+                - code [ref=e221]: "401"
+                - text: — Unauthorized - User does not have permission to unfreeze this card
+                - link "Direct link to 401--unauthorized---user-does-not-have-permission-to-unfreeze-this-card" [ref=e222] [cursor=pointer]:
+                  - /url: "#401--unauthorized---user-does-not-have-permission-to-unfreeze-this-card"
+                  - text: "#"
+              - generic [ref=e224]:
+                - code [ref=e226]:
+                  - generic [ref=e227]: "{"
+                  - generic [ref=e228]: "\"status\": \"error\","
+                  - generic [ref=e229]: "\"message\": \"Unauthorized\""
+                  - generic [ref=e230]: "}"
+                - button "Copy code to clipboard" [ref=e232] [cursor=pointer]:
+                  - generic [ref=e233]:
+                    - img [ref=e234]
+                    - img [ref=e236]
+              - heading "500 — Internal server error or card issuance failureDirect link to 500--internal-server-error-or-card-issuance-failure" [level=3] [ref=e238]:
+                - code [ref=e239]: "500"
+                - text: — Internal server error or card issuance failure
+                - link "Direct link to 500--internal-server-error-or-card-issuance-failure" [ref=e240] [cursor=pointer]:
+                  - /url: "#500--internal-server-error-or-card-issuance-failure"
+                  - text: "#"
+              - generic [ref=e242]:
+                - code [ref=e244]:
+                  - generic [ref=e245]: "{"
+                  - generic [ref=e246]: "\"status\": \"error\","
+                  - generic [ref=e247]: "\"message\": \"Internal server error\""
+                  - generic [ref=e248]: "}"
+                - button "Copy code to clipboard" [ref=e250] [cursor=pointer]:
+                  - generic [ref=e251]:
+                    - img [ref=e252]
+                    - img [ref=e254]
+          - navigation "Docs pages" [ref=e256]:
+            - link "Previous « Freeze a card" [ref=e257] [cursor=pointer]:
+              - /url: /docs/API reference/Cards/cards-freeze
+              - generic [ref=e258]: Previous
+              - generic [ref=e259]: « Freeze a card
+            - link "Next Delete a card »" [ref=e260] [cursor=pointer]:
+              - /url: /docs/API reference/Cards/cards-delete
+              - generic [ref=e261]: Next
+              - generic [ref=e262]: Delete a card »
+        - list [ref=e265]:
+          - listitem [ref=e266]:
+            - link "📥 Request" [ref=e267] [cursor=pointer]:
+              - /url: "#-request"
+          - listitem [ref=e268]:
+            - link "🔐 Authorization" [ref=e269] [cursor=pointer]:
+              - /url: "#-authorization"
+            - list [ref=e270]:
+              - listitem [ref=e271]:
+                - link "Path Parameters" [ref=e272] [cursor=pointer]:
+                  - /url: "#path-parameters"
+              - listitem [ref=e273]:
+                - link "Query Parameters" [ref=e274] [cursor=pointer]:
+                  - /url: "#query-parameters"
+          - listitem [ref=e275]:
+            - link "✅ Responses" [ref=e276] [cursor=pointer]:
+              - /url: "#-responses"
+            - list [ref=e277]:
+              - listitem [ref=e278]:
+                - link "200 — Successfully unfrozen the card" [ref=e279] [cursor=pointer]:
+                  - /url: "#200--successfully-unfrozen-the-card"
+                  - code [ref=e280]: "200"
+                  - text: — Successfully unfrozen the card
+              - listitem [ref=e281]:
+                - link "400 — Card not found or already frozen" [ref=e282] [cursor=pointer]:
+                  - /url: "#400--card-not-found-or-already-frozen"
+                  - code [ref=e283]: "400"
+                  - text: — Card not found or already frozen
+              - listitem [ref=e284]:
+                - link "401 — Unauthorized - User does not have permission to unfreeze this card" [ref=e285] [cursor=pointer]:
+                  - /url: "#401--unauthorized---user-does-not-have-permission-to-unfreeze-this-card"
+                  - code [ref=e286]: "401"
+                  - text: — Unauthorized - User does not have permission to unfreeze this card
+              - listitem [ref=e287]:
+                - link "500 — Internal server error or card issuance failure" [ref=e288] [cursor=pointer]:
+                  - /url: "#500--internal-server-error-or-card-issuance-failure"
+                  - code [ref=e289]: "500"
+                  - text: — Internal server error or card issuance failure

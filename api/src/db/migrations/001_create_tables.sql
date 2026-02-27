@@ -3,6 +3,9 @@
 -- Created: 2026-02-27
 -- Ticket: PLAT-003
 
+-- ── Enable required extensions ─────────────────────────────
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ── Cards ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cards (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

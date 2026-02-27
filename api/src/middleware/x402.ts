@@ -1,4 +1,4 @@
-import type { RequestHandler } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { env } from "../config/env";
 import {
   findCreationTier,
@@ -6,6 +6,7 @@ import {
   toAtomicUsdc
 } from "../config/pricing";
 import { parsePaymentHeader } from "../utils/payment";
+import { paymentService } from "../services/paymentService";
 
 type PaidPurpose = "create" | "fund";
 
@@ -38,8 +39,8 @@ const buildChallenge = (
   ]
 });
 
-export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
-  return (req, res, next) => {
+export const requireX402Payment = (purpose: PaidPurpose) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const amount = Number(req.params.amount);
     const tier = purpose === "create" ? findCreationTier(amount) : findFundingTier(amount);
 
@@ -83,8 +84,25 @@ export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
       return;
     }
 
-    // TODO [PAY-002]: Verify txHash via facilitator or Horizon.
-    // For PLAT-001, payment proof is accepted at face value.
+    // ── PAY-002: Verify via facilitator (FAIL-CLOSED) ──────
+    const verifyResult = await paymentService.verifyAndAccept({
+      txHash: proof.payload.txHash,
+      payTo: env.STELLAR_TREASURY_ADDRESS,
+      asset: env.STELLAR_USDC_ASSET,
+      amount: requiredAtomic,
+      network: env.STELLAR_NETWORK
+    });
+
+    if (!verifyResult.valid) {
+      // Differentiate facilitator-unreachable (503) from invalid proof (401)
+      const isFacilitatorDown = verifyResult.error?.includes("Payment verification failed:");
+      const statusCode = isFacilitatorDown ? 503 : 401;
+      res.status(statusCode).json({
+        error: verifyResult.error ?? "Payment verification failed"
+      });
+      return;
+    }
+
     req.paymentContext = {
       payer: proof.payload.authorization.from,
       txHash: proof.payload.txHash,
@@ -96,4 +114,3 @@ export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
     next();
   };
 };
-

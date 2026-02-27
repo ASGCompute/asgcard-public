@@ -32,7 +32,18 @@ class InMemoryIdempotencyStore implements IdempotencyStore {
 
 const idempotencyStore: IdempotencyStore = new InMemoryIdempotencyStore();
 
-// ── HMAC Verification ──────────────────────────────────────
+// ── HMAC Verification (safe length check) ──────────────────
+
+const safeTimingSafeEqual = (a: string, b: string): boolean => {
+    const bufA = Buffer.from(a, "utf-8");
+    const bufB = Buffer.from(b, "utf-8");
+
+    if (bufA.length !== bufB.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(bufA, bufB);
+};
 
 const verifyHmac = (rawBody: Buffer, signatureHeader: string): boolean => {
     // Try current secret first
@@ -41,7 +52,7 @@ const verifyHmac = (rawBody: Buffer, signatureHeader: string): boolean => {
         .update(rawBody)
         .digest("hex");
 
-    if (crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureHeader))) {
+    if (safeTimingSafeEqual(expected, signatureHeader)) {
         return true;
     }
 
@@ -52,10 +63,7 @@ const verifyHmac = (rawBody: Buffer, signatureHeader: string): boolean => {
             .update(rawBody)
             .digest("hex");
 
-        return crypto.timingSafeEqual(
-            Buffer.from(expectedPrevious),
-            Buffer.from(signatureHeader)
-        );
+        return safeTimingSafeEqual(expectedPrevious, signatureHeader);
     }
 
     return false;
@@ -69,10 +77,15 @@ export const webhookRouter = Router();
 webhookRouter.post(
     "/4payments",
     (req, res) => {
-        const signatureHeader = req.header("X-Webhook-Signature");
+        // 4payments canonical header: "webhook-sign"
+        // Also accept "X-Webhook-Signature" for compatibility
+        const signatureHeader =
+            req.header("webhook-sign") ?? req.header("X-Webhook-Signature");
 
         if (!signatureHeader) {
-            res.status(401).json({ error: "Missing X-Webhook-Signature header" });
+            res.status(401).json({
+                error: "Missing webhook signature header (expected: webhook-sign)"
+            });
             return;
         }
 

@@ -117,7 +117,7 @@ describe("PaymentRepository", () => {
     const testTxHash = `tx_persist_test_${Date.now()}`;
 
     it("recordPayment() → stores payment", async () => {
-        const payment = await paymentRepository.recordPayment({
+        const { record: payment, inserted } = await paymentRepository.recordPayment({
             txHash: testTxHash,
             payer: "GPAYER111111111111111111111111111111111111111111111111111",
             amount: "25000000",
@@ -125,6 +125,7 @@ describe("PaymentRepository", () => {
             status: "proof_received"
         });
 
+        expect(inserted).toBe(true);
         expect(payment.id).toBeTruthy();
         expect(payment.txHash).toBe(testTxHash);
         expect(payment.status).toBe("proof_received");
@@ -141,8 +142,8 @@ describe("PaymentRepository", () => {
         expect(payment).toBeUndefined();
     });
 
-    it("anti-replay: duplicate txHash returns existing record", async () => {
-        const duplicate = await paymentRepository.recordPayment({
+    it("anti-replay: duplicate txHash returns existing record with inserted=false", async () => {
+        const { record: duplicate, inserted } = await paymentRepository.recordPayment({
             txHash: testTxHash,
             payer: "GPAYER111111111111111111111111111111111111111111111111111",
             amount: "25000000",
@@ -150,12 +151,13 @@ describe("PaymentRepository", () => {
             status: "verified"
         });
 
+        expect(inserted).toBe(false);
         // Should return the ORIGINAL record with proof_received status
         expect(duplicate.txHash).toBe(testTxHash);
         expect(duplicate.status).toBe("proof_received");
     });
 
-    it("concurrent anti-replay: Promise.all duplicate inserts", async () => {
+    it("concurrent anti-replay: exactly 1 inserted, rest duplicates", async () => {
         const concurrentHash = `tx_concurrent_${Date.now()}`;
         const basePayment = {
             txHash: concurrentHash,
@@ -174,10 +176,16 @@ describe("PaymentRepository", () => {
             paymentRepository.recordPayment(basePayment)
         ]);
 
-        // All should resolve to the same record
-        const ids = new Set(results.map((r) => r.txHash));
-        expect(ids.size).toBe(1);
-        expect(ids.has(concurrentHash)).toBe(true);
+        // All should resolve to the same txHash
+        const hashes = new Set(results.map((r) => r.record.txHash));
+        expect(hashes.size).toBe(1);
+        expect(hashes.has(concurrentHash)).toBe(true);
+
+        // Exactly 1 inserted, rest are duplicates
+        const insertedCount = results.filter((r) => r.inserted).length;
+        const duplicateCount = results.filter((r) => !r.inserted).length;
+        expect(insertedCount).toBe(1);
+        expect(duplicateCount).toBe(4);
     });
 
     it("markSettled() → transitions to settled", async () => {
@@ -213,12 +221,13 @@ describe("WebhookEventRepository", () => {
     const testKey = `evt_persist_test_${Date.now()}`;
 
     it("store() → persists webhook event", async () => {
-        const event = await webhookEventRepository.store({
+        const { record: event, inserted } = await webhookEventRepository.store({
             idempotencyKey: testKey,
             eventType: "card.created",
             payload: { foo: "bar" }
         });
 
+        expect(inserted).toBe(true);
         expect(event.id).toBeTruthy();
         expect(event.idempotencyKey).toBe(testKey);
         expect(event.eventType).toBe("card.created");
@@ -235,19 +244,20 @@ describe("WebhookEventRepository", () => {
         expect(event).toBeUndefined();
     });
 
-    it("idempotency: duplicate key returns existing record", async () => {
-        const duplicate = await webhookEventRepository.store({
+    it("idempotency: duplicate key returns existing record with inserted=false", async () => {
+        const { record: duplicate, inserted } = await webhookEventRepository.store({
             idempotencyKey: testKey,
             eventType: "card.funded",
             payload: { baz: "qux" }
         });
 
+        expect(inserted).toBe(false);
         // Should return original with card.created type
         expect(duplicate.idempotencyKey).toBe(testKey);
         expect(duplicate.eventType).toBe("card.created");
     });
 
-    it("concurrent idempotency: Promise.all duplicate stores", async () => {
+    it("concurrent idempotency: exactly 1 inserted, rest duplicates", async () => {
         const concurrentKey = `evt_concurrent_${Date.now()}`;
         const baseEvent = {
             idempotencyKey: concurrentKey,
@@ -265,8 +275,14 @@ describe("WebhookEventRepository", () => {
         ]);
 
         // All should resolve to the same key
-        const keys = new Set(results.map((r) => r.idempotencyKey));
+        const keys = new Set(results.map((r) => r.record.idempotencyKey));
         expect(keys.size).toBe(1);
         expect(keys.has(concurrentKey)).toBe(true);
+
+        // Exactly 1 inserted, rest are duplicates
+        const insertedCount = results.filter((r) => r.inserted).length;
+        const duplicateCount = results.filter((r) => !r.inserted).length;
+        expect(insertedCount).toBe(1);
+        expect(duplicateCount).toBe(4);
     });
 });

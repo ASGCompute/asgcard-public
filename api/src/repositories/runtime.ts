@@ -27,10 +27,10 @@ class InMemoryWebhookEventRepository implements WebhookEventRepository {
 
     async store(
         event: Omit<WebhookEventRecord, "id" | "processedAt">
-    ): Promise<WebhookEventRecord> {
+    ): Promise<{ record: WebhookEventRecord; inserted: boolean }> {
         // Match Postgres ON CONFLICT (idempotency_key) DO NOTHING semantics
         const existing = this.events.get(event.idempotencyKey);
-        if (existing) return existing;
+        if (existing) return { record: existing, inserted: false };
 
         const record: WebhookEventRecord = {
             ...event,
@@ -38,7 +38,7 @@ class InMemoryWebhookEventRepository implements WebhookEventRepository {
             processedAt: new Date().toISOString()
         };
         this.events.set(record.idempotencyKey, record);
-        return record;
+        return { record, inserted: true };
     }
 
     async findByIdempotencyKey(key: string): Promise<WebhookEventRecord | undefined> {

@@ -11,7 +11,7 @@ import type { TierAmount } from "../types/domain";
 export class PostgresPaymentRepository implements PaymentRepository {
     async recordPayment(
         payment: Omit<PaymentRecord, "id" | "createdAt" | "updatedAt">
-    ): Promise<PaymentRecord> {
+    ): Promise<{ record: PaymentRecord; inserted: boolean }> {
         const rows = await query<{
             id: string;
             tx_hash: string;
@@ -43,11 +43,11 @@ export class PostgresPaymentRepository implements PaymentRepository {
         // ON CONFLICT → 0 rows means duplicate txHash (anti-replay)
         if (rows.length === 0) {
             const existing = await this.findByTxHash(payment.txHash);
-            if (existing) return existing;
+            if (existing) return { record: existing, inserted: false };
             throw new Error(`Payment conflict for tx_hash=${payment.txHash} but record not found`);
         }
 
-        return this.rowToPaymentRecord(rows[0]);
+        return { record: this.rowToPaymentRecord(rows[0]), inserted: true };
     }
 
     async findByTxHash(txHash: string): Promise<PaymentRecord | undefined> {

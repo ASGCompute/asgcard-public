@@ -6,10 +6,10 @@ export class InMemoryPaymentRepository implements PaymentRepository {
 
     async recordPayment(
         payment: Omit<PaymentRecord, "id" | "createdAt" | "updatedAt">
-    ): Promise<PaymentRecord> {
+    ): Promise<{ record: PaymentRecord; inserted: boolean }> {
         // Match Postgres ON CONFLICT (tx_hash) DO NOTHING semantics
         const existing = this.payments.get(payment.txHash);
-        if (existing) return existing;
+        if (existing) return { record: existing, inserted: false };
 
         const record: PaymentRecord = {
             ...payment,
@@ -18,7 +18,7 @@ export class InMemoryPaymentRepository implements PaymentRepository {
             updatedAt: new Date().toISOString()
         };
         this.payments.set(record.txHash, record);
-        return record;
+        return { record, inserted: true };
     }
 
     async findByTxHash(txHash: string): Promise<PaymentRecord | undefined> {

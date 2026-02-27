@@ -97,23 +97,18 @@ webhookRouter.post(
             return;
         }
 
-        // Idempotency check via repository (DB-backed in postgres mode)
-        const existing = await webhookEventRepository.findByIdempotencyKey(
-            event.idempotencyKey
-        );
-        if (existing) {
-            // Already processed — return 200 to prevent retries
-            res.status(200).json({ status: "already_processed" });
-            return;
-        }
-
-        // Store webhook event (atomic — INSERT ON CONFLICT in postgres mode)
-        await webhookEventRepository.store({
+        // Atomic idempotency — NO pre-check, INSERT ON CONFLICT handles dupes
+        const { inserted } = await webhookEventRepository.store({
             idempotencyKey: event.idempotencyKey,
             eventType: event.type,
             payload: event.payload
         });
 
+        if (!inserted) {
+            // Duplicate — already processed, return 200 to prevent retries
+            res.status(200).json({ status: "already_processed" });
+            return;
+        }
         // Route event to handler
         // TODO: Implement concrete handlers for 4payments event types:
         //   - card.created, card.funded, card.transaction, card.status_change

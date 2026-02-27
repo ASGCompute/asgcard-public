@@ -10,7 +10,7 @@ import type { WebhookEventRecord, WebhookEventRepository } from "./types";
 export class PostgresWebhookEventRepository implements WebhookEventRepository {
     async store(
         event: Omit<WebhookEventRecord, "id" | "processedAt">
-    ): Promise<WebhookEventRecord> {
+    ): Promise<{ record: WebhookEventRecord; inserted: boolean }> {
         const rows = await query<{
             id: string;
             idempotency_key: string;
@@ -28,13 +28,13 @@ export class PostgresWebhookEventRepository implements WebhookEventRepository {
         // ON CONFLICT → duplicate, return existing
         if (rows.length === 0) {
             const existing = await this.findByIdempotencyKey(event.idempotencyKey);
-            if (existing) return existing;
+            if (existing) return { record: existing, inserted: false };
             throw new Error(
                 `Webhook event conflict for key=${event.idempotencyKey} but record not found`
             );
         }
 
-        return this.rowToRecord(rows[0]);
+        return { record: this.rowToRecord(rows[0]), inserted: true };
     }
 
     async findByIdempotencyKey(

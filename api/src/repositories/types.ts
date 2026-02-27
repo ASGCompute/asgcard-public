@@ -43,7 +43,7 @@ export interface PaymentRecord {
 }
 
 export interface PaymentRepository {
-    recordPayment(payment: Omit<PaymentRecord, "id" | "createdAt" | "updatedAt">): Promise<PaymentRecord>;
+    recordPayment(payment: Omit<PaymentRecord, "id" | "createdAt" | "updatedAt">): Promise<{ record: PaymentRecord; inserted: boolean }>;
     findByTxHash(txHash: string): Promise<PaymentRecord | undefined>;
     markSettled(txHash: string, settleId: string): Promise<boolean>;
     markFailed(txHash: string, status: "settle_failed" | "verify_failed"): Promise<boolean>;
@@ -60,6 +60,6 @@ export interface WebhookEventRecord {
 }
 
 export interface WebhookEventRepository {
-    store(event: Omit<WebhookEventRecord, "id" | "processedAt">): Promise<WebhookEventRecord>;
+    store(event: Omit<WebhookEventRecord, "id" | "processedAt">): Promise<{ record: WebhookEventRecord; inserted: boolean }>;
     findByIdempotencyKey(key: string): Promise<WebhookEventRecord | undefined>;
 }

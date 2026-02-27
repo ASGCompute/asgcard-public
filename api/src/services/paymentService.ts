@@ -31,11 +31,7 @@ export class PaymentService {
      * FAIL-CLOSED: if facilitator is unreachable, reject the request.
      */
     async verifyAndAccept(proof: VerifyPaymentInput): Promise<PaymentVerifyResult> {
-        // Anti-replay check
-        const existing = await this.paymentRepo.findByTxHash(proof.txHash);
-        if (existing) {
-            return { valid: false, error: "Transaction hash already used (replay)" };
-        }
+        // NO pre-check findByTxHash — atomic INSERT ON CONFLICT handles replay
 
         try {
             const result = await facilitatorClient.verify({
@@ -47,6 +43,7 @@ export class PaymentService {
             });
 
             if (!result.valid) {
+                // Record failure atomically — duplicate verify_failed is harmless
                 await this.paymentRepo.recordPayment({
                     txHash: proof.txHash,
                     payer: proof.payer,
@@ -61,7 +58,8 @@ export class PaymentService {
                 };
             }
 
-            await this.paymentRepo.recordPayment({
+            // Atomic insert — inserted=false means duplicate (anti-replay)
+            const { inserted } = await this.paymentRepo.recordPayment({
                 txHash: proof.txHash,
                 payer: proof.payer,
                 amount: proof.amount,
@@ -70,7 +68,12 @@ export class PaymentService {
                 settleId: result.settleId
             });
 
-            // Enqueue settlement (async, fire-and-forget with error logging)
+            if (!inserted) {
+                // Duplicate txHash — do NOT trigger another settle
+                return { valid: false, error: "Transaction hash already used (replay)" };
+            }
+
+            // Only enqueue settlement for the FIRST insert
             if (result.settleId) {
                 this.enqueueSettlement(proof.txHash, result.settleId);
             }

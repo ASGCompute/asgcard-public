@@ -27,10 +27,10 @@ const buildChallenge = (
   accepts: [
     {
       scheme: "exact",
-      network: env.SOLANA_NETWORK,
-      asset: env.USDC_MINT,
+      network: env.STELLAR_NETWORK,
+      asset: env.STELLAR_USDC_ASSET,
       maxAmountRequired: requiredAtomic,
-      payTo: env.TREASURY_PUBKEY,
+      payTo: env.STELLAR_TREASURY_ADDRESS,
       maxTimeoutSeconds: 300,
       resource: reqPath,
       description: getChallengeDescription(purpose, amount)
@@ -63,12 +63,12 @@ export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
       return;
     }
 
-    if (proof.scheme !== "exact" || proof.network !== env.SOLANA_NETWORK) {
+    if (proof.scheme !== "exact" || proof.network !== env.STELLAR_NETWORK) {
       res.status(401).json({ error: "Unsupported payment scheme or network" });
       return;
     }
 
-    if (proof.payload.authorization.to !== env.TREASURY_PUBKEY) {
+    if (proof.payload.authorization.to !== env.STELLAR_TREASURY_ADDRESS) {
       res.status(401).json({ error: "Payment recipient mismatch" });
       return;
     }
@@ -83,7 +83,8 @@ export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
       return;
     }
 
-    // TODO: Verify txHash on Solana RPC and assert SPL transfer of USDC to treasury.
+    // TODO [PAY-002]: Verify txHash via facilitator or Horizon.
+    // For PLAT-001, payment proof is accepted at face value.
     req.paymentContext = {
       payer: proof.payload.authorization.from,
       txHash: proof.payload.txHash,
@@ -95,3 +96,4 @@ export const requireX402Payment = (purpose: PaidPurpose): RequestHandler => {
     next();
   };
 };
+

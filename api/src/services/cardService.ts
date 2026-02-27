@@ -72,7 +72,7 @@ class CardService {
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
-        network: "solana"
+        network: "stellar"
       },
       details: card.details
     };
@@ -101,7 +101,7 @@ class CardService {
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
-        network: "solana"
+        network: "stellar"
       }
     };
   }

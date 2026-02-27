@@ -1,9 +1,0 @@
-[    1024ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0
-[  417300ms] TypeError: this.scheduleNextIdleCycle is not a function
-    at HeroCardScanEffect.setup (http://127.0.0.1:4173/src/main.ts?t=1771802756244:518:10)
-    at new HeroCardScanEffect (http://127.0.0.1:4173/src/main.ts?t=1771802756244:512:10)
-    at http://127.0.0.1:4173/src/main.ts?t=1771802756244:705:3
-[  429944ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0
-[  445469ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0
-[  468480ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0
-[ 1939109ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/pricing:0

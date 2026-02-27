@@ -1,2 +1,0 @@
-[    2148ms] [ERROR] Access to fetch at 'http://localhost:3000/pricing' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/#pricing:0
-[    2149ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:3000/pricing:0

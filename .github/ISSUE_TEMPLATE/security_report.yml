@@ -1,0 +1,42 @@
+name: Security Report
+description: Report a security vulnerability or concern
+title: "[SEC] "
+labels: ["type:security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **If this is a critical security vulnerability, contact security@asgcard.dev directly instead of filing a public issue.**
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Concern
+      description: Describe the security issue. Do NOT include credentials, PAN, CVV, or other sensitive data.
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Data Exposure (PAN/CVV/secrets)
+        - Authentication Bypass
+        - Replay Attack
+        - Webhook Signature Bypass
+        - Configuration / Secrets
+        - Dependency Vulnerability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: What is the potential impact if this issue is exploited?
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: If you have a suggested fix or mitigation, describe it here.

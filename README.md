@@ -43,6 +43,8 @@ npm run dev:stellar
 - Persistent operating context: `docs/execution/FOUNDER_CTO_OPERATING_CONTEXT_STELLAR.md`
 - Full CTO onboarding + scope: `docs/execution/CTO_FULL_CONTEXT_AND_SCOPE_STELLAR.md`
 - First CTO scope: `docs/execution/CTO_SCOPE_SPRINT_01_STELLAR.md`
+- CTO Day 1–2 execution packet: `docs/execution/CTO_DAY1_DAY2_EXECUTION_PACKET.md`
 - GitHub backlog (canonical): `docs/execution/github/ISSUE_BACKLOG_STELLAR_PILOT.md`
 - GitHub backlog (CSV): `docs/execution/github/stellar_pilot_issue_backlog.csv`
 - Auto-create issues via `gh`: `scripts/github/create_stellar_pilot_issues.sh`
+- Audit GitHub backlog consistency: `scripts/github/audit_stellar_pilot_backlog.sh`

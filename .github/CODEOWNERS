@@ -1,0 +1,21 @@
+# Default owner for everything
+* @ASGCompute
+
+# API and backend services
+/api/ @ASGCompute
+/sdk/ @ASGCompute
+
+# Web and frontend
+/web/ @ASGCompute
+/web-stellar-mg/ @ASGCompute
+
+# Infrastructure and CI
+/.github/ @ASGCompute
+/scripts/ @ASGCompute
+
+# Documentation and ADRs
+/docs/ @ASGCompute
+
+# Security-sensitive files require explicit review
+/api/src/middleware/ @ASGCompute
+/api/src/config/env.ts @ASGCompute

@@ -13,3 +13,6 @@ out/
 .gemini/
 *.tsbuildinfo
 .turbo/
+gh_extracted/
+gh.zip
+gh.tar.gz

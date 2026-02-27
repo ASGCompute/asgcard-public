@@ -1,0 +1,123 @@
+import crypto from "node:crypto";
+import { Router } from "express";
+import { env } from "../config/env";
+
+// ── Types ──────────────────────────────────────────────────
+
+export interface WebhookEvent {
+    type: string;
+    idempotencyKey: string;
+    payload: Record<string, unknown>;
+    timestamp: string;
+}
+
+// ── Idempotency Store ──────────────────────────────────────
+
+export interface IdempotencyStore {
+    has(key: string): boolean;
+    add(key: string): void;
+}
+
+class InMemoryIdempotencyStore implements IdempotencyStore {
+    private seen = new Set<string>();
+
+    has(key: string): boolean {
+        return this.seen.has(key);
+    }
+
+    add(key: string): void {
+        this.seen.add(key);
+    }
+}
+
+const idempotencyStore: IdempotencyStore = new InMemoryIdempotencyStore();
+
+// ── HMAC Verification ──────────────────────────────────────
+
+const verifyHmac = (rawBody: Buffer, signatureHeader: string): boolean => {
+    // Try current secret first
+    const expected = crypto
+        .createHmac("sha256", env.WEBHOOK_SECRET)
+        .update(rawBody)
+        .digest("hex");
+
+    if (crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureHeader))) {
+        return true;
+    }
+
+    // Try previous secret for rotation support
+    if (env.WEBHOOK_SECRET_PREVIOUS) {
+        const expectedPrevious = crypto
+            .createHmac("sha256", env.WEBHOOK_SECRET_PREVIOUS)
+            .update(rawBody)
+            .digest("hex");
+
+        return crypto.timingSafeEqual(
+            Buffer.from(expectedPrevious),
+            Buffer.from(signatureHeader)
+        );
+    }
+
+    return false;
+};
+
+// ── Router ─────────────────────────────────────────────────
+
+export const webhookRouter = Router();
+
+// Raw body parser for HMAC — must be applied BEFORE json parser
+webhookRouter.post(
+    "/4payments",
+    (req, res) => {
+        const signatureHeader = req.header("X-Webhook-Signature");
+
+        if (!signatureHeader) {
+            res.status(401).json({ error: "Missing X-Webhook-Signature header" });
+            return;
+        }
+
+        // Raw body is attached by express.raw() middleware in app.ts
+        const rawBody = (req as unknown as { body: Buffer }).body;
+
+        if (!Buffer.isBuffer(rawBody)) {
+            res.status(400).json({ error: "Expected raw body for HMAC verification" });
+            return;
+        }
+
+        if (!verifyHmac(rawBody, signatureHeader)) {
+            res.status(401).json({ error: "Invalid webhook signature" });
+            return;
+        }
+
+        // Parse the verified body
+        let event: WebhookEvent;
+        try {
+            const parsed = JSON.parse(rawBody.toString("utf-8"));
+            event = {
+                type: parsed.type ?? "unknown",
+                idempotencyKey: parsed.idempotency_key ?? parsed.id ?? crypto.randomUUID(),
+                payload: parsed,
+                timestamp: parsed.timestamp ?? new Date().toISOString()
+            };
+        } catch {
+            res.status(400).json({ error: "Invalid JSON body" });
+            return;
+        }
+
+        // Idempotency check
+        if (idempotencyStore.has(event.idempotencyKey)) {
+            // Already processed — return 200 to prevent retries
+            res.status(200).json({ status: "already_processed" });
+            return;
+        }
+
+        idempotencyStore.add(event.idempotencyKey);
+
+        // Route event to handler
+        // TODO: Implement concrete handlers for 4payments event types:
+        //   - card.created, card.funded, card.transaction, card.status_change
+        console.log(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
+
+        res.status(200).json({ status: "accepted", type: event.type });
+    }
+);

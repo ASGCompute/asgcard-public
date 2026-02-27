@@ -47,9 +47,10 @@ After agent sends `X-Payment` header on retry:
 3. Call OpenZeppelin facilitator: `POST {FACILITATOR_URL}/verify`
    - Input: `{ txHash, payTo, asset, amount, network }`
    - Expected: `{ valid: true, settleId: "..." }`
-4. If facilitator is unreachable: **fail open with deferred verification**
-   - Accept the request, mark payment as `pending_verify`
-   - Reconciliation worker picks it up within 15 minutes
+4. If facilitator is unreachable: **fail closed (reject)**
+   - Return 503 Service Unavailable to the agent
+   - Agent retries per x402 spec (maxTimeoutSeconds window)
+   - Reconciliation worker monitors verify success rate and alerts if < 99%
 
 ### Settle Flow (Async — in PAY-002)
 
@@ -66,7 +67,7 @@ Settlement is always async to avoid blocking the API response:
 
 | Operation | Timeout | Max Retries | Backoff | Failure Action |
 |---|---|---|---|---|
-| Verify (facilitator) | 8s | 2 | 1s, 3s | Accept with `pending_verify` |
+| Verify (facilitator) | 8s | 2 | 1s, 3s | Reject 503, agent retries |
 | Settle (facilitator) | 10s | 5 | 2s, 4s, 8s, 16s, 30s | Mark `settle_failed`, alert |
 | Horizon tx lookup (fallback) | 5s | 1 | — | Log warning, rely on facilitator |
 
@@ -86,19 +87,17 @@ The reconciliation worker runs every 15 minutes and handles:
 
 ### State Machine
 
-```
+```text
 Payment States:
   challenge_issued → proof_received → verified → settled
                                     → settle_failed → (manual)
-                   → verify_failed → (rejected)
-                   → pending_verify → verified (async)
-                                   → verify_failed (async)
+                   → verify_failed → (rejected, 503 or 401)
 ```
 
 ## Consequences
 
-- **Positive**: Async settlement avoids blocking API latency. Fail-open on verify prevents unnecessary rejections during facilitator downtime.
-- **Negative**: Fail-open introduces a window where unverified requests are processed. Mitigated by fast reconciliation cycle (15 min) and amount-bound risk.
+- **Positive**: Async settlement avoids blocking API latency. Fail-closed on verify prevents processing of unverified payments.
+- **Negative**: Facilitator downtime blocks all paid operations. Mitigated by retry policy (2 attempts) and agent-side retry per x402 spec.
 - **Risk**: Facilitator API contract may change. Mitigated by typed adapter with version pinning.
 
 ## Implementation Scope

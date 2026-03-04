@@ -41,10 +41,20 @@ export class InMemoryCardRepository implements CardRepository {
         return true;
     }
 
-    async addBalance(cardId: string, amount: number): Promise<boolean> {
+    async addBalance(cardId: string, usdAmount: number): Promise<boolean> {
         const card = this.cards.get(cardId);
         if (!card) return false;
-        card.balance += amount;
+
+        card.balance += usdAmount;
+        card.updatedAt = new Date().toISOString();
+        return true;
+    }
+
+    async setDetailsRevoked(cardId: string, revoked: boolean): Promise<boolean> {
+        const card = this.cards.get(cardId);
+        if (!card) return false;
+
+        (card as any).detailsRevoked = revoked;
         card.updatedAt = new Date().toISOString();
         return true;
     }

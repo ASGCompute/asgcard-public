@@ -17,7 +17,8 @@ export interface CardRepository {
     findById(cardId: string): Promise<StoredCard | undefined>;
     findByWallet(walletAddress: string): Promise<StoredCard[]>;
     updateStatus(cardId: string, status: "active" | "frozen"): Promise<boolean>;
-    addBalance(cardId: string, amount: number): Promise<boolean>;
+    addBalance(cardId: string, usdAmount: number): Promise<boolean>;
+    setDetailsRevoked(cardId: string, revoked: boolean): Promise<boolean>;
 }
 
 // ── Payment Repository ─────────────────────────────────────

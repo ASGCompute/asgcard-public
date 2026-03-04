@@ -197,8 +197,10 @@ class CardService {
       throw new HttpError(404, "Card not found");
     }
 
-    // In-memory repo: store on card object
-    (card as any).detailsRevoked = revoked;
+    const updated = await this.repo.setDetailsRevoked(cardId, revoked);
+    if (!updated) {
+      throw new HttpError(500, "Unable to update card details access");
+    }
 
     return {
       success: true,

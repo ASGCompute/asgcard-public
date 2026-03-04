@@ -1,3 +1,4 @@
+import { appLogger } from "../utils/logger";
 import crypto from "node:crypto";
 import { Router } from "express";
 import { env } from "../config/env";
@@ -115,7 +116,7 @@ webhookRouter.post(
         // Route event to handler
         // TODO: Implement concrete handlers for 4payments event types:
         //   - card.created, card.funded, card.transaction, card.status_change
-        console.log(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
+        appLogger.info(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
 
         emitMetric({ eventType: "webhook_accepted", source: "4payments" });
         res.status(200).json({ status: "accepted", type: event.type });

@@ -1,3 +1,4 @@
+import { appLogger } from "../../utils/logger";
 /**
  * Telegram Bot API client — minimal wrapper using native fetch.
  * No external dependencies.
@@ -137,7 +138,7 @@ export class TelegramClient {
             const data = (await resp.json()) as TgApiResponse<T>;
 
             if (!data.ok) {
-                console.error(`[TG] ${method} failed:`, data.description ?? "unknown error");
+                appLogger.error({ err: data.description ?? "unknown error" }, `[TG] ${method} failed:`);
                 return null;
             }
 

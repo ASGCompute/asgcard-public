@@ -1,3 +1,4 @@
+import { appLogger } from "../../utils/logger";
 /**
  * Portal Routes — Owner Cabinet API endpoints.
  *

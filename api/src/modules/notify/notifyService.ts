@@ -1,3 +1,4 @@
+import { appLogger } from "../../utils/logger";
 /**
  * Notify Service — event-to-Telegram notification delivery.
  *

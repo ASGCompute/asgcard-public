@@ -1,3 +1,4 @@
+import { appLogger } from "../../utils/logger";
 /**
  * Audit Service — structured logging for all sensitive actions.
  *

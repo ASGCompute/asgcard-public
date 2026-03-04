@@ -12,6 +12,14 @@ export const createApp = () => {
 
   app.use(cors());
 
+  const { httpLogger, appLogger } = require("./utils/logger");
+  app.use(httpLogger);
+
+  // Healthcheck with no noisy logs
+  app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+
   // Webhook route needs raw body for HMAC — mount BEFORE json parser
   app.use("/webhooks", express.raw({ type: "application/json" }), webhookRouter);
 
@@ -27,14 +35,14 @@ export const createApp = () => {
   if (env.TG_BOT_ENABLED === "true") {
     const { botRouter } = require("./modules/bot");
     app.use("/bot", botRouter);
-    console.log("[APP] Telegram bot module enabled → /bot/*");
+    appLogger.info("[APP] Telegram bot module enabled → /bot/*");
   }
 
   // ── Owner Portal (feature-flagged) ─────────────────────────
   if (env.OWNER_PORTAL_ENABLED === "true") {
     const { portalRouter } = require("./modules/portal");
     app.use("/portal", portalRouter);
-    console.log("[APP] Owner portal module enabled → /portal/*");
+    appLogger.info("[APP] Owner portal module enabled → /portal/*");
   }
 
   app.use((_req, res) => {

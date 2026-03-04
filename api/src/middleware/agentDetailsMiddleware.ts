@@ -1,3 +1,4 @@
+import { appLogger } from "../utils/logger";
 import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import { cardRepository } from "../repositories/runtime";
@@ -66,7 +67,7 @@ export const requireAgentNonce = async (req: Request, res: Response, next: NextF
         }
         next();
     } catch (e) {
-        console.error("Nonce Tracking Error:", e);
+        appLogger.error({ err: e }, "Nonce Tracking Error:");
         res.status(500).json({ error: "Internal server error" });
     }
 };

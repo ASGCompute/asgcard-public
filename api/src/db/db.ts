@@ -1,3 +1,4 @@
+import { appLogger } from "../utils/logger";
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 let pool: Pool | null = null;
@@ -35,7 +36,7 @@ export function getPool(): Pool {
         pool = new Pool(config);
 
         pool.on("error", (err) => {
-            console.error("[DB] Unexpected pool error:", err.message);
+            appLogger.error({ err: err.message }, "[DB] Unexpected pool error:");
         });
     }
 

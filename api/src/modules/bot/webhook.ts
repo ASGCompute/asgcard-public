@@ -1,3 +1,4 @@
+import { appLogger } from "../../utils/logger";
 /**
  * Bot Webhook — Telegram update handler.
  *

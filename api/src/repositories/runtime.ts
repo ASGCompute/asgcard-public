@@ -1,3 +1,4 @@
+import { appLogger } from "../utils/logger";
 /**
  * Runtime repository singletons.
  *
@@ -54,7 +55,7 @@ function createRepositories(): {
     webhook: WebhookEventRepository;
 } {
     if (env.REPO_MODE === "postgres") {
-        console.log("[Repos] Using Postgres repositories");
+        appLogger.info("[Repos] Using Postgres repositories");
         return {
             card: new PostgresCardRepository(),
             payment: new PostgresPaymentRepository(),
@@ -62,7 +63,7 @@ function createRepositories(): {
         };
     }
 
-    console.log("[Repos] Using in-memory repositories");
+    appLogger.info("[Repos] Using in-memory repositories");
     return {
         card: new InMemoryCardRepository(),
         payment: new InMemoryPaymentRepository(),

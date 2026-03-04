@@ -2,9 +2,10 @@ import crypto from "node:crypto";
 import http from "node:http";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
+import type { Express } from "express";
 import { createApp } from "../src/app";
 
-const app = createApp();
+let app: Express;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "dev-placeholder-webhook-secret";
 
 // ── Native HTTP helper for webhook tests ──────────────────
@@ -15,6 +16,7 @@ let server: http.Server;
 let basePort: number;
 
 beforeAll(async () => {
+    app = await createApp();
     await new Promise<void>((resolve) => {
         server = app.listen(0, () => {
             const addr = server.address() as { port: number };

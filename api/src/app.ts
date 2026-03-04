@@ -8,7 +8,7 @@ import { opsRouter } from "./routes/ops";
 import { env } from "./config/env";
 import { httpLogger, appLogger } from "./utils/logger";
 
-export const createApp = () => {
+export const createApp = async () => {
   const app = express();
 
   app.use(cors());
@@ -27,14 +27,14 @@ export const createApp = () => {
 
   // ── Telegram Bot (feature-flagged) ─────────────────────────
   if (env.TG_BOT_ENABLED === "true") {
-    const { botRouter } = require("./modules/bot");
+    const { botRouter } = await import("./modules/bot");
     app.use("/bot", botRouter);
     appLogger.info("[APP] Telegram bot module enabled → /bot/*");
   }
 
   // ── Owner Portal (feature-flagged) ─────────────────────────
   if (env.OWNER_PORTAL_ENABLED === "true") {
-    const { portalRouter } = require("./modules/portal");
+    const { portalRouter } = await import("./modules/portal");
     app.use("/portal", portalRouter);
     appLogger.info("[APP] Owner portal module enabled → /portal/*");
   }

@@ -12,6 +12,8 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:unit": "REPO_MODE=inmemory DATABASE_URL= vitest run",
+    "test:postgres": "vitest run",
     "test:watch": "vitest",
     "preflight": "node scripts/preflight.js",
     "e2e:mainnet": "node scripts/e2e-mainnet.js",

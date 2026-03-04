@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
+import type { Express } from "express";
 import { createApp } from "../src/app";
 
-const app = createApp();
+let app: Express;
+beforeAll(async () => { app = await createApp(); });
 
 describe("x402 Challenge — Create Tiers", () => {
     const createTiers = [10, 25, 50, 100, 200, 500] as const;

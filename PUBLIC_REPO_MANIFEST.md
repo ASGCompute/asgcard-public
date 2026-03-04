@@ -9,7 +9,7 @@ This repository (`ASGCompute/asgcard-public`) is a **read-only public mirror** o
 | `api/src/` | API source (Express, x402 middleware, routes) |
 | `api/__tests__/` | Unit and integration tests |
 | `api/scripts/` | Automation scripts (preflight, E2E) |
-| `sdk/src/` | SDK source (`@asgcard/sdk`) |
+| `sdk/src/` | SDK source (`@asgcard/sdk`, Stellar x402 v2) |
 | `web/src/` | Frontend source (landing, docs page) |
 | `web/public/` | Static assets (openapi.json, docs.md, icons) |
 | `web/docs/` | Docs page entry |
@@ -19,25 +19,24 @@ This repository (`ASGCompute/asgcard-public`) is a **read-only public mirror** o
 
 ## Excluded (never published)
 
-| Category | Examples |
+| Category | Description |
 |---|---|
-| **Secrets / env** | `.env`, `.env.production`, `.env.pulled`, `.env.local` |
-| **Debug scripts** | `e2e_*.js`, `test_webhook_prod*.js` |
-| **Ops reports** | `*-report.json`, `*-report.md`, `BASELINE_SNAPSHOT.md` |
-| **Deploy config** | `.vercel/` project tokens |
-| **Internal ops docs** | `ROLLBACK_RUNBOOK.md`, `MCP_EVALUATION.md`, `SW_POC_SPEC.md` |
-| **Internal planning** | `docs/execution/`, `docs/grants/`, `COMMS_PACK.md`, `CTO_TZ.md` |
-| **Partner variants** | Internal partner-specific web variants |
-| **Financial data** | `*.xlsx`, financial models |
-| **Build artifacts** | `dist/`, `node_modules/`, `.playwright-cli/` |
-| **Local tools** | `gh.zip`, `gh_extracted/`, `output/` |
+| **Secrets / env files** | All `.env` variants, API keys, tokens |
+| **Debug / test scripts** | One-off E2E scripts, webhook test scripts |
+| **Ops reports** | Preflight reports, baseline snapshots |
+| **Deploy config** | Vercel project tokens and settings |
+| **Internal ops docs** | Runbooks, evaluation docs, POC specs |
+| **Internal planning** | Execution context, grant docs, comms packs |
+| **Partner proposals** | All partner-specific proposal pages and routes |
+| **Financial data** | Spreadsheets, financial models |
+| **Build artifacts** | `dist/`, `node_modules/`, temp files |
 
 ## Synchronization
 
-All changes flow through the private repo → staging → push to public. Never push directly.
+Changes flow: private repo → staging → push to public. Never push directly.
 
 ## Security
 
 - Gitleaks runs on every push and PR
-- Content guardrail CI blocks internal terms (`Founder/CTO`, `docs/execution`, `OpenCard`, etc.)
+- Content guardrail CI blocks internal terms and validates structure
 - Report vulnerabilities to `security@asgcard.dev` (see SECURITY.md)

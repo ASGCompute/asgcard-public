@@ -17,16 +17,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Scan for banned strings in user-facing files
+      - name: Scan for banned strings
         run: |
-          echo "Scanning for internal/local content in user-facing files..."
+          echo "Scanning for internal/local content..."
           FOUND=0
 
-          # User-facing files to check
-          USER_FACING="README.md PUBLIC_REPO_MANIFEST.md AUDIT.md SECURITY.md"
-
-          # Banned terms in user-facing files
-          BANNED=(
+          BANNED_TERMS=(
             "Founder/CTO"
             "docs/execution"
             "web-stellar-mg"
@@ -37,12 +33,13 @@ jobs:
             "CTO_SCOPE_SPRINT"
             "CTO_DAY1_DAY2"
             "ISSUE_BACKLOG_STELLAR"
-            "localhost"
           )
 
-          for file in $USER_FACING; do
+          USER_FILES="README.md PUBLIC_REPO_MANIFEST.md AUDIT.md SECURITY.md"
+
+          for file in $USER_FILES; do
             if [ -f "$file" ]; then
-              for term in "${BANNED[@]}"; do
+              for term in "${BANNED_TERMS[@]}"; do
                 if grep -n "$term" "$file" | grep -v 'guardrail'; then
                   echo "❌ Found '$term' in $file"
                   FOUND=1
@@ -51,22 +48,37 @@ jobs:
             fi
           done
 
-          # Also check web/public docs
-          for file in web/public/docs.md; do
+          # Check localhost in user-facing files
+          for file in README.md AUDIT.md SECURITY.md PUBLIC_REPO_MANIFEST.md; do
             if [ -f "$file" ]; then
-                if grep -n "$term" "$file"; then
-                  echo "❌ Found '$term' in $file"
-                  FOUND=1
-                fi
-              done
+              if grep -n 'localhost' "$file"; then
+                echo "❌ Found 'localhost' in $file"
+                FOUND=1
+              fi
             fi
           done
 
+          # Check web/public docs
+          if [ -f "web/public/docs.md" ]; then
+            for term in "localhost" "web-stellar-mg"; do
+              if grep -n "$term" "web/public/docs.md"; then
+                echo "❌ Found '$term' in web/public/docs.md"
+                FOUND=1
+              fi
+            done
+          fi
+
+          # Check for @solana in SDK source
+          if grep -rn '@solana' sdk/src/ 2>/dev/null; then
+            echo "❌ Found @solana imports in SDK source"
+            FOUND=1
+          fi
+
           if [ $FOUND -eq 0 ]; then
-            echo "✅ No banned content found in user-facing files"
+            echo "✅ No banned content found"
           else
             echo ""
-            echo "❌ FAILED: Internal/local content detected in public-facing files."
+            echo "❌ FAILED: Banned content detected."
             exit 1
           fi
 
@@ -84,3 +96,38 @@ jobs:
             exit 1
           fi
           echo "✅ No absolute file paths found"
+
+  partner-proposals:
+    name: Check for partner proposal content
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify no partner proposals in build
+        run: |
+          FOUND=0
+          for dir in web/coinbase web/paypal web/wirex web/cypher; do
+            if [ -d "$dir" ]; then
+              echo "❌ Partner directory exists: $dir"
+              FOUND=1
+            fi
+          done
+
+          for dir in web/src/coinbase web/src/paypal web/src/wirex web/src/cypher web/src/algorand web/src/arbitrum; do
+            if [ -d "$dir" ]; then
+              echo "❌ Partner proposal source exists: $dir"
+              FOUND=1
+            fi
+          done
+
+          if grep -rn 'Prepared for partner' web/src/ 2>/dev/null; then
+            echo "❌ Found 'Prepared for partner' text"
+            FOUND=1
+          fi
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✅ No partner proposal content found"
+          else
+            exit 1
+          fi

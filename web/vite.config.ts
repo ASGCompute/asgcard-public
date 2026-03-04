@@ -18,10 +18,6 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 docs: resolve(__dirname, 'docs/index.html'),
-                coinbase: resolve(__dirname, 'coinbase/index.html'),
-                paypal: resolve(__dirname, 'paypal/index.html'),
-                wirex: resolve(__dirname, 'wirex/index.html'),
-                cypher: resolve(__dirname, 'cypher/index.html'),
             },
         },
     },

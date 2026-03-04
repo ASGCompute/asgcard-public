@@ -49,7 +49,7 @@ export interface CardResult {
   };
   payment: {
     amountCharged: number;
-    signature: string;
+    txHash: string;
     network: string;
   };
   details: {
@@ -74,7 +74,7 @@ export interface FundResult {
   newBalance: number;
   payment: {
     amountCharged: number;
-    signature: string;
+    txHash: string;
     network: string;
   };
 }

@@ -16,11 +16,11 @@ export class TimeoutError extends Error {
 }
 
 export class PaymentError extends Error {
-  readonly signature?: string;
+  readonly txHash?: string;
 
-  constructor(message: string, signature?: string) {
+  constructor(message: string, txHash?: string) {
     super(message);
-    this.signature = signature;
+    this.txHash = txHash;
   }
 }
 

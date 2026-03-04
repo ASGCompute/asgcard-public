@@ -352,9 +352,7 @@ try {
       <p>For full control over the payment flow:</p>
       ${codeBlock(`import {
   parseChallenge,
-  checkBalance,
-  executePayment,
-  buildPaymentProof,
+  buildPaymentPayload,
   handleX402Payment,
 } from '@asgcard/sdk';`, 'typescript')}
 
@@ -370,24 +368,14 @@ try {
               <td data-label="Description">Parse 402 challenge, returns first accepted method</td>
             </tr>
             <tr>
-              <td data-label="Function"><code>checkBalance</code></td>
-              <td data-label="Signature"><code>(params) → Promise&lt;void&gt;</code></td>
-              <td data-label="Description">Throws <code>InsufficientBalanceError</code> if USDC &lt; required</td>
-            </tr>
-            <tr>
-              <td data-label="Function"><code>executePayment</code></td>
-              <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
-              <td data-label="Description">Sends USDC on Stellar, returns txHash</td>
-            </tr>
-            <tr>
-              <td data-label="Function"><code>buildPaymentProof</code></td>
+              <td data-label="Function"><code>buildPaymentPayload</code></td>
               <td data-label="Signature"><code>(input) → string</code></td>
-              <td data-label="Description">Builds base64-encoded X-Payment header value</td>
+              <td data-label="Description">Builds base64-encoded X-PAYMENT header value (x402 v2)</td>
             </tr>
             <tr>
               <td data-label="Function"><code>handleX402Payment</code></td>
               <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
-              <td data-label="Description">Full cycle: parse → pay → build proof</td>
+              <td data-label="Description">Full cycle: parse → pay → build payload</td>
             </tr>
           </tbody>
         </table>

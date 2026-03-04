@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { query } from "../db/db";
+import { query, getPool } from "../db/db";
 import type { StoredCard, CardDetails } from "../types/domain";
 import type { CardRepository, CreateCardInput } from "./types";
 import { encryptCardDetails, decryptCardDetails, parseEncryptionKey } from "../utils/crypto";
@@ -142,43 +142,59 @@ export class PostgresCardRepository implements CardRepository {
         reason?: 'replay' | 'rate_limit';
         retryAfterSeconds?: number;
     }> {
-        const result = await query<{
-            current_count: string;
-            inserted_nonce: string | null;
-            existing_nonce: string | null;
-        }>(`
-            WITH count_reads AS (
-               SELECT count(*) as cnt FROM agent_nonces WHERE card_id = $1 AND created_at >= NOW() - INTERVAL '1 hour'
-            ),
-            nonce_check AS (
-               SELECT nonce FROM agent_nonces WHERE nonce = $2
-            ),
-            insert_nonce AS (
-               INSERT INTO agent_nonces (nonce, wallet, card_id)
-               SELECT $2, $3, $1
-               FROM count_reads
-               WHERE cnt < $4 AND NOT EXISTS (SELECT 1 FROM nonce_check)
-               ON CONFLICT (nonce) DO NOTHING
-               RETURNING nonce
-            )
-            SELECT 
-               (SELECT cnt FROM count_reads) as current_count,
-               (SELECT nonce FROM insert_nonce) as inserted_nonce,
-               (SELECT nonce FROM nonce_check) as existing_nonce
-        `, [cardId, nonce, walletAddress, limitPerHour]);
+        const pool = getPool();
+        const client = await pool.connect();
 
-        const row = result[0];
-        if (row.inserted_nonce) {
-            return { allowed: true };
-        }
-        if (row.existing_nonce) {
+        try {
+            await client.query('BEGIN');
+            // Acquire advisory lock serialized on cardId hash
+            await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [cardId]);
+
+            const result = await client.query<{
+                current_count: string;
+                inserted_nonce: string | null;
+                existing_nonce: string | null;
+            }>(`
+                WITH count_reads AS (
+                   SELECT count(*) as cnt FROM agent_nonces WHERE card_id = $1 AND created_at >= NOW() - INTERVAL '1 hour'
+                ),
+                nonce_check AS (
+                   SELECT nonce FROM agent_nonces WHERE nonce = $2
+                ),
+                insert_nonce AS (
+                   INSERT INTO agent_nonces (nonce, wallet, card_id)
+                   SELECT $2, $3, $1
+                   FROM count_reads
+                   WHERE cnt < $4 AND NOT EXISTS (SELECT 1 FROM nonce_check)
+                   ON CONFLICT (nonce) DO NOTHING
+                   RETURNING nonce
+                )
+                SELECT 
+                   (SELECT cnt FROM count_reads) as current_count,
+                   (SELECT nonce FROM insert_nonce) as inserted_nonce,
+                   (SELECT nonce FROM nonce_check) as existing_nonce
+            `, [cardId, nonce, walletAddress, limitPerHour]);
+
+            await client.query('COMMIT');
+
+            const row = result.rows[0];
+            if (row.inserted_nonce) {
+                return { allowed: true };
+            }
+            if (row.existing_nonce) {
+                return { allowed: false, reason: 'replay' };
+            }
+            const count = parseInt(row.current_count, 10);
+            if (count >= limitPerHour) {
+                return { allowed: false, reason: 'rate_limit', retryAfterSeconds: 3600 };
+            }
             return { allowed: false, reason: 'replay' };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-        const count = parseInt(row.current_count, 10);
-        if (count >= limitPerHour) {
-            return { allowed: false, reason: 'rate_limit', retryAfterSeconds: 3600 };
-        }
-        return { allowed: false, reason: 'replay' };
     }
 
     // ── Row mapping ─────────────────────────────────────────

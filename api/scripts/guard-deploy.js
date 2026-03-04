@@ -13,9 +13,10 @@ if (process.env.VERCEL) {
             process.exit(1);
         }
 
-        if (gitRef !== 'main' && !gitRef.startsWith('v')) {
+        const isSemverTag = /^v\d+\.\d+\.\d+(-\w+)?$/.test(gitRef);
+        if (gitRef !== 'main' && !isSemverTag) {
             console.error(`❌ [CI GUARD] PRODUCTION BUILD FAILED: Branch '${gitRef}' is not allowed.`);
-            console.error("❌ [CI GUARD] Must be on 'main' branch or a release tag 'v*'");
+            console.error("❌ [CI GUARD] Must be on 'main' branch or an exact release tag like 'v1.0.0'");
             process.exit(1);
         }
 

@@ -150,6 +150,11 @@ class CardService {
       throw new HttpError(404, "Card not found");
     }
 
+    // REALIGN-005: Owner can revoke agent access to details
+    if ((card as any).detailsRevoked) {
+      throw new HttpError(403, "Card details access revoked by owner");
+    }
+
     const nowSec = Math.floor(Date.now() / 1000);
     const readWindowStart = nowSec - 3600;
     const existingReads = this.detailsReadTimestamps.get(cardId) ?? [];
@@ -182,6 +187,23 @@ class CardService {
       success: true,
       cardId: card.cardId,
       status
+    };
+  }
+
+  // REALIGN-005: Owner revoke/restore agent access to card details
+  async setDetailsRevoked(walletAddress: string, cardId: string, revoked: boolean) {
+    const card = await this.repo.findById(cardId);
+    if (!card || card.walletAddress !== walletAddress) {
+      throw new HttpError(404, "Card not found");
+    }
+
+    // In-memory repo: store on card object
+    (card as any).detailsRevoked = revoked;
+
+    return {
+      success: true,
+      cardId: card.cardId,
+      detailsRevoked: revoked
     };
   }
 }

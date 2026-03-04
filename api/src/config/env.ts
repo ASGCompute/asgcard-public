@@ -65,6 +65,9 @@ const envSchema = z.object({
 
   // ── Bot Alerts (event notifications to TG) ─────────────
   BOT_ALERTS_ENABLED: z.enum(["true", "false"]).default("false"),
+
+  // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
+  AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("false"),
 });
 
 // ── Fail-fast startup validation ──────────────────────────

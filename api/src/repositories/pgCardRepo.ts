@@ -33,14 +33,15 @@ export class PostgresCardRepository implements CardRepository {
             initial_amount: string;
             status: string;
             details_encrypted: Buffer;
+            details_revoked: boolean;
             created_at: Date;
             updated_at: Date;
         }>(
             `INSERT INTO cards
-               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted)
-             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7)
+               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked)
+             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false)
              RETURNING card_id, wallet_address, name_on_card, email,
-                       balance, initial_amount, status, details_encrypted,
+                       balance, initial_amount, status, details_encrypted, details_revoked,
                        created_at, updated_at`,
             [
                 cardId,
@@ -66,11 +67,12 @@ export class PostgresCardRepository implements CardRepository {
             initial_amount: string;
             status: string;
             details_encrypted: Buffer;
+            details_revoked: boolean;
             created_at: Date;
             updated_at: Date;
         }>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted,
+                    balance, initial_amount, status, details_encrypted, details_revoked,
                     created_at, updated_at
              FROM cards
              WHERE card_id = $1`,
@@ -90,11 +92,12 @@ export class PostgresCardRepository implements CardRepository {
             initial_amount: string;
             status: string;
             details_encrypted: Buffer;
+            details_revoked: boolean;
             created_at: Date;
             updated_at: Date;
         }>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted,
+                    balance, initial_amount, status, details_encrypted, details_revoked,
                     created_at, updated_at
              FROM cards
              WHERE wallet_address = $1
@@ -124,6 +127,15 @@ export class PostgresCardRepository implements CardRepository {
         return rows.length > 0;
     }
 
+    // REALIGN-005: Owner can revoke agent access to card details
+    async setDetailsRevoked(cardId: string, revoked: boolean): Promise<boolean> {
+        const rows = await query(
+            `UPDATE cards SET details_revoked = $2 WHERE card_id = $1 RETURNING card_id`,
+            [cardId, revoked]
+        );
+        return rows.length > 0;
+    }
+
     // ── Row mapping ─────────────────────────────────────────
 
     private rowToStoredCard(row: {
@@ -135,6 +147,7 @@ export class PostgresCardRepository implements CardRepository {
         initial_amount: string;
         status: string;
         details_encrypted: Buffer;
+        details_revoked: boolean;
         created_at: Date;
         updated_at: Date;
     }): StoredCard {
@@ -148,7 +161,8 @@ export class PostgresCardRepository implements CardRepository {
             status: row.status as "active" | "frozen",
             createdAt: row.created_at.toISOString(),
             updatedAt: row.updated_at.toISOString(),
-            details: decryptCardDetails(row.details_encrypted, this.encKey)
-        };
+            details: decryptCardDetails(row.details_encrypted, this.encKey),
+            detailsRevoked: row.details_revoked
+        } as StoredCard & { detailsRevoked: boolean };
     }
 }

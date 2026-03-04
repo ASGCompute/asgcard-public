@@ -37,7 +37,21 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req
       txHash: req.paymentContext.txHash
     });
 
-    res.status(201).json(result);
+    // REALIGN-001/002: Agent-first — details in response with explicit envelope
+    const response: Record<string, unknown> = { ...result };
+    if (result.details) {
+      response.detailsEnvelope = {
+        cardNumber: result.details.cardNumber,
+        cvv: result.details.cvv,
+        expiryMonth: result.details.expiryMonth,
+        expiryYear: result.details.expiryYear,
+        oneTimeAccess: true,
+        expiresInSeconds: 300,
+        note: "Store securely. Use GET /cards/:id/details with X-AGENT-NONCE for subsequent access."
+      };
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     if (error instanceof HttpError) {
       res.status(error.status).json({ error: error.message });

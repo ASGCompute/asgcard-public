@@ -117,7 +117,7 @@ export class NotifyService {
                     [chatId, event.eventType, idempotencyKey, msgId]
                 );
             } catch (error) {
-                console.error("[NOTIFY] Delivery failed:", (error as Error).message);
+                appLogger.error({ err: error }, "[NOTIFY] Delivery failed");
 
                 await query(
                     `INSERT INTO bot_messages (chat_id, template_key, correlation_id, status)

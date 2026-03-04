@@ -6,19 +6,13 @@ import { walletRouter } from "./routes/wallet";
 import { webhookRouter } from "./routes/webhook";
 import { opsRouter } from "./routes/ops";
 import { env } from "./config/env";
+import { httpLogger, appLogger } from "./utils/logger";
 
 export const createApp = () => {
   const app = express();
 
   app.use(cors());
-
-  const { httpLogger, appLogger } = require("./utils/logger");
   app.use(httpLogger);
-
-  // Healthcheck with no noisy logs
-  app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-  });
 
   // Webhook route needs raw body for HMAC — mount BEFORE json parser
   app.use("/webhooks", express.raw({ type: "application/json" }), webhookRouter);

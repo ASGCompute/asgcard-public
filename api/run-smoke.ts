@@ -7,16 +7,19 @@ const API_URL = "https://api.asgcard.dev";
 let OPS_KEY = process.env.OPS_API_KEY;
 let DB_URL = process.env.DATABASE_URL;
 
-// Fallback to reading env directly if not populated
-if (!OPS_KEY || !DB_URL) {
-    try {
-        const envText = fs.readFileSync('.env.prod', 'utf8');
-        const match = envText.match(/OPS_API_KEY="([^"]+)"/);
-        if (match) OPS_KEY = match[1];
-        const dbMatch = envText.match(/DATABASE_URL="([^"]+)"/);
-        if (dbMatch) DB_URL = dbMatch[1];
-    } catch (e) { }
-}
+try {
+    const envText = fs.readFileSync('.env.prod', 'utf8');
+    const parseEnv = (key: string) => {
+        const match = envText.match(new RegExp(`${key}="([^"]+)"`)) || envText.match(new RegExp(`${key}=([^\\s]+)`));
+        if (match) process.env[key] = match[1];
+    };
+    parseEnv('OPS_API_KEY');
+    parseEnv('DATABASE_URL');
+    parseEnv('CARD_DETAILS_KEY');
+    parseEnv('TG_BOT_TOKEN');
+    OPS_KEY = process.env.OPS_API_KEY;
+    DB_URL = process.env.DATABASE_URL;
+} catch (e) { }
 
 const keypair = Keypair.random();
 const publicKeyBase58 = keypair.publicKey();
@@ -55,6 +58,12 @@ async function run() {
             body: JSON.stringify(createBody)
         });
         console.log(`[PROD POST /create] Code: ${createRes.status} (Expected 402 - requires payment)`);
+
+        // Inject dummy env variables to bypass env.ts validation for local simulation
+        process.env.STELLAR_TREASURY_ADDRESS = publicKeyBase58;
+        process.env.FACILITATOR_URL = "http://dummy";
+        process.env.FACILITATOR_API_KEY = "dummy_key";
+        process.env.WEBHOOK_SECRET = "dummy_secret";
 
         // 2. Simulate Create via cardService directly to demonstrate the response structure
         const { cardService } = require('./src/services/cardService');

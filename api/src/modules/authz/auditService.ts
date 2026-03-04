@@ -47,7 +47,7 @@ export class AuditService {
             );
         } catch (error) {
             // Audit failures must never block the main operation
-            console.error("[AUDIT] Failed to write audit log:", (error as Error).message);
+            appLogger.error({ err: error }, "[AUDIT] Failed to write audit log");
         }
     }
 

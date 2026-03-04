@@ -144,7 +144,7 @@ export class TelegramClient {
 
             return data.result ?? null;
         } catch (error) {
-            console.error(`[TG] ${method} error:`, (error as Error).message);
+            appLogger.error({ err: error }, `[TG] ${method} error`);
             return null;
         }
     }

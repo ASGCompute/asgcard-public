@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ASG Card API",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 v2 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
   },
   "servers": [

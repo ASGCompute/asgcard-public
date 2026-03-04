@@ -42,7 +42,7 @@ portalRouter.post("/telegram/link-token", async (req, res) => {
             message: "Open this link in Telegram to connect your account.",
         });
     } catch (error) {
-        console.error("[PORTAL] link-token error:", (error as Error).message);
+        appLogger.error({ err: error }, "[PORTAL] link-token error");
         res.status(500).json({ error: "Failed to generate link token" });
     }
 });
@@ -70,7 +70,7 @@ portalRouter.post("/telegram/revoke", async (req, res) => {
                 : "No active Telegram connection found.",
         });
     } catch (error) {
-        console.error("[PORTAL] revoke error:", (error as Error).message);
+        appLogger.error({ err: error }, "[PORTAL] revoke error");
         res.status(500).json({ error: "Failed to revoke binding" });
     }
 });
@@ -89,7 +89,7 @@ portalRouter.get("/telegram/status", async (req, res) => {
         const status = await LinkService.getStatus(req.walletContext.address);
         res.json(status);
     } catch (error) {
-        console.error("[PORTAL] status error:", (error as Error).message);
+        appLogger.error({ err: error }, "[PORTAL] status error");
         res.status(500).json({ error: "Failed to get link status" });
     }
 });

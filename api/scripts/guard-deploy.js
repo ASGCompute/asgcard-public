@@ -27,7 +27,8 @@ if (process.env.VERCEL) {
                 }
             }
         } catch (e) {
-            console.error("⚠️ [CI GUARD] Failed to run git commands to verify tag vs branch.");
+            console.error("❌ [CI GUARD] Failed to verify tag vs branch via git. Failing closed for safety.");
+            process.exit(1);
         }
 
         if (gitRef !== 'main') {

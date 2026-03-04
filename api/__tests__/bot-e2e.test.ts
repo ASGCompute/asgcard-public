@@ -15,15 +15,54 @@ import crypto from "node:crypto";
 
 // ── Mocks ──────────────────────────────────────────────────
 
+// Mock crypto utilities for card details encryption
+vi.mock("../src/utils/crypto", () => ({
+    encryptCardDetails: vi.fn((details: any) => Buffer.from(JSON.stringify(details))),
+    decryptCardDetails: vi.fn((buf: Buffer) => JSON.parse(buf.toString())),
+    parseEncryptionKey: vi.fn(() => Buffer.alloc(32)),
+}));
+
 // Mock DB layer
 const mockQueryResults: Record<string, unknown[]> = {};
 
-vi.mock("../src/db/db", () => ({
-    query: vi.fn(async (sql: string, params?: unknown[]) => {
+vi.mock("../src/db/db", () => {
+    const seenNonces = new Set<string>();
+    const mockQuery = vi.fn(async (sql: string, params?: unknown[]) => {
         const key = extractQueryKey(sql, params);
+        // Side-effect: when revoking, update select_card mock to reflect revoked state
+        if (key === 'update_card_revoke' && mockQueryResults['select_card']) {
+            for (const row of mockQueryResults['select_card']) {
+                (row as any).details_revoked = params?.[1] ?? true;
+            }
+        }
         return mockQueryResults[key] ?? [];
-    }),
-}));
+    });
+    const mockClientQuery = vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes('pg_advisory_xact_lock') || sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+            return { rows: [] };
+        }
+        if (sql.includes('agent_nonces')) {
+            const nonce = params?.[1] as string;
+            if (seenNonces.has(nonce)) {
+                return { rows: [{ current_count: String(seenNonces.size), inserted_nonce: null, existing_nonce: nonce }] };
+            }
+            seenNonces.add(nonce);
+            return { rows: [{ current_count: String(seenNonces.size - 1), inserted_nonce: nonce, existing_nonce: null }] };
+        }
+        // Falls through to standard query routing for card operations
+        const key = extractQueryKey(sql, params);
+        return { rows: mockQueryResults[key] ?? [] };
+    });
+    return {
+        query: mockQuery,
+        getPool: vi.fn(() => ({
+            connect: vi.fn(async () => ({
+                query: mockClientQuery,
+                release: vi.fn(),
+            })),
+        })),
+    };
+});
 
 function extractQueryKey(sql: string, params?: unknown[]): string {
     // Simplified key extraction for test routing
@@ -36,6 +75,9 @@ function extractQueryKey(sql: string, params?: unknown[]): string {
     if (sql.includes("bot_events") && sql.includes("INSERT")) return "insert_event";
     if (sql.includes("bot_messages") && sql.includes("INSERT")) return "insert_message";
     if (sql.includes("authz_audit_log")) return "audit_log";
+    if (sql.includes("INSERT INTO cards")) return "insert_card";
+    if (sql.includes("cards") && sql.includes("SELECT")) return "select_card";
+    if (sql.includes("cards") && sql.includes("UPDATE") && sql.includes("details_revoked")) return "update_card_revoke";
     return "unknown";
 }
 
@@ -379,6 +421,31 @@ describe("6. REALIGN: Agent-first details access & owner revocation", () => {
         process.env.AGENT_DETAILS_ENABLED = originalAgentFlag;
     });
 
+    beforeEach(() => {
+        // Setup default card mock data for pgCardRepo
+        const cardRow = {
+            card_id: "card_test1234",
+            wallet_address: "G_AGENT_WALLET",
+            name_on_card: "AI Agent",
+            email: "agent@asg.dev",
+            balance: "25",
+            initial_amount: "25",
+            status: "active",
+            details_encrypted: Buffer.from(JSON.stringify({
+                cardNumber: "4111111111111111",
+                cvv: "123",
+                expiryMonth: 12,
+                expiryYear: 2029
+            })),
+            details_revoked: false,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+        mockQueryResults["insert_card"] = [cardRow];
+        mockQueryResults["select_card"] = [cardRow];
+        mockQueryResults["update_card_revoke"] = [{ card_id: cardRow.card_id }];
+    });
+
     it("Scenario A: Agent creates card → receives PAN/CVV immediately", async () => {
         const { cardService } = await import("../src/services/cardService");
 
@@ -416,6 +483,29 @@ describe("6. REALIGN: Agent-first details access & owner revocation", () => {
             created_at: new Date(),
             updated_at: new Date()
         }];
+
+        // Override mock data for Scenario B with G_OWNER wallet
+        const ownerCardRow = {
+            card_id: "card_realign1",
+            wallet_address: "G_OWNER",
+            name_on_card: "AI Agent",
+            email: "agent@asg.dev",
+            balance: "25",
+            initial_amount: "25",
+            status: "active",
+            details_encrypted: Buffer.from(JSON.stringify({
+                cardNumber: "4111111111111111",
+                cvv: "123",
+                expiryMonth: 12,
+                expiryYear: 2029
+            })),
+            details_revoked: false,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+        mockQueryResults["insert_card"] = [ownerCardRow];
+        mockQueryResults["select_card"] = [ownerCardRow];
+        mockQueryResults["update_card_revoke"] = [{ card_id: "card_realign1" }];
 
         // Since we use inMemoryCardRepo in tests, we just create the card via service
         const card = await cardService.createCard({

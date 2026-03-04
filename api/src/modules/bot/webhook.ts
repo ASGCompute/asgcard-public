@@ -78,7 +78,7 @@ botRouter.post("/telegram/webhook", async (req, res) => {
             await handleCallback(client, update.callback_query);
         }
     } catch (error) {
-        console.error("[BOT] Update handling error:", (error as Error).message);
+        appLogger.error({ err: error }, "[BOT] Update handling error");
     }
 });
 

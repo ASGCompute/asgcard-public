@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-03-04T20:42:24.072Z",
+  "mode": "contract",
+  "passed": 0,
+  "failed": 8,
+  "total": 8,
+  "allPass": false,
+  "tests": [
+    {
+      "name": "GET /health → 200 ok",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "GET /supported → stellar:pubnet x402v2",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "POST /cards/create/tier/10 without payment → 402 challenge",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "POST /cards/create/tier/10 with bad payment → 401",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "Webhook event → 200 accepted (new event)",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "Webhook duplicate (same key) → 200 already_processed (replay blocked)",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "Webhook with invalid signature → 401 (HMAC guard)",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    },
+    {
+      "name": "ROLLOUT_ENABLED=true inferred (API serves 402 not 503)",
+      "passed": false,
+      "detail": "getaddrinfo ENOTFOUND api.asgcard.dev"
+    }
+  ]
+}

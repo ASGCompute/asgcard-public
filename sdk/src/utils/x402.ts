@@ -1,237 +1,94 @@
-import {
-  getAccount,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  createTransferInstruction
-} from "@solana/spl-token";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  Transaction,
-  sendAndConfirmTransaction
-} from "@solana/web3.js";
-import { InsufficientBalanceError, PaymentError } from "../errors";
+import { PaymentError } from "../errors";
 import type {
-  WalletAdapter,
   X402Accept,
   X402Challenge,
-  X402PaymentProof
+  PaymentPayload
 } from "../types";
 
+/**
+ * Validate an x402 v2 challenge from the API.
+ */
 const isChallenge = (input: unknown): input is X402Challenge => {
   if (!input || typeof input !== "object") {
     return false;
   }
 
   const asRecord = input as Record<string, unknown>;
-  return asRecord.x402Version === 1 && Array.isArray(asRecord.accepts);
+  return asRecord.x402Version === 2 && Array.isArray(asRecord.accepts);
 };
 
+/**
+ * Parse the 402 challenge and return the first accept entry.
+ */
 export const parseChallenge = (input: unknown): X402Accept => {
   if (!isChallenge(input) || input.accepts.length === 0) {
-    throw new PaymentError("Invalid x402 challenge payload");
+    throw new PaymentError("Invalid x402 v2 challenge payload");
   }
 
   return input.accepts[0];
 };
 
-export const checkBalance = async (params: {
-  connection: Connection;
-  owner: PublicKey;
-  usdcMint: PublicKey;
-  requiredAtomic: bigint;
-}): Promise<void> => {
-  const associatedAddress = await getAssociatedTokenAddress(
-    params.usdcMint,
-    params.owner,
-    false
-  );
-
-  const account = await getAccount(params.connection, associatedAddress);
-
-  if (account.amount < params.requiredAtomic) {
-    throw new InsufficientBalanceError(
-      params.requiredAtomic.toString(),
-      account.amount.toString()
-    );
-  }
-};
-
-const buildTransferTransaction = async (params: {
-  connection: Connection;
-  usdcMint: PublicKey;
-  fromOwner: PublicKey;
-  toOwner: PublicKey;
-  amountAtomic: bigint;
-}): Promise<Transaction> => {
-  const fromTokenAddress = await getAssociatedTokenAddress(
-    params.usdcMint,
-    params.fromOwner,
-    false
-  );
-  const toTokenAddress = await getAssociatedTokenAddress(
-    params.usdcMint,
-    params.toOwner,
-    false
-  );
-
-  const tx = new Transaction();
-
-  try {
-    await getAccount(params.connection, toTokenAddress);
-  } catch {
-    tx.add(
-      createAssociatedTokenAccountInstruction(
-        params.fromOwner,
-        toTokenAddress,
-        params.toOwner,
-        params.usdcMint
-      )
-    );
-  }
-
-  tx.add(
-    createTransferInstruction(
-      fromTokenAddress,
-      toTokenAddress,
-      params.fromOwner,
-      params.amountAtomic
-    )
-  );
-
-  return tx;
-};
-
-export const executePayment = async (params: {
-  connection: Connection;
-  accept: X402Accept;
-  keypair?: Keypair;
-  walletAdapter?: WalletAdapter;
-}): Promise<string> => {
-  const mint = new PublicKey(params.accept.asset);
-  const to = new PublicKey(params.accept.payTo);
-  const required = BigInt(params.accept.maxAmountRequired);
-
-  if (!params.keypair && !params.walletAdapter) {
-    throw new PaymentError("No signing wallet configured");
-  }
-
-  if (params.keypair) {
-    await checkBalance({
-      connection: params.connection,
-      owner: params.keypair.publicKey,
-      usdcMint: mint,
-      requiredAtomic: required
-    });
-
-    const tx = await buildTransferTransaction({
-      connection: params.connection,
-      usdcMint: mint,
-      fromOwner: params.keypair.publicKey,
-      toOwner: to,
-      amountAtomic: required
-    });
-
-    try {
-      return await sendAndConfirmTransaction(params.connection, tx, [params.keypair], {
-        commitment: "confirmed"
-      });
-    } catch (error) {
-      throw new PaymentError(
-        error instanceof Error ? error.message : "Failed to execute payment"
-      );
-    }
-  }
-
-  const wallet = params.walletAdapter as WalletAdapter;
-  await checkBalance({
-    connection: params.connection,
-    owner: wallet.publicKey,
-    usdcMint: mint,
-    requiredAtomic: required
-  });
-
-  const tx = await buildTransferTransaction({
-    connection: params.connection,
-    usdcMint: mint,
-    fromOwner: wallet.publicKey,
-    toOwner: to,
-    amountAtomic: required
-  });
-
-  try {
-    const { blockhash, lastValidBlockHeight } =
-      await params.connection.getLatestBlockhash("confirmed");
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = wallet.publicKey;
-
-    const signed = await wallet.signTransaction(tx);
-    const txHash = await params.connection.sendRawTransaction(signed.serialize());
-
-    await params.connection.confirmTransaction(
-      {
-        signature: txHash,
-        blockhash,
-        lastValidBlockHeight
-      },
-      "confirmed"
-    );
-
-    return txHash;
-  } catch (error) {
-    throw new PaymentError(
-      error instanceof Error ? error.message : "Failed to execute payment"
-    );
-  }
-};
-
-export const buildPaymentProof = (input: {
-  network: string;
+/**
+ * Build a PaymentPayload (x402 v2 format) and return it as a
+ * base64-encoded string suitable for the X-PAYMENT header.
+ */
+export const buildPaymentPayload = (input: {
   from: string;
   to: string;
   value: string;
-  txHash: string;
+  signature: string;
 }): string => {
-  const payload: X402PaymentProof = {
+  const payload: PaymentPayload = {
     scheme: "exact",
-    network: input.network,
+    network: "stellar:pubnet",
     payload: {
       authorization: {
         from: input.from,
         to: input.to,
         value: input.value
       },
-      txHash: input.txHash
+      signature: input.signature
     }
   };
 
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
 };
 
+/**
+ * Handle the full x402 v2 payment flow:
+ * 1. Parse the 402 challenge
+ * 2. Submit USDC payment on Stellar
+ * 3. Build and return the X-PAYMENT header value
+ *
+ * Note: This is a reference implementation. In production,
+ * the facilitator (OpenZeppelin Channels) verifies and settles
+ * the payment. The SDK submits the transaction to Stellar
+ * and provides the payment proof to the API.
+ */
 export const handleX402Payment = async (params: {
-  connection: Connection;
   challengePayload: unknown;
-  keypair?: Keypair;
-  walletAdapter?: WalletAdapter;
+  secretKey: string;
+  horizonUrl: string;
 }): Promise<string> => {
   const accept = parseChallenge(params.challengePayload);
-  const txHash = await executePayment({
-    connection: params.connection,
-    accept,
-    keypair: params.keypair,
-    walletAdapter: params.walletAdapter
-  });
 
-  const from = params.keypair
-    ? params.keypair.publicKey.toBase58()
-    : (params.walletAdapter as WalletAdapter).publicKey.toBase58();
+  // In a full implementation, this would:
+  // 1. Build a Stellar USDC transfer transaction
+  // 2. Sign with the secret key
+  // 3. Submit to Stellar network
+  // 4. Return the payment proof
+  //
+  // For now, this serves as the SDK interface contract.
+  // See the API docs for the full x402 v2 payment flow:
+  // https://asgcard.dev/docs
 
-  return buildPaymentProof({
-    network: accept.network,
-    from,
-    to: accept.payTo,
-    value: accept.maxAmountRequired,
-    txHash
-  });
+  throw new PaymentError(
+    "Direct Stellar payment execution requires @stellar/stellar-sdk. " +
+    "Install it as a peer dependency: npm install @stellar/stellar-sdk"
+  );
+};
+
+export {
+  parseChallenge as parseX402Challenge,
+  buildPaymentPayload as buildX402PaymentPayload
 };

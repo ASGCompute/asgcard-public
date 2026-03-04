@@ -1,15 +1,16 @@
-import type { PublicKey, Transaction } from "@solana/web3.js";
-
-export interface WalletAdapter {
-  publicKey: PublicKey;
-  signTransaction(transaction: Transaction): Promise<Transaction>;
+export interface StellarKeypair {
+  publicKey(): string;
+  sign(data: Buffer): Buffer;
 }
 
 export interface ASGCardClientConfig {
-  privateKey?: string;
-  walletAdapter?: WalletAdapter;
+  /** Stellar secret key (S...) */
+  secretKey?: string;
+  /** Base URL for the ASG Card API */
   baseUrl?: string;
-  rpcUrl?: string;
+  /** Stellar Horizon URL */
+  horizonUrl?: string;
+  /** Request timeout in ms */
   timeout?: number;
 }
 
@@ -48,7 +49,7 @@ export interface CardResult {
   };
   payment: {
     amountCharged: number;
-    txHash: string;
+    signature: string;
     network: string;
   };
   details: {
@@ -73,7 +74,7 @@ export interface FundResult {
   newBalance: number;
   payment: {
     amountCharged: number;
-    txHash: string;
+    signature: string;
     network: string;
   };
 }
@@ -84,31 +85,34 @@ export interface HealthResponse {
   version: string;
 }
 
+/** x402 v2 accept entry (Stellar) */
 export interface X402Accept {
   scheme: "exact";
-  network: string;
+  network: "stellar:pubnet";
   asset: string;
-  maxAmountRequired: string;
+  amount: string;
   payTo: string;
   maxTimeoutSeconds: number;
   resource: string;
   description: string;
 }
 
+/** x402 v2 challenge (Stellar) */
 export interface X402Challenge {
-  x402Version: 1;
+  x402Version: 2;
   accepts: X402Accept[];
 }
 
-export interface X402PaymentProof {
+/** x402 v2 payment payload (Stellar) */
+export interface PaymentPayload {
   scheme: "exact";
-  network: string;
+  network: "stellar:pubnet";
   payload: {
     authorization: {
       from: string;
       to: string;
       value: string;
     };
-    txHash: string;
+    signature: string;
   };
 }

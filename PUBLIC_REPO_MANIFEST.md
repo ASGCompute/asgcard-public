@@ -27,7 +27,7 @@ This repository (`ASGCompute/asgcard-public`) is a **read-only public mirror** o
 | **Deploy config** | `.vercel/` project tokens |
 | **Internal ops docs** | `ROLLBACK_RUNBOOK.md`, `MCP_EVALUATION.md`, `SW_POC_SPEC.md` |
 | **Internal planning** | `docs/execution/`, `docs/grants/`, `COMMS_PACK.md`, `CTO_TZ.md` |
-| **Partner variants** | `web-stellar-mg/` (MoneyGram variant) |
+| **Partner variants** | Internal partner-specific web variants |
 | **Financial data** | `*.xlsx`, financial models |
 | **Build artifacts** | `dist/`, `node_modules/`, `.playwright-cli/` |
 | **Local tools** | `gh.zip`, `gh_extracted/`, `output/` |
@@ -39,5 +39,5 @@ All changes flow through the private repo → staging → push to public. Never 
 ## Security
 
 - Gitleaks runs on every push and PR
-- Content guardrail CI blocks internal terms (`Founder/CTO`, `docs/execution`, `MoneyGram`, `OpenCard`, etc.)
+- Content guardrail CI blocks internal terms (`Founder/CTO`, `docs/execution`, `OpenCard`, etc.)
 - Report vulnerabilities to `security@asgcard.dev` (see SECURITY.md)

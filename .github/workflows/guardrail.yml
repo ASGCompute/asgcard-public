@@ -30,7 +30,6 @@ jobs:
             "Founder/CTO"
             "docs/execution"
             "web-stellar-mg"
-            "MoneyGram"
             "OpenCard parity"
             "Solana adaptation"
             "FOUNDER_CTO_OPERATING_CONTEXT"
@@ -55,7 +54,6 @@ jobs:
           # Also check web/public docs
           for file in web/public/docs.md; do
             if [ -f "$file" ]; then
-              for term in "localhost" "web-stellar-mg" "MoneyGram"; do
                 if grep -n "$term" "$file"; then
                   echo "❌ Found '$term' in $file"
                   FOUND=1

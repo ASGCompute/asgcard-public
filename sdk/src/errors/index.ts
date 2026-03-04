@@ -1,6 +1,5 @@
 export class ApiError extends Error {
   readonly status: number;
-
   readonly body: unknown;
 
   constructor(status: number, body: unknown) {
@@ -17,17 +16,16 @@ export class TimeoutError extends Error {
 }
 
 export class PaymentError extends Error {
-  readonly txHash?: string;
+  readonly signature?: string;
 
-  constructor(message: string, txHash?: string) {
+  constructor(message: string, signature?: string) {
     super(message);
-    this.txHash = txHash;
+    this.signature = signature;
   }
 }
 
 export class InsufficientBalanceError extends Error {
   readonly required: string;
-
   readonly available: string;
 
   constructor(required: string, available: string) {

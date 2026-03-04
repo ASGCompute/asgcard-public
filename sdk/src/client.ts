@@ -1,4 +1,3 @@
-import { Connection, Keypair } from "@solana/web3.js";
 import { ApiError, TimeoutError } from "./errors";
 import type {
   ASGCardClientConfig,
@@ -10,45 +9,26 @@ import type {
   TierResponse
 } from "./types";
 import { handleX402Payment } from "./utils/x402";
-import { decodeSolanaSecretKey } from "./utils/solana";
 
 const DEFAULT_BASE_URL = "https://api.asgcard.dev";
-const DEFAULT_RPC_URL = "https://api.mainnet-beta.solana.com";
+const DEFAULT_HORIZON_URL = "https://horizon.stellar.org";
 const DEFAULT_TIMEOUT = 60_000;
 
 export class ASGCardClient {
   private readonly baseUrl: string;
-
   private readonly timeout: number;
-
-  private readonly connection: Connection;
-
-  private readonly keypair?: Keypair;
-
-  private readonly walletAdapter?: ASGCardClientConfig["walletAdapter"];
+  private readonly horizonUrl: string;
+  private readonly secretKey?: string;
 
   constructor(config: ASGCardClientConfig) {
-    if (!config.privateKey && !config.walletAdapter) {
-      throw new Error("Provide either privateKey or walletAdapter");
+    if (!config.secretKey) {
+      throw new Error("Provide a Stellar secret key (S...)");
     }
 
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
-    this.connection = new Connection(config.rpcUrl ?? DEFAULT_RPC_URL, "confirmed");
-
-    if (config.privateKey) {
-      this.keypair = Keypair.fromSecretKey(decodeSolanaSecretKey(config.privateKey));
-    }
-
-    this.walletAdapter = config.walletAdapter;
-  }
-
-  get address(): string {
-    if (this.keypair) {
-      return this.keypair.publicKey.toBase58();
-    }
-
-    return this.walletAdapter!.publicKey.toBase58();
+    this.horizonUrl = config.horizonUrl ?? DEFAULT_HORIZON_URL;
+    this.secretKey = config.secretKey;
   }
 
   async createCard(params: CreateCardParams): Promise<CardResult> {
@@ -86,17 +66,16 @@ export class ASGCardClient {
     const challengePayload = await first.json();
 
     const paymentHeader = await handleX402Payment({
-      connection: this.connection,
       challengePayload,
-      keypair: this.keypair,
-      walletAdapter: this.walletAdapter
+      secretKey: this.secretKey!,
+      horizonUrl: this.horizonUrl
     });
 
     const retry = await this.rawFetch(path, {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        "X-Payment": paymentHeader,
+        "X-PAYMENT": paymentHeader,
         ...(init.headers ?? {})
       }
     });

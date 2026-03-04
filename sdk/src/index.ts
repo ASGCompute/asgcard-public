@@ -9,7 +9,7 @@ export {
 
 export type {
   ASGCardClientConfig,
-  WalletAdapter,
+  StellarKeypair,
   CreateCardParams,
   FundCardParams,
   TierResponse,
@@ -18,13 +18,11 @@ export type {
   HealthResponse,
   X402Challenge,
   X402Accept,
-  X402PaymentProof
+  PaymentPayload
 } from "./types";
 
 export {
   parseChallenge,
-  checkBalance,
-  executePayment,
-  buildPaymentProof,
+  buildPaymentPayload,
   handleX402Payment
 } from "./utils/x402";

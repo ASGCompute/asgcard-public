@@ -140,7 +140,7 @@ function renderIntroduction(): string {
 
       <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:1rem;">
         <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.06em;">Base URL</span>
-        <code style="background:none;border:none;padding:0;color:#14F195;font-size:13px;">https://api-stellar.asgcard.dev</code>
+        <code style="background:none;border:none;padding:0;color:#14F195;font-size:13px;">https://api.asgcard.dev</code>
       </div>
     </section>
   `;
@@ -195,7 +195,7 @@ function renderSDK(): string {
 
 const client = new ASGCardClient({
   privateKey: '<stellar_secret_seed>',
-  baseUrl: 'https://api-stellar.asgcard.dev',
+  baseUrl: 'https://api.asgcard.dev',
   rpcUrl: 'https://horizon.stellar.org',
 });
 
@@ -235,7 +235,7 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
               <td data-label="Parameter"><code>baseUrl</code></td>
               <td data-label="Type"><code>string</code></td>
               <td data-label="Required">No</td>
-              <td data-label="Default"><code>https://api-stellar.asgcard.dev</code></td>
+              <td data-label="Default"><code>https://api.asgcard.dev</code></td>
               <td data-label="Description">API base URL</td>
             </tr>
             <tr>
@@ -458,23 +458,27 @@ function renderAuthentication(): string {
       <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path aligned with PayAI. The flow has 4 steps:</p>
 
       <h4>Step 1 — Request without payment</h4>
-      ${codeBlock(`curl -X POST https://api-stellar.asgcard.dev/cards/create/tier/10 \\
+      ${codeBlock(`curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\
   -H "Content-Type: application/json" \\
   -d '{"nameOnCard": "AGENT ALPHA", "email": "agent@example.com"}'`, 'bash')}
 
       <h4>Step 2 — Receive 402 with payment instructions</h4>
       <p>The server responds with <code>HTTP 402</code> and a challenge JSON:</p>
       ${codeBlock(`{
-  "x402Version": 1,
+  "x402Version": 2,
+  "resource": {
+    "url": "https://api.asgcard.dev/cards/create/tier/10",
+    "description": "Create ASG Card with $10 load",
+    "mimeType": "application/json"
+  },
   "accepts": [{
     "scheme": "exact",
-    "network": "stellar:mainnet",
-    "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "maxAmountRequired": "17200000",
-    "payTo": "<TREASURY_PUBKEY>",
+    "network": "stellar:pubnet",
+    "asset": "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+    "amount": "17200000",
+    "payTo": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
     "maxTimeoutSeconds": 300,
-    "resource": "/cards/create/tier/10",
-    "description": "Create ASG Card with $10 load"
+    "extra": { "areFeesSponsored": true }
   }]
 }`, 'json')}
 
@@ -485,9 +489,9 @@ function renderAuthentication(): string {
           </thead>
           <tbody>
             <tr><td data-label="Field"><code>scheme</code></td><td data-label="Description">Always <code>"exact"</code></td></tr>
-            <tr><td data-label="Field"><code>network</code></td><td data-label="Description"><code>"stellar:mainnet"</code></td></tr>
-            <tr><td data-label="Field"><code>asset</code></td><td data-label="Description">USDC asset reference</td></tr>
-            <tr><td data-label="Field"><code>maxAmountRequired</code></td><td data-label="Description">Amount in atomic USDC (6 decimals)</td></tr>
+            <tr><td data-label="Field"><code>network</code></td><td data-label="Description"><code>"stellar:pubnet"</code></td></tr>
+            <tr><td data-label="Field"><code>asset</code></td><td data-label="Description">USDC SAC on Stellar mainnet</td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Description">Amount in atomic USDC (6 decimals)</td></tr>
             <tr><td data-label="Field"><code>payTo</code></td><td data-label="Description">ASG Treasury public key</td></tr>
             <tr><td data-label="Field"><code>maxTimeoutSeconds</code></td><td data-label="Description">Payment window (300s)</td></tr>
           </tbody>
@@ -497,23 +501,21 @@ function renderAuthentication(): string {
       <h4>Step 3 — Agent pays USDC on Stellar</h4>
       <p>Parse the <code>accepts</code> array and send the specified USDC amount to the <code>payTo</code> address on Stellar, then proceed with facilitator verification if enabled.</p>
 
-      <h4>Step 4 — Retry with payment proof</h4>
-      <p>Re-send the original request with an <code>X-Payment</code> header containing base64-encoded JSON:</p>
+      <h4>Step 4 — Retry with X-PAYMENT header</h4>
+      <p>Re-send the original request with an <code>X-PAYMENT</code> header containing base64-encoded JSON (x402 v2 PaymentPayload):</p>
       ${codeBlock(`{
-  "scheme": "exact",
-  "network": "stellar:mainnet",
+  "x402Version": 2,
+  "accepted": {
+    "scheme": "exact",
+    "network": "stellar:pubnet"
+  },
   "payload": {
-    "authorization": {
-      "from": "<AGENT_PUBKEY>",
-      "to": "<TREASURY_PUBKEY>",
-      "value": "17200000"
-    },
-    "txHash": "<STELLAR_TX_HASH>"
+    "transaction": "<BASE64_STELLAR_TX_ENVELOPE>"
   }
 }`, 'json')}
 
       <div class="docs-callout docs-callout-info">
-        <strong>Transport:</strong> <code>X-Payment: base64(JSON)</code> — the SDK handles this automatically.
+        <strong>Transport:</strong> <code>X-PAYMENT: base64(JSON)</code> — the SDK handles this automatically. The facilitator verifies and settles the transaction.
       </div>
 
       <hr class="docs-divider" />
@@ -546,7 +548,7 @@ const message = \`asgcard-auth:\${timestamp}\`;
 // wallet.signMessage should return detached Ed25519 signature bytes
 const signature = await wallet.signMessage(new TextEncoder().encode(message));
 
-const response = await fetch('https://api-stellar.asgcard.dev/cards', {
+const response = await fetch('https://api.asgcard.dev/cards', {
   headers: {
     'X-WALLET-ADDRESS': wallet.publicKey,
     'X-WALLET-SIGNATURE': Buffer.from(signature).toString('base64'),

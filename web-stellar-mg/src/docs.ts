@@ -140,7 +140,7 @@ function renderIntroduction(): string {
 
       <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:1rem;">
         <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.06em;">Base URL</span>
-        <code style="background:none;border:none;padding:0;color:#14F195;font-size:13px;">https://api-stellar.asgcard.dev</code>
+        <code style="background:none;border:none;padding:0;color:#14F195;font-size:13px;">https://api.asgcard.dev</code>
       </div>
     </section>
   `;
@@ -195,7 +195,7 @@ function renderSDK(): string {
 
 const client = new ASGCardClient({
   privateKey: '<stellar_secret_seed>',
-  baseUrl: 'https://api-stellar.asgcard.dev',
+  baseUrl: 'https://api.asgcard.dev',
   rpcUrl: 'https://horizon.stellar.org',
 });
 
@@ -235,7 +235,7 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
               <td data-label="Parameter"><code>baseUrl</code></td>
               <td data-label="Type"><code>string</code></td>
               <td data-label="Required">No</td>
-              <td data-label="Default"><code>https://api-stellar.asgcard.dev</code></td>
+              <td data-label="Default"><code>https://api.asgcard.dev</code></td>
               <td data-label="Description">API base URL</td>
             </tr>
             <tr>
@@ -458,7 +458,7 @@ function renderAuthentication(): string {
       <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path aligned with PayAI. The flow has 4 steps:</p>
 
       <h4>Step 1 — Request without payment</h4>
-      ${codeBlock(`curl -X POST https://api-stellar.asgcard.dev/cards/create/tier/10 \\
+      ${codeBlock(`curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\
   -H "Content-Type: application/json" \\
   -d '{"nameOnCard": "AGENT ALPHA", "email": "agent@example.com"}'`, 'bash')}
 
@@ -546,7 +546,7 @@ const message = \`asgcard-auth:\${timestamp}\`;
 // wallet.signMessage should return detached Ed25519 signature bytes
 const signature = await wallet.signMessage(new TextEncoder().encode(message));
 
-const response = await fetch('https://api-stellar.asgcard.dev/cards', {
+const response = await fetch('https://api.asgcard.dev/cards', {
   headers: {
     'X-WALLET-ADDRESS': wallet.publicKey,
     'X-WALLET-SIGNATURE': Buffer.from(signature).toString('base64'),

@@ -58,7 +58,7 @@ const buildChallenge = (
 ): PaymentRequired => ({
   x402Version: 2,
   resource: {
-    url: `${req.protocol}://${req.get("host")}${req.originalUrl}`,
+    url: `https://${req.get("host")}${req.originalUrl}`,
     description: getChallengeDescription(purpose, amount),
     mimeType: "application/json",
   },

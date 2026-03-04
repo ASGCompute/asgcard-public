@@ -8,13 +8,13 @@ ASG Card is an API for issuing and managing virtual Visa cards for AI agents.
 
 ## Links
 
-- Website: https://asgcard.dev/
-- HTML docs: https://asgcard.dev/docs
-- OpenAPI: https://asgcard.dev/openapi.json
+- Website: <https://asgcard.dev/>
+- HTML docs: <https://asgcard.dev/docs>
+- OpenAPI: <https://asgcard.dev/openapi.json>
 
 ## Base URL
 
-`https://api-stellar.asgcard.dev`
+`https://api.asgcard.dev`
 
 ## Overview
 
@@ -121,6 +121,7 @@ Get card metadata and balances.
 Get sensitive card details.
 
 Notes:
+
 - Rate limited to **3 requests per card per hour** (per docs)
 
 ### `POST /cards/:cardId/freeze`
@@ -151,6 +152,7 @@ Common statuses:
 ## Rate Limits
 
 Highlighted docs limit:
+
 - `GET /cards/:cardId/details`: **3 requests per card per hour**
 
 ## Notes for Agents / Integrators
@@ -162,7 +164,6 @@ Highlighted docs limit:
 ## Canonical Source
 
 For the latest UI docs and examples, use:
-https://asgcard.dev/docs
+<https://asgcard.dev/docs>
 
-Last updated: 2026-02-23
-
+Last updated: 2026-03-04

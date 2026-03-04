@@ -3,8 +3,10 @@
 ASG Card is an API for issuing and managing virtual Visa cards for AI agents.
 
 - Payments use **USDC on Stellar**
-- Paid endpoints use **x402**
+- Paid endpoints use **x402 v2**
 - Card management endpoints use **wallet signature authentication**
+- **Agent-first model**: the creating agent receives full PAN/CVV immediately at creation time
+- **Owner controls**: card owner can revoke/restore agent access to card details via Telegram portal
 
 ## Links
 
@@ -16,13 +18,17 @@ ASG Card is an API for issuing and managing virtual Visa cards for AI agents.
 
 `https://api.asgcard.dev`
 
+**API version**: `0.3.1`
+
 ## Overview
 
-ASG Card exposes three endpoint classes:
+ASG Card exposes five endpoint classes:
 
 1. **Public** (no auth): health, pricing, tiers
 2. **Paid (x402)**: create/fund cards after USDC payment on Stellar
-3. **Wallet-signed**: card listing and management operations
+3. **Wallet-signed**: card listing, details access, freeze/unfreeze
+4. **Portal** (owner actions): revoke/restore agent access to card details
+5. **Ops** (admin): metrics, rollout, nonce cleanup — secured by OPS_API_KEY
 
 ## Install (SDK)
 
@@ -57,8 +63,8 @@ Example response:
 ```json
 {
   "status": "ok",
-  "timestamp": "2026-02-11T14:00:00.000Z",
-  "version": "1.0.0"
+  "timestamp": "2026-03-04T14:00:00.000Z",
+  "version": "0.3.1"
 }
 ```
 
@@ -76,8 +82,7 @@ Returns available tier amounts and fee breakdowns.
 
 Create a new virtual card preloaded with a supported tier amount.
 
-Supported examples in docs:
-`10`, `25`, `50`, `100`, `200`, `500`
+Supported tiers: `10`, `25`, `50`, `100`, `200`, `500`
 
 Request body:
 
@@ -88,11 +93,14 @@ Request body:
 }
 ```
 
-Returns:
+Returns (201):
 
-- card summary (`cardId`, status, balance)
-- payment info (`amountCharged`, txHash, network`)
-- sensitive card details (`cardNumber`, `cvv`, `expiry`, billing address)
+- `card` — card summary (`cardId`, status, balance)
+- `payment` — payment info (`amountCharged`, `txHash`, `network`)
+- `details` — **agent-first**: full PAN, CVV, expiry, billing address (only when `AGENT_DETAILS_ENABLED=true`)
+
+> **Security note**: PAN/CVV are returned only in the HTTP response to the creating agent.
+> They are **never** logged, stored in metrics, or shown in Telegram bot messages.
 
 ### `POST /cards/fund/tier/:amount`
 
@@ -118,11 +126,25 @@ Get card metadata and balances.
 
 ### `GET /cards/:cardId/details`
 
-Get sensitive card details.
+Get sensitive card details (PAN, CVV, expiry).
 
-Notes:
+**Required headers:**
 
-- Rate limited to **3 requests per card per hour** (per docs)
+| Header | Description |
+|--------|-------------|
+| `X-WALLET-ADDRESS` | Stellar public key |
+| `X-WALLET-SIGNATURE` | Ed25519 signature |
+| `X-WALLET-TIMESTAMP` | Unix timestamp |
+| `X-AGENT-NONCE` | UUID v4, unique per request (anti-replay) |
+
+**Response codes:**
+
+| Code | Meaning |
+|------|---------|
+| `200` | Success — returns `{ details: { cardNumber, cvv, expiryMonth, expiryYear, billingAddress } }` |
+| `403` | Card details access revoked by owner |
+| `409` | Nonce already used (replay detected) — `{ error, code: "REPLAY_REJECTED" }` |
+| `429` | Rate limit exceeded (max 3 unique nonces per card per hour) |
 
 ### `POST /cards/:cardId/freeze`
 
@@ -131,6 +153,16 @@ Freeze a card.
 ### `POST /cards/:cardId/unfreeze`
 
 Unfreeze a card.
+
+## Portal Endpoints (Owner Actions)
+
+### `POST /portal/cards/:cardId/revoke-details`
+
+Owner revokes agent access to card details. After revoking, `GET /cards/:cardId/details` returns `403`.
+
+### `POST /portal/cards/:cardId/restore-details`
+
+Owner restores agent access to card details. After restoring, `GET /cards/:cardId/details` returns `200` again.
 
 ## Errors
 
@@ -145,20 +177,23 @@ Common statuses:
 - `400` invalid body / unsupported tier
 - `401` invalid wallet auth or payment proof
 - `402` x402 payment challenge
+- `403` details access revoked by owner
 - `404` card not found
+- `409` nonce replay detected
 - `429` rate limit exceeded
 - `500` internal error
 
 ## Rate Limits
 
-Highlighted docs limit:
-
-- `GET /cards/:cardId/details`: **3 requests per card per hour**
+- `GET /cards/:cardId/details`: **3 unique nonces per card per hour**
 
 ## Notes for Agents / Integrators
 
 - Prefer `GET /pricing` or `GET /cards/tiers` before selecting tier amounts.
 - Treat `402` as an expected step for paid endpoints (x402 flow), not a terminal error.
+- Generate a new UUID v4 for each `GET /details` request and pass it as `X-AGENT-NONCE`.
+- If you receive `409`, you accidentally reused a nonce — generate a new one and retry.
+- The Telegram bot does **not** display PAN/CVV. Only the API response contains them.
 - Sensitive card details should be requested only when strictly required.
 
 ## Canonical Source
@@ -166,4 +201,4 @@ Highlighted docs limit:
 For the latest UI docs and examples, use:
 <https://asgcard.dev/docs>
 
-Last updated: 2026-03-04
+Last updated: 2026-03-04 | Version: 0.3.1

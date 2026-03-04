@@ -23,6 +23,14 @@
     {
       "name": "wallet",
       "description": "Wallet-signed endpoints for card management"
+    },
+    {
+      "name": "portal",
+      "description": "Owner portal — Telegram-linked wallet actions"
+    },
+    {
+      "name": "ops",
+      "description": "Operations dashboard — secured by OPS_API_KEY"
     }
   ],
   "paths": {
@@ -95,7 +103,7 @@
           "x402"
         ],
         "summary": "Create a virtual card for a supported tier amount",
-        "description": "x402 v2 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction.",
+        "description": "x402 v2 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. When AGENT_DETAILS_ENABLED=true, the 201 response includes a `details` envelope with full PAN, CVV, expiry, and billing address (agent-first model). PAN/CVV are never logged or exposed in metrics.",
         "operationId": "createCardByTier",
         "parameters": [
           {
@@ -246,12 +254,22 @@
         "tags": [
           "wallet"
         ],
-        "summary": "Get sensitive card details",
+        "summary": "Get sensitive card details (PAN, CVV, expiry)",
         "operationId": "getCardSensitiveDetails",
-        "description": "Requires wallet signature authentication. Sensitive endpoint. Docs note a rate limit of 3 requests per card per hour.",
+        "description": "Agent-first endpoint for reading card PAN/CVV. Requires wallet signature + X-AGENT-NONCE header for anti-replay. Rate limited to 3 unique nonces per card per hour. Returns 403 if owner has revoked details access.",
         "parameters": [
           {
             "$ref": "#/components/parameters/CardId"
+          },
+          {
+            "name": "X-AGENT-NONCE",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Unique nonce (UUID v4) per request for anti-replay protection. Each nonce can only be used once."
           }
         ],
         "responses": {
@@ -268,11 +286,48 @@
           "401": {
             "$ref": "#/components/responses/ErrorResponse"
           },
+          "403": {
+            "description": "Card details access revoked by owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/ErrorResponse"
           },
+          "409": {
+            "description": "Nonce already used (replay detected)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Nonce already used (replay detected)"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "REPLAY_REJECTED"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "429": {
-            "$ref": "#/components/responses/ErrorResponse"
+            "description": "Rate limit exceeded (max 3 reads per card per hour)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -342,6 +397,94 @@
           }
         }
       }
+    },
+    "/portal/cards/{cardId}/revoke-details": {
+      "post": {
+        "tags": [
+          "portal"
+        ],
+        "summary": "Revoke agent access to card details",
+        "operationId": "revokeCardDetails",
+        "description": "Owner action via Telegram portal. After revoking, GET /cards/{cardId}/details returns 403.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details access revoked"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/portal/cards/{cardId}/restore-details": {
+      "post": {
+        "tags": [
+          "portal"
+        ],
+        "summary": "Restore agent access to card details",
+        "operationId": "restoreCardDetails",
+        "description": "Owner action via Telegram portal. After restoring, GET /cards/{cardId}/details returns 200 again.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details access restored"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/ops/nonce-cleanup": {
+      "post": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Run nonce TTL cleanup",
+        "operationId": "nonceCleanup",
+        "description": "Batch-deletes expired agent nonces older than retention window. Secured by OPS_API_KEY.",
+        "parameters": [
+          {
+            "name": "retention_hours",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 24
+            }
+          },
+          {
+            "name": "batch_limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cleanup result with deleted_count and latency_ms"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -385,7 +528,7 @@
           },
           "version": {
             "type": "string",
-            "example": "1.0.0"
+            "example": "0.3.1"
           }
         }
       },

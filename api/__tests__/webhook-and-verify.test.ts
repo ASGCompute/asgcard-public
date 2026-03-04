@@ -70,9 +70,10 @@ const signPayload = (payload: string, secret: string): string =>
 
 describe("Webhook — HMAC Verification", () => {
     it("POST /webhooks/4payments with valid webhook-sign → 200", async () => {
+        const evtId = `evt_hmac_${crypto.randomUUID().slice(0, 8)}`;
         const payload = JSON.stringify({
             type: "card.created",
-            id: "evt_hmac_001",
+            id: evtId,
             data: { card_id: "card_test" }
         });
         const sig = signPayload(payload, WEBHOOK_SECRET);
@@ -85,9 +86,10 @@ describe("Webhook — HMAC Verification", () => {
     });
 
     it("POST /webhooks/4payments with X-Webhook-Signature (fallback) → 200", async () => {
+        const evtId = `evt_hmac_${crypto.randomUUID().slice(0, 8)}`;
         const payload = JSON.stringify({
             type: "card.funded",
-            id: "evt_hmac_002",
+            id: evtId,
             data: {}
         });
         const sig = signPayload(payload, WEBHOOK_SECRET);
@@ -117,9 +119,10 @@ describe("Webhook — HMAC Verification", () => {
     });
 
     it("POST /webhooks/4payments idempotency — duplicate event → already_processed", async () => {
+        const evtId = `evt_idem_${crypto.randomUUID().slice(0, 8)}`;
         const payload = JSON.stringify({
             type: "card.status_change",
-            id: "evt_idempotent_native_001",
+            id: evtId,
             data: {}
         });
         const sig = signPayload(payload, WEBHOOK_SECRET);

@@ -68,6 +68,7 @@ const envSchema = z.object({
 
   // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
   AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("false"),
+  DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),
 });
 
 // ── Fail-fast startup validation ──────────────────────────

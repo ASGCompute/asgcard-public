@@ -136,6 +136,51 @@ export class PostgresCardRepository implements CardRepository {
         return rows.length > 0;
     }
 
+    // REALIGN-003: Atomic Nonce & Rate Limit check
+    async recordNonceAndCheckRateLimit(walletAddress: string, cardId: string, nonce: string, limitPerHour: number): Promise<{
+        allowed: boolean;
+        reason?: 'replay' | 'rate_limit';
+        retryAfterSeconds?: number;
+    }> {
+        const result = await query<{
+            current_count: string;
+            inserted_nonce: string | null;
+            existing_nonce: string | null;
+        }>(`
+            WITH count_reads AS (
+               SELECT count(*) as cnt FROM agent_nonces WHERE card_id = $1 AND created_at >= NOW() - INTERVAL '1 hour'
+            ),
+            nonce_check AS (
+               SELECT nonce FROM agent_nonces WHERE nonce = $2
+            ),
+            insert_nonce AS (
+               INSERT INTO agent_nonces (nonce, wallet, card_id)
+               SELECT $2, $3, $1
+               FROM count_reads
+               WHERE cnt < $4 AND NOT EXISTS (SELECT 1 FROM nonce_check)
+               ON CONFLICT (nonce) DO NOTHING
+               RETURNING nonce
+            )
+            SELECT 
+               (SELECT cnt FROM count_reads) as current_count,
+               (SELECT nonce FROM insert_nonce) as inserted_nonce,
+               (SELECT nonce FROM nonce_check) as existing_nonce
+        `, [cardId, nonce, walletAddress, limitPerHour]);
+
+        const row = result[0];
+        if (row.inserted_nonce) {
+            return { allowed: true };
+        }
+        if (row.existing_nonce) {
+            return { allowed: false, reason: 'replay' };
+        }
+        const count = parseInt(row.current_count, 10);
+        if (count >= limitPerHour) {
+            return { allowed: false, reason: 'rate_limit', retryAfterSeconds: 3600 };
+        }
+        return { allowed: false, reason: 'replay' };
+    }
+
     // ── Row mapping ─────────────────────────────────────────
 
     private rowToStoredCard(row: {

@@ -33,8 +33,6 @@ const createMockCardDetails = (): CardDetails => {
 class CardService {
   private readonly repo: CardRepository;
 
-  private detailsReadTimestamps = new Map<string, number[]>();
-
   constructor(repo: CardRepository = cardRepository) {
     this.repo = repo;
   }
@@ -154,18 +152,6 @@ class CardService {
     if ((card as any).detailsRevoked) {
       throw new HttpError(403, "Card details access revoked by owner");
     }
-
-    const nowSec = Math.floor(Date.now() / 1000);
-    const readWindowStart = nowSec - 3600;
-    const existingReads = this.detailsReadTimestamps.get(cardId) ?? [];
-    const recentReads = existingReads.filter((stamp) => stamp >= readWindowStart);
-
-    if (recentReads.length >= 3) {
-      throw new HttpError(429, "Card details rate limit exceeded (3 requests / hour)");
-    }
-
-    recentReads.push(nowSec);
-    this.detailsReadTimestamps.set(cardId, recentReads);
 
     return {
       details: card.details

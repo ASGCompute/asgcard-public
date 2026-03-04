@@ -1,5 +1,7 @@
-import type { RequestHandler } from "express";
+import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
+import { cardRepository } from "../repositories/runtime";
+import { env } from "../config/env";
 
 /**
  * REALIGN-003: Nonce + anti-replay + rate-limit middleware
@@ -7,31 +9,12 @@ import crypto from "node:crypto";
  *
  * - Requires X-AGENT-NONCE header (UUID v4 format)
  * - Rejects if nonce was already used (anti-replay)
- * - Rate limit: 5 requests / hour per card
- * - Nonces auto-expire after 5 minutes
+ * - Rate limit: controlled by DETAILS_READ_LIMIT_PER_HOUR
  */
-
-// In-memory nonce store (swap to Redis/DB in production scale)
-const usedNonces = new Map<string, number>(); // nonce → timestamp
-const rateLimitStore = new Map<string, number[]>(); // cardId → timestamps[]
-
-const NONCE_TTL_MS = 5 * 60 * 1000;    // 5 minutes
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_LIMIT = 5;                   // 5 requests / hour per card
-
-// Prune expired nonces every 60s
-const pruneInterval = setInterval(() => {
-    const cutoff = Date.now() - NONCE_TTL_MS;
-    for (const [nonce, ts] of usedNonces) {
-        if (ts < cutoff) usedNonces.delete(nonce);
-    }
-}, 60_000);
-// Don't block process exit
-if (pruneInterval.unref) pruneInterval.unref();
 
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export const requireAgentNonce: RequestHandler = (req, res, next) => {
+export const requireAgentNonce = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const nonce = req.header("X-AGENT-NONCE");
 
     if (!nonce) {
@@ -48,39 +31,44 @@ export const requireAgentNonce: RequestHandler = (req, res, next) => {
         return;
     }
 
-    // Anti-replay: reject if nonce already used
-    if (usedNonces.has(nonce)) {
-        res.status(409).json({
-            error: "Nonce already used (replay detected)",
-            code: "REPLAY_REJECTED"
-        });
+    const cardId = req.params.cardId;
+    const walletAddress = (req as any).walletContext?.address;
+
+    if (!cardId || !walletAddress) {
+        // Fallback if applied improperly, though wallet auth ensures context
+        res.status(500).json({ error: "Context missing for nonce tracking" });
         return;
     }
 
-    // Rate limit per card
-    const cardId = req.params.cardId;
-    if (cardId) {
-        const now = Date.now();
-        const windowStart = now - RATE_WINDOW_MS;
-        const timestamps = rateLimitStore.get(cardId) ?? [];
-        const recent = timestamps.filter(t => t >= windowStart);
+    try {
+        const result = await cardRepository.recordNonceAndCheckRateLimit(
+            walletAddress,
+            cardId,
+            nonce,
+            env.DETAILS_READ_LIMIT_PER_HOUR
+        );
 
-        if (recent.length >= RATE_LIMIT) {
-            res.status(429).json({
-                error: "Card details rate limit exceeded (5 requests/hour)",
-                retryAfterSeconds: Math.ceil((recent[0] + RATE_WINDOW_MS - now) / 1000)
-            });
-            return;
+        if (!result.allowed) {
+            if (result.reason === 'replay') {
+                res.status(409).json({
+                    error: "Nonce already used (replay detected)",
+                    code: "REPLAY_REJECTED"
+                });
+                return;
+            }
+            if (result.reason === 'rate_limit') {
+                res.status(429).json({
+                    error: `Card details rate limit exceeded (${env.DETAILS_READ_LIMIT_PER_HOUR} requests/hour)`,
+                    retryAfterSeconds: result.retryAfterSeconds
+                });
+                return;
+            }
         }
-
-        recent.push(now);
-        rateLimitStore.set(cardId, recent);
+        next();
+    } catch (e) {
+        console.error("Nonce Tracking Error:", e);
+        res.status(500).json({ error: "Internal server error" });
     }
-
-    // Record nonce as used
-    usedNonces.set(nonce, Date.now());
-
-    next();
 };
 
 /**
@@ -88,6 +76,3 @@ export const requireAgentNonce: RequestHandler = (req, res, next) => {
  */
 export const hashNonce = (nonce: string): string =>
     crypto.createHash("sha256").update(nonce).digest("hex").slice(0, 16);
-
-// Export for testing
-export const __test__ = { usedNonces, rateLimitStore, RATE_LIMIT, NONCE_TTL_MS };

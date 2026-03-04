@@ -58,4 +58,30 @@ export class InMemoryCardRepository implements CardRepository {
         card.updatedAt = new Date().toISOString();
         return true;
     }
+
+    private nonces = new Map<string, { wallet: string, cardId: string, timestamp: number }>();
+
+    // REALIGN-003: Atomic Nonce & Rate Limit check
+    async recordNonceAndCheckRateLimit(walletAddress: string, cardId: string, nonce: string, limitPerHour: number): Promise<{
+        allowed: boolean;
+        reason?: 'replay' | 'rate_limit';
+        retryAfterSeconds?: number;
+    }> {
+        if (this.nonces.has(nonce)) {
+            return { allowed: false, reason: 'replay' };
+        }
+
+        const now = Date.now();
+        const hourAgo = now - 3600000;
+        let count = 0;
+        for (const v of this.nonces.values()) {
+            if (v.cardId === cardId && v.timestamp >= hourAgo) count++;
+        }
+        if (count >= limitPerHour) {
+            return { allowed: false, reason: 'rate_limit', retryAfterSeconds: 3600 };
+        }
+
+        this.nonces.set(nonce, { wallet: walletAddress, cardId, timestamp: now });
+        return { allowed: true };
+    }
 }

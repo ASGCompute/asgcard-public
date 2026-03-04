@@ -19,8 +19,14 @@ export interface CardRepository {
     updateStatus(cardId: string, status: "active" | "frozen"): Promise<boolean>;
     addBalance(cardId: string, usdAmount: number): Promise<boolean>;
     setDetailsRevoked(cardId: string, revoked: boolean): Promise<boolean>;
-}
 
+    // REALIGN-003: Atomic Nonce & Rate Limit check
+    recordNonceAndCheckRateLimit(walletAddress: string, cardId: string, nonce: string, limitPerHour: number): Promise<{
+        allowed: boolean;
+        reason?: 'replay' | 'rate_limit';
+        retryAfterSeconds?: number;
+    }>;
+}
 // ── Payment Repository ─────────────────────────────────────
 
 export type PaymentStatus =

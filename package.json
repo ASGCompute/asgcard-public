@@ -1,6 +1,6 @@
 {
   "name": "asg-card",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "workspaces": [
     "api",
@@ -10,10 +10,8 @@
   "scripts": {
     "build": "npm run -ws build",
     "dev": "npm run -w @asgcard/web dev",
-    "dev:stellar": "npm --prefix web-stellar-mg run dev --",
     "dev:api": "npm run -w @asgcard/api dev",
     "start": "npm run -w @asgcard/api start",
-    "build:stellar": "npm --prefix web-stellar-mg run build",
     "typecheck": "npm run -ws typecheck"
   },
   "dependencies": {

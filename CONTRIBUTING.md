@@ -46,7 +46,27 @@ Scopes: `api`, `sdk`, `web`, `gateway`, `payments`, `issuer`, `webhooks`, `ledge
 
 ```bash
 npm install          # install all workspace dependencies
-npm run dev:api      # start API on :3000
-npm run dev          # start web on :3001
+npm run dev:api      # start API on port 3000
+npm run dev          # start web on port 3001
 npm run typecheck    # type-check all workspaces
 ```
+
+### Environment Setup
+
+Copy `api/.env.example` to `api/.env` and fill in local values:
+
+```bash
+cp api/.env.example api/.env
+```
+
+Web dev server fetches pricing from the local API server by default. Override with:
+
+```bash
+VITE_API_BASE_URL=https://api.asgcard.dev npm run dev
+```
+
+### Production
+
+- **API:** `https://api.asgcard.dev`
+- **Web:** `https://asgcard.dev`
+- Web pricing is served via same-origin `/api/pricing` (Vercel rewrite).

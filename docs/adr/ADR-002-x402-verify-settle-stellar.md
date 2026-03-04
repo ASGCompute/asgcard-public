@@ -116,4 +116,3 @@ Payment States:
 
 - [x402 on Stellar](https://developers.stellar.org/docs/build/apps/x402)
 - [OpenZeppelin Relayer](https://developers.stellar.org/docs/tools/openzeppelin-relayer)
-- [Operating Context](file:///Users/innocode/Desktop/Test/ASGcard/docs/execution/FOUNDER_CTO_OPERATING_CONTEXT_STELLAR.md)

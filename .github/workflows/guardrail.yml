@@ -1,0 +1,88 @@
+name: Content Guardrail
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  banned-strings:
+    name: Check for internal content
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan for banned strings in user-facing files
+        run: |
+          echo "Scanning for internal/local content in user-facing files..."
+          FOUND=0
+
+          # User-facing files to check
+          USER_FACING="README.md PUBLIC_REPO_MANIFEST.md AUDIT.md SECURITY.md"
+
+          # Banned terms in user-facing files
+          BANNED=(
+            "Founder/CTO"
+            "docs/execution"
+            "web-stellar-mg"
+            "MoneyGram"
+            "OpenCard parity"
+            "Solana adaptation"
+            "FOUNDER_CTO_OPERATING_CONTEXT"
+            "CTO_FULL_CONTEXT_AND_SCOPE"
+            "CTO_SCOPE_SPRINT"
+            "CTO_DAY1_DAY2"
+            "ISSUE_BACKLOG_STELLAR"
+            "localhost"
+          )
+
+          for file in $USER_FACING; do
+            if [ -f "$file" ]; then
+              for term in "${BANNED[@]}"; do
+                if grep -n "$term" "$file" | grep -v 'guardrail'; then
+                  echo "❌ Found '$term' in $file"
+                  FOUND=1
+                fi
+              done
+            fi
+          done
+
+          # Also check web/public docs
+          for file in web/public/docs.md; do
+            if [ -f "$file" ]; then
+              for term in "localhost" "web-stellar-mg" "MoneyGram"; do
+                if grep -n "$term" "$file"; then
+                  echo "❌ Found '$term' in $file"
+                  FOUND=1
+                fi
+              done
+            fi
+          done
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✅ No banned content found in user-facing files"
+          else
+            echo ""
+            echo "❌ FAILED: Internal/local content detected in public-facing files."
+            exit 1
+          fi
+
+  absolute-paths:
+    name: Check for local file paths
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for file:/// absolute paths
+        run: |
+          if grep -rn 'file:///' . --include='*.md' | grep -v 'node_modules\|\.git'; then
+            echo "❌ Found absolute file:/// paths (local machine references)"
+            exit 1
+          fi
+          echo "✅ No absolute file paths found"

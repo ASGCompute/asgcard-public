@@ -69,5 +69,3 @@ api/src/
 
 ## References
 
-- [Operating Context](file:///Users/innocode/Desktop/Test/ASGcard/docs/execution/FOUNDER_CTO_OPERATING_CONTEXT_STELLAR.md)
-- [CTO Full Context](file:///Users/innocode/Desktop/Test/ASGcard/docs/execution/CTO_FULL_CONTEXT_AND_SCOPE_STELLAR.md)

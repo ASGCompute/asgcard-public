@@ -1,0 +1,716 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ASG Card API",
+    "version": "0.3.0",
+    "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 v2 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
+  },
+  "servers": [
+    {
+      "url": "https://api.asgcard.dev",
+      "description": "ASG Card API — Stellar Mainnet"
+    }
+  ],
+  "tags": [
+    {
+      "name": "public",
+      "description": "No authentication required"
+    },
+    {
+      "name": "x402",
+      "description": "Paid endpoints requiring x402 payment on Stellar"
+    },
+    {
+      "name": "wallet",
+      "description": "Wallet-signed endpoints for card management"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Health check",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pricing": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Get pricing tiers and fee breakdowns",
+        "operationId": "getPricing",
+        "responses": {
+          "200": {
+            "description": "Pricing data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cards/tiers": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Get available create/fund tiers",
+        "operationId": "getCardTiers",
+        "responses": {
+          "200": {
+            "description": "Tier catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardTiersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cards/create/tier/{amount}": {
+      "post": {
+        "tags": [
+          "x402"
+        ],
+        "summary": "Create a virtual card for a supported tier amount",
+        "description": "x402 v2 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction.",
+        "operationId": "createCardByTier",
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Tier amount in USD (for example 10, 25, 50, 100, 200, 500)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Card created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCardResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "x402 payment challenge (challenge schema may vary by facilitator)"
+          }
+        }
+      }
+    },
+    "/cards/fund/tier/{amount}": {
+      "post": {
+        "tags": [
+          "x402"
+        ],
+        "summary": "Fund an existing card by tier amount",
+        "description": "This endpoint participates in the x402 payment flow.",
+        "operationId": "fundCardByTier",
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Tier amount in USD"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FundCardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Card funded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundCardResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "x402 payment challenge"
+          }
+        }
+      }
+    },
+    "/cards": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "List cards for authenticated wallet",
+        "operationId": "listCards",
+        "description": "Requires wallet signature authentication. Header names and signing details are documented at https://asgcard.dev/docs.",
+        "responses": {
+          "200": {
+            "description": "Card list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCardsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/cards/{cardId}": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Get card metadata",
+        "operationId": "getCard",
+        "description": "Requires wallet signature authentication.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Card details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/cards/{cardId}/details": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Get sensitive card details",
+        "operationId": "getCardSensitiveDetails",
+        "description": "Requires wallet signature authentication. Sensitive endpoint. Docs note a rate limit of 3 requests per card per hour.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sensitive card details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCardDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/cards/{cardId}/freeze": {
+      "post": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Freeze a card",
+        "operationId": "freezeCard",
+        "description": "Requires wallet signature authentication.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Card frozen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatusMutationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/cards/{cardId}/unfreeze": {
+      "post": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Unfreeze a card",
+        "operationId": "unfreezeCard",
+        "description": "Requires wallet signature authentication.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Card unfrozen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatusMutationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "CardId": {
+        "name": "cardId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Human-readable error message"
+          }
+        }
+      },
+      "PricingTierBreakdown": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "PricingTier": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "PricingResponse": {
+        "type": "object",
+        "properties": {
+          "creation": {
+            "type": "object",
+            "properties": {
+              "tiers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingTier"
+                }
+              }
+            }
+          },
+          "funding": {
+            "type": "object",
+            "properties": {
+              "tiers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PricingTier"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CardTiersResponse": {
+        "type": "object",
+        "properties": {
+          "creation": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "funding": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "CreateCardRequest": {
+        "type": "object",
+        "required": [
+          "nameOnCard",
+          "email"
+        ],
+        "properties": {
+          "nameOnCard": {
+            "type": "string",
+            "minLength": 1,
+            "example": "AI AGENT"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "agent@example.com"
+          }
+        }
+      },
+      "PaymentInfo": {
+        "type": "object",
+        "properties": {
+          "amountCharged": {
+            "type": "number",
+            "format": "float",
+            "example": 17.2
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "network": {
+            "type": "string",
+            "example": "stellar"
+          }
+        }
+      },
+      "BillingAddress": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "SensitiveCardDetails": {
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string"
+          },
+          "expiryMonth": {
+            "type": "integer"
+          },
+          "expiryYear": {
+            "type": "integer"
+          },
+          "cvv": {
+            "type": "string"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/BillingAddress"
+          }
+        }
+      },
+      "CardSummary": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameOnCard": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number",
+            "format": "float"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateCardResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "card": {
+            "$ref": "#/components/schemas/CardSummary"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentInfo"
+          },
+          "details": {
+            "$ref": "#/components/schemas/SensitiveCardDetails"
+          }
+        }
+      },
+      "FundCardRequest": {
+        "type": "object",
+        "required": [
+          "cardId"
+        ],
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "FundCardResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fundedAmount": {
+            "type": "number",
+            "format": "float"
+          },
+          "newBalance": {
+            "type": "number",
+            "format": "float"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentInfo"
+          }
+        }
+      },
+      "ListCardsResponse": {
+        "type": "object",
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cardId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nameOnCard": {
+                  "type": "string"
+                },
+                "lastFour": {
+                  "type": "string"
+                },
+                "balance": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GetCardResponse": {
+        "type": "object",
+        "properties": {
+          "card": {
+            "type": "object",
+            "properties": {
+              "cardId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nameOnCard": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "balance": {
+                "type": "number",
+                "format": "float"
+              },
+              "initialAmountUsd": {
+                "type": "number",
+                "format": "float"
+              },
+              "status": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "GetCardDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "details": {
+            "$ref": "#/components/schemas/SensitiveCardDetails"
+          }
+        }
+      },
+      "CardStatusMutationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "frozen"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "ASG Card HTML docs",
+    "url": "https://asgcard.dev/docs"
+  }
+}

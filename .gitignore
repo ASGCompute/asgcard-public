@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+.env.pulled
+.vercel/
+.DS_Store
+*.log
+e2e-report-*.json
+preflight-report.*
+e2e_*.js
+test_webhook_prod*.js
+output/
+.playwright-cli/

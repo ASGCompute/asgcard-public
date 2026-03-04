@@ -1,0 +1,67 @@
+name: Incident Report
+description: Report a production incident
+title: "[INC] "
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to document production incidents for tracking and RCA.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Incident Summary
+      description: Brief description of what happened.
+    validations:
+      required: true
+  - type: input
+    id: started
+    attributes:
+      label: Started At
+      description: When did the incident begin? (ISO 8601)
+      placeholder: "2026-03-01T14:30:00Z"
+    validations:
+      required: true
+  - type: input
+    id: resolved
+    attributes:
+      label: Resolved At
+      description: When was the incident resolved? (ISO 8601, leave blank if ongoing)
+      placeholder: "2026-03-01T15:00:00Z"
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - SEV1 (Critical — full outage)
+        - SEV2 (Major — partial outage or data issue)
+        - SEV3 (Minor — degraded but functional)
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: User Impact
+      description: How many users/operations were affected?
+    validations:
+      required: true
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Chronological account of detection, response, and resolution.
+    validations:
+      required: true
+  - type: textarea
+    id: rca
+    attributes:
+      label: Root Cause Analysis
+      description: What caused the incident?
+  - type: textarea
+    id: action_items
+    attributes:
+      label: Action Items / CAPA
+      description: What corrective and preventive actions are needed?
+      placeholder: |
+        - [ ] Action 1
+        - [ ] Action 2

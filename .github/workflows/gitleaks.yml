@@ -1,0 +1,61 @@
+name: Gitleaks Secret Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  secret-pattern-check:
+    name: Pattern Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan for secret patterns
+        run: |
+          echo "Scanning for secret patterns..."
+          FOUND=0
+
+          # Check for .env files (not .env.example)
+          if find . -name '.env' -o -name '.env.production' -o -name '.env.pulled' -o -name '.env.local' | grep -q .; then
+            echo "❌ Found .env files (not .example)"
+            FOUND=1
+          fi
+
+          # Check for hardcoded API keys/secrets in source
+          if grep -rn --include='*.ts' --include='*.js' -E '(FACILITATOR_API_KEY|WEBHOOK_SECRET|OPS_API_KEY)\s*=' . | grep -v 'process\.env\|env\.\|config\.' | grep -v '\.example' | grep -q .; then
+            echo "❌ Found hardcoded secrets in source"
+            FOUND=1
+          fi
+
+          # Check for Stellar private keys (S + 55 uppercase chars)
+          if grep -rn --include='*.ts' --include='*.js' --include='*.json' -E 'S[A-Z2-7]{55}' . | grep -v 'node_modules\|package-lock\|integrity' | grep -q .; then
+            echo "❌ Found potential Stellar private key"
+            FOUND=1
+          fi
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✅ No secret patterns found"
+          else
+            exit 1
+          fi

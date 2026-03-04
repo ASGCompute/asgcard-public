@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { env } from "../config/env";
 import { CREATION_TIERS, FUNDING_TIERS } from "../config/pricing";
+import { facilitatorClient } from "../services/facilitatorClient";
 
 export const publicRouter = Router();
 
@@ -61,4 +62,33 @@ publicRouter.get("/cards/tiers", (_req, res) => {
       }
     }))
   });
+});
+
+publicRouter.get("/supported", async (_req, res) => {
+  try {
+    const upstream = await facilitatorClient.supported();
+    res.json({
+      facilitator: upstream,
+      local: {
+        x402Version: 2,
+        scheme: "exact",
+        network: env.STELLAR_NETWORK,
+        asset: env.STELLAR_USDC_ASSET,
+        payTo: env.STELLAR_TREASURY_ADDRESS,
+      }
+    });
+  } catch (error) {
+    // Even if facilitator is down, return local config
+    res.json({
+      facilitator: null,
+      facilitatorError: error instanceof Error ? error.message : "unavailable",
+      local: {
+        x402Version: 2,
+        scheme: "exact",
+        network: env.STELLAR_NETWORK,
+        asset: env.STELLAR_USDC_ASSET,
+        payTo: env.STELLAR_TREASURY_ADDRESS,
+      }
+    });
+  }
 });

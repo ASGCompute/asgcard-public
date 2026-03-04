@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-03-04T00:02:26.708Z",
+  "treasury": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
+  "threshold": 200,
+  "checks": {
+    "apiHealth": {
+      "name": "API health",
+      "passed": true,
+      "detail": "v0.3.0"
+    },
+    "facilitator": {
+      "name": "/supported → stellar:pubnet x402v2",
+      "passed": true,
+      "detail": "fees_sponsored=true"
+    },
+    "x402Challenge": {
+      "name": "x402 challenge returns HTTP 402",
+      "passed": true,
+      "detail": "network=stellar:pubnet version=2"
+    },
+    "accountExists": {
+      "name": "Account exists on mainnet",
+      "passed": false,
+      "detail": "Horizon 404 — account not found/funded"
+    },
+    "trustline": {
+      "name": "USDC trustline exists",
+      "passed": false,
+      "detail": "Cannot check — account missing"
+    },
+    "usdcBalance": {
+      "name": "USDC balance >= $200",
+      "passed": false,
+      "detail": "Cannot check — account missing"
+    }
+  },
+  "summary": {
+    "passed": 3,
+    "total": 6,
+    "allPass": false,
+    "techPass": true,
+    "usdcBalance": 0,
+    "readiness": "CONDITIONAL_GO"
+  }
+}

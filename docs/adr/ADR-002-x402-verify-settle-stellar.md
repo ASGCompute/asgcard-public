@@ -19,21 +19,25 @@ This ADR defines the verify/settle strategy, sync vs async behavior, retry polic
 
 ### Challenge Flow (Sync — in PLAT-001)
 
-```
+```json
 Agent → POST /cards/create/tier/25
-  └─ No X-Payment header
+  └─ No X-PAYMENT header
   └─ API returns 402:
      {
-       "x402Version": 1,
+       "x402Version": 2,
+       "resource": {
+         "url": "https://api.asgcard.dev/cards/create/tier/25",
+         "description": "Create ASG Card with $25 load",
+         "mimeType": "application/json"
+       },
        "accepts": [{
          "scheme": "exact",
          "network": "stellar:pubnet",
          "asset": "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-         "maxAmountRequired": "32500000",
-         "payTo": "G...TREASURY_ADDRESS",
+         "amount": "32500000",
+         "payTo": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
          "maxTimeoutSeconds": 300,
-         "resource": "/cards/create/tier/25",
-         "description": "Create ASG Card with $25 load"
+         "extra": { "areFeesSponsored": true }
        }]
      }
 ```

@@ -4,6 +4,7 @@ import { paidRouter } from "./routes/paid";
 import { publicRouter } from "./routes/public";
 import { walletRouter } from "./routes/wallet";
 import { webhookRouter } from "./routes/webhook";
+import { opsRouter } from "./routes/ops";
 
 export const createApp = () => {
   const app = express();
@@ -19,6 +20,7 @@ export const createApp = () => {
   app.use(publicRouter);
   app.use("/cards", paidRouter);
   app.use("/cards", walletRouter);
+  app.use("/ops", opsRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Not Found" });

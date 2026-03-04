@@ -21,7 +21,7 @@ describe("x402 Challenge — Create Tiers", () => {
                 .post(`/cards/create/tier/${amount}`)
                 .expect(402);
 
-            expect(res.body).toHaveProperty("x402Version", 1);
+            expect(res.body).toHaveProperty("x402Version", 2);
             expect(res.body.accepts).toHaveLength(1);
 
             const accept = res.body.accepts[0];
@@ -29,11 +29,11 @@ describe("x402 Challenge — Create Tiers", () => {
             expect(accept.network).toBe("stellar:pubnet");
             expect(accept.asset).toContain("USDC:");
             expect(accept.asset).toContain("GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN");
-            expect(accept.maxAmountRequired).toBe(expectedAtomicAmounts[amount]);
+            expect(accept.amount).toBe(expectedAtomicAmounts[amount]);
             expect(accept.payTo).toMatch(/^G[A-Z2-7]{55}$/);
             expect(accept.maxTimeoutSeconds).toBe(300);
-            expect(accept.resource).toBe(`/cards/create/tier/${amount}`);
-            expect(accept.description).toContain(`$${amount}`);
+            expect(res.body.resource.url).toContain(`/cards/create/tier/${amount}`);
+            expect(res.body.resource.description).toContain(`$${amount}`);
         });
     }
 });
@@ -55,9 +55,9 @@ describe("x402 Challenge — Fund Tiers", () => {
                 .post(`/cards/fund/tier/${amount}`)
                 .expect(402);
 
-            expect(res.body).toHaveProperty("x402Version", 1);
-            expect(res.body.accepts[0].maxAmountRequired).toBe(expectedAtomicAmounts[amount]);
-            expect(res.body.accepts[0].resource).toBe(`/cards/fund/tier/${amount}`);
+            expect(res.body).toHaveProperty("x402Version", 2);
+            expect(res.body.accepts[0].amount).toBe(expectedAtomicAmounts[amount]);
+            expect(res.body.resource.url).toContain(`/cards/fund/tier/${amount}`);
         });
     }
 });
@@ -85,20 +85,18 @@ describe("x402 Challenge — Error Cases", () => {
             .set("X-Payment", "not-valid-json-or-base64")
             .expect(401);
 
-        expect(res.body.error).toBe("Invalid X-Payment header format");
+        expect(res.body.error).toBe("Invalid X-PAYMENT header: expected x402 v2 PaymentPayload");
     });
 
     it("POST /cards/create/tier/25 with wrong network in X-Payment → 401", async () => {
         const payment = {
-            scheme: "exact",
-            network: "eip155:1",  // wrong network
+            x402Version: 2,
+            accepted: {
+                scheme: "exact",
+                network: "eip155:1" // wrong network
+            },
             payload: {
-                txHash: "abc123",
-                authorization: {
-                    from: "GAAA...",
-                    to: "GBBB...",
-                    value: "32500000"
-                }
+                transaction: "xyz"
             }
         };
         const encoded = Buffer.from(JSON.stringify(payment)).toString("base64");

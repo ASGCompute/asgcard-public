@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Router } from "express";
 import { env } from "../config/env";
 import { webhookEventRepository } from "../repositories/runtime";
+import { emitMetric } from "../services/metrics";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ webhookRouter.post(
         }
 
         if (!verifyHmac(rawBody, signatureHeader)) {
+            emitMetric({ eventType: "webhook_sig_failure", source: "4payments" });
             res.status(401).json({ error: "Invalid webhook signature" });
             return;
         }
@@ -106,6 +108,7 @@ webhookRouter.post(
 
         if (!inserted) {
             // Duplicate — already processed, return 200 to prevent retries
+            emitMetric({ eventType: "webhook_duplicate", source: "4payments" });
             res.status(200).json({ status: "already_processed" });
             return;
         }
@@ -114,6 +117,7 @@ webhookRouter.post(
         //   - card.created, card.funded, card.transaction, card.status_change
         console.log(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
 
+        emitMetric({ eventType: "webhook_accepted", source: "4payments" });
         res.status(200).json({ status: "accepted", type: event.type });
     }
 );

@@ -1,25 +1,14 @@
 import { env } from "../config/env";
+import type {
+    PaymentPayload,
+    PaymentRequirements,
+    VerifyRequest,
+    VerifyResponse,
+    SettleRequest,
+    SettleResponse,
+} from "../types/x402";
 
-// ── Types ──────────────────────────────────────────────────
-
-export interface VerifyRequest {
-    txHash: string;
-    payTo: string;
-    asset: string;
-    amount: string;
-    network: string;
-}
-
-export interface VerifyResponse {
-    valid: boolean;
-    settleId?: string;
-    error?: string;
-}
-
-export interface SettleResponse {
-    settled: boolean;
-    error?: string;
-}
+// ── Errors ─────────────────────────────────────────────────
 
 export class FacilitatorError extends Error {
     constructor(
@@ -64,7 +53,7 @@ const withRetry = async <T>(
     throw lastError ?? new FacilitatorError("Max retries exceeded", undefined, false);
 };
 
-// ── FacilitatorClient ──────────────────────────────────────
+// ── FacilitatorClient (x402 v2 canonical) ──────────────────
 
 export class FacilitatorClient {
     private baseUrl: string;
@@ -84,108 +73,120 @@ export class FacilitatorClient {
         this.maxRetries = config?.maxRetries ?? env.FACILITATOR_MAX_RETRIES;
     }
 
-    async verify(request: VerifyRequest): Promise<VerifyResponse> {
+    /**
+     * POST /verify — x402 v2 canonical
+     * Body: { paymentPayload, paymentRequirements }
+     * Response: { isValid, invalidReason?, payer? }
+     */
+    async verify(
+        paymentPayload: PaymentPayload,
+        paymentRequirements: PaymentRequirements
+    ): Promise<VerifyResponse> {
+        const request: VerifyRequest = { paymentPayload, paymentRequirements };
         return withRetry(
-            () => this.doVerify(request),
+            () => this.doPost<VerifyResponse>("/verify", request),
             this.maxRetries,
-            [1000, 3000]  // 1s, 3s backoff per ADR-002
+            [1000, 3000]
         );
     }
 
-    async settle(settleId: string): Promise<SettleResponse> {
+    /**
+     * POST /settle — x402 v2 canonical
+     * Body: { paymentPayload, paymentRequirements }
+     * Response: { success, transaction, network, payer?, errorReason? }
+     */
+    async settle(
+        paymentPayload: PaymentPayload,
+        paymentRequirements: PaymentRequirements
+    ): Promise<SettleResponse> {
+        const request: SettleRequest = { paymentPayload, paymentRequirements };
         return withRetry(
-            () => this.doSettle(settleId),
-            5,  // settle has more retries per ADR-002
+            () => this.doPost<SettleResponse>("/settle", request),
+            5,
             [2000, 4000, 8000, 16000, 30000]
         );
     }
 
-    private async doVerify(request: VerifyRequest): Promise<VerifyResponse> {
+    /**
+     * GET /supported — check facilitator capabilities
+     */
+    async supported(): Promise<unknown> {
+        return this.doGet("/supported");
+    }
+
+    private async doPost<T>(path: string, body: unknown): Promise<T> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
         try {
-            const response = await fetch(`${this.baseUrl}/verify`, {
+            const response = await fetch(`${this.baseUrl}${path}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.apiKey}`,
-                    "X-Facilitator-Version": "1"
                 },
-                body: JSON.stringify(request),
+                body: JSON.stringify(body),
                 signal: controller.signal
             });
 
             if (!response.ok) {
-                const body = await response.text().catch(() => "");
+                const text = await response.text().catch(() => "");
                 throw new FacilitatorError(
-                    `Facilitator verify failed: ${response.status} ${body}`,
-                    response.status,
-                    response.status >= 500  // Server errors are retryable
-                );
-            }
-
-            return (await response.json()) as VerifyResponse;
-        } catch (error) {
-            if (error instanceof FacilitatorError) throw error;
-
-            if (error instanceof Error && error.name === "AbortError") {
-                throw new FacilitatorError(
-                    `Facilitator verify timeout after ${this.timeoutMs}ms`,
-                    undefined,
-                    true  // Timeouts are retryable
-                );
-            }
-
-            throw new FacilitatorError(
-                `Facilitator verify network error: ${error instanceof Error ? error.message : String(error)}`,
-                undefined,
-                true  // Network errors are retryable
-            );
-        } finally {
-            clearTimeout(timeout);
-        }
-    }
-
-    private async doSettle(settleId: string): Promise<SettleResponse> {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s for settle
-
-        try {
-            const response = await fetch(`${this.baseUrl}/settle`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.apiKey}`,
-                    "X-Facilitator-Version": "1"
-                },
-                body: JSON.stringify({ settleId }),
-                signal: controller.signal
-            });
-
-            if (!response.ok) {
-                const body = await response.text().catch(() => "");
-                throw new FacilitatorError(
-                    `Facilitator settle failed: ${response.status} ${body}`,
+                    `Facilitator ${path} failed: ${response.status} ${text}`,
                     response.status,
                     response.status >= 500
                 );
             }
 
-            return (await response.json()) as SettleResponse;
+            return (await response.json()) as T;
         } catch (error) {
             if (error instanceof FacilitatorError) throw error;
 
             if (error instanceof Error && error.name === "AbortError") {
                 throw new FacilitatorError(
-                    "Facilitator settle timeout after 10000ms",
+                    `Facilitator ${path} timeout after ${this.timeoutMs}ms`,
                     undefined,
                     true
                 );
             }
 
             throw new FacilitatorError(
-                `Facilitator settle network error: ${error instanceof Error ? error.message : String(error)}`,
+                `Facilitator ${path} network error: ${error instanceof Error ? error.message : String(error)}`,
+                undefined,
+                true
+            );
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    private async doGet<T>(path: string): Promise<T> {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+        try {
+            const response = await fetch(`${this.baseUrl}${path}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${this.apiKey}`,
+                },
+                signal: controller.signal
+            });
+
+            if (!response.ok) {
+                const text = await response.text().catch(() => "");
+                throw new FacilitatorError(
+                    `Facilitator ${path} failed: ${response.status} ${text}`,
+                    response.status,
+                    response.status >= 500
+                );
+            }
+
+            return (await response.json()) as T;
+        } catch (error) {
+            if (error instanceof FacilitatorError) throw error;
+            throw new FacilitatorError(
+                `Facilitator ${path} error: ${error instanceof Error ? error.message : String(error)}`,
                 undefined,
                 true
             );

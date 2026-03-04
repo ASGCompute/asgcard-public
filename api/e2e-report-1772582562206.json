@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-03-04T00:02:38.370Z",
+  "mode": "contract",
+  "passed": 8,
+  "failed": 0,
+  "total": 8,
+  "allPass": true,
+  "tests": [
+    {
+      "name": "GET /health → 200 ok",
+      "passed": true,
+      "detail": "v0.3.0"
+    },
+    {
+      "name": "GET /supported → stellar:pubnet x402v2",
+      "passed": true,
+      "detail": "fees_sponsored=true"
+    },
+    {
+      "name": "POST /cards/create/tier/10 without payment → 402 challenge",
+      "passed": true,
+      "detail": "status=402 network=stellar:pubnet x402v=2"
+    },
+    {
+      "name": "POST /cards/create/tier/10 with bad payment → 401",
+      "passed": true,
+      "detail": "status=401 error=\"Unsupported payment scheme or network\""
+    },
+    {
+      "name": "Webhook event → 200 accepted (new event)",
+      "passed": true,
+      "detail": "status=accepted"
+    },
+    {
+      "name": "Webhook duplicate (same key) → 200 already_processed (replay blocked)",
+      "passed": true,
+      "detail": "status=already_processed"
+    },
+    {
+      "name": "Webhook with invalid signature → 401 (HMAC guard)",
+      "passed": true,
+      "detail": "status=401"
+    },
+    {
+      "name": "ROLLOUT_ENABLED=true inferred (API serves 402 not 503)",
+      "passed": true,
+      "detail": "Got 402 — expected 402 (live rollout)"
+    }
+  ]
+}

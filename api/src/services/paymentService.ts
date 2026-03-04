@@ -1,5 +1,6 @@
 import { facilitatorClient, FacilitatorError } from "./facilitatorClient";
-import type { VerifyRequest } from "./facilitatorClient";
+import { emitMetric } from "./metrics";
+import type { PaymentPayload, PaymentRequirements, SettleResponse } from "../types/x402";
 import type { TierAmount } from "../types/domain";
 import type { PaymentRepository } from "../repositories/types";
 import { paymentRepository } from "../repositories/runtime";
@@ -8,16 +9,18 @@ import { paymentRepository } from "../repositories/runtime";
 
 export interface PaymentVerifyResult {
     valid: boolean;
-    settleId?: string;
+    settleResponse?: SettleResponse;
     error?: string;
 }
 
-export interface VerifyPaymentInput extends VerifyRequest {
+export interface VerifyPaymentInput {
+    paymentPayload: PaymentPayload;
+    paymentRequirements: PaymentRequirements;
     payer: string;
     tierAmount: TierAmount;
 }
 
-// ── PaymentService ─────────────────────────────────────────
+// ── PaymentService (x402 v2) ───────────────────────────────
 
 export class PaymentService {
     private readonly paymentRepo: PaymentRepository;
@@ -27,61 +30,76 @@ export class PaymentService {
     }
 
     /**
-     * Verify a payment proof via the facilitator.
-     * FAIL-CLOSED: if facilitator is unreachable, reject the request.
+     * x402 v2 flow:
+     * 1. POST /verify — facilitator checks signed XDR
+     * 2. If valid → POST /settle — facilitator submits tx to Stellar
+     * 3. settle returns { transaction } — the on-chain tx hash (source of truth)
+     * 4. Record in DB with txHash from settle response
+     *
+     * FAIL-CLOSED: if facilitator unreachable or rejects, deny the request.
      */
-    async verifyAndAccept(proof: VerifyPaymentInput): Promise<PaymentVerifyResult> {
-        // NO pre-check findByTxHash — atomic INSERT ON CONFLICT handles replay
-
+    async verifyAndSettle(input: VerifyPaymentInput): Promise<PaymentVerifyResult> {
         try {
-            const result = await facilitatorClient.verify({
-                txHash: proof.txHash,
-                payTo: proof.payTo,
-                asset: proof.asset,
-                amount: proof.amount,
-                network: proof.network
-            });
+            // ── Step 1: Verify ─────────────────────────────────
+            const verifyResult = await facilitatorClient.verify(
+                input.paymentPayload,
+                input.paymentRequirements
+            );
 
-            if (!result.valid) {
-                // Record failure atomically — duplicate verify_failed is harmless
-                await this.paymentRepo.recordPayment({
-                    txHash: proof.txHash,
-                    payer: proof.payer,
-                    amount: proof.amount,
-                    tierAmount: proof.tierAmount,
-                    status: "verify_failed",
-                    settleId: result.settleId
-                });
+            if (!verifyResult.isValid) {
+                emitMetric({ eventType: "verify_error", metadata: { reason: verifyResult.invalidReason?.substring(0, 100) } });
                 return {
                     valid: false,
-                    error: result.error ?? "Facilitator rejected payment"
+                    error: verifyResult.invalidReason ?? "Facilitator rejected payment"
                 };
             }
 
-            // Atomic insert — inserted=false means duplicate (anti-replay)
+            emitMetric({ eventType: "verify_ok" });
+
+            // ── Step 2: Settle ─────────────────────────────────
+            const settleResult = await facilitatorClient.settle(
+                input.paymentPayload,
+                input.paymentRequirements
+            );
+
+            if (!settleResult.success) {
+                emitMetric({ eventType: "settle_failed", metadata: { reason: settleResult.errorReason?.substring(0, 100) } });
+                return {
+                    valid: false,
+                    error: settleResult.errorReason ?? "Settlement failed"
+                };
+            }
+
+            emitMetric({ eventType: "settle_ok" });
+
+            // ── Step 3: Record in DB (atomic anti-replay) ──────
+            const txHash = settleResult.transaction;   // on-chain tx hash = source of truth
+            const payer = settleResult.payer ?? verifyResult.payer ?? input.payer;
+
             const { inserted } = await this.paymentRepo.recordPayment({
-                txHash: proof.txHash,
-                payer: proof.payer,
-                amount: proof.amount,
-                tierAmount: proof.tierAmount,
-                status: "verified",
-                settleId: result.settleId
+                txHash,
+                payer,
+                amount: input.paymentRequirements.amount,
+                tierAmount: input.tierAmount,
+                status: "settled",    // facilitator already submitted + confirmed
+                settleId: txHash      // for settled payments, settleId = txHash
             });
 
             if (!inserted) {
-                // Duplicate txHash — do NOT trigger another settle
-                return { valid: false, error: "Transaction hash already used (replay)" };
+                // Duplicate txHash — replay blocked
+                emitMetric({ eventType: "replay_blocked" });
+                return {
+                    valid: false,
+                    error: "Transaction hash already used (replay)"
+                };
             }
 
-            // Only enqueue settlement for the FIRST insert
-            if (result.settleId) {
-                this.enqueueSettlement(proof.txHash, result.settleId);
-            }
-
-            return { valid: true, settleId: result.settleId };
+            return {
+                valid: true,
+                settleResponse: settleResult
+            };
         } catch (error) {
             if (error instanceof FacilitatorError) {
-                // FAIL-CLOSED: facilitator errors reject the request
                 return {
                     valid: false,
                     error: `Payment verification failed: ${error.message}`
@@ -92,30 +110,6 @@ export class PaymentService {
                 error: "Payment verification failed: internal error"
             };
         }
-    }
-
-    /**
-     * Async settlement — fire-and-forget with logging.
-     * In production, this should be a job queue (Bull/BullMQ).
-     */
-    private enqueueSettlement(txHash: string, settleId: string): void {
-        // Intentionally not awaited — settlement is async per ADR-002
-        facilitatorClient
-            .settle(settleId)
-            .then((result) => {
-                if (result.settled) {
-                    return this.paymentRepo.markSettled(txHash, settleId);
-                }
-
-                return this.paymentRepo.markFailed(txHash, "settle_failed");
-            })
-            .catch((error) => {
-                void this.paymentRepo.markFailed(txHash, "settle_failed");
-                console.error(
-                    `[PaymentService] Settlement failed for ${settleId}:`,
-                    error instanceof Error ? error.message : String(error)
-                );
-            });
     }
 }
 

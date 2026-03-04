@@ -124,7 +124,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
     <div class="grid md:grid-cols-2 gap-x-8 gap-y-4 items-start">
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">1.</div>
-        <div class="leading-snug"><b>x402 Sandbox on Base:</b> Integrate ASG Card with Coinbase's x402 facilitator on Base testnet. Validate the full payment-to-card flow.</div>
+        <div class="leading-snug"><b>x402 Sandbox on Base:</b> Integrate ASG Card with Coinbase's x402 facilitator on Base. Validate the full payment-to-card flow.</div>
       </div>
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">2.</div>

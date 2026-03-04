@@ -45,7 +45,15 @@ const envSchema = z.object({
   SOLANA_NETWORK: z.string().optional(),
   SOLANA_RPC_URL: z.string().optional(),
   USDC_MINT: z.string().optional(),
-  TREASURY_PUBKEY: z.string().optional()
+  TREASURY_PUBKEY: z.string().optional(),
+
+  // ── Rollout gate (staged traffic control) ──────────────
+  ROLLOUT_ENABLED: z.enum(["true", "false"]).default("true"),
+  ROLLOUT_PCT: z.coerce.number().min(0).max(100).default(100),
+
+  // ── Ops dashboard security ─────────────────────────────
+  OPS_API_KEY: z.string().optional(),
+  OPS_IP_ALLOWLIST: z.string().optional(),           // comma-separated CIDRs/IPs
 });
 
 // ── Fail-fast startup validation ──────────────────────────

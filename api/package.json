@@ -11,7 +11,10 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preflight": "node scripts/preflight.js",
+    "e2e:mainnet": "node scripts/e2e-mainnet.js",
+    "e2e:mainnet:live": "node scripts/e2e-mainnet.js --live"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^14.5.0",

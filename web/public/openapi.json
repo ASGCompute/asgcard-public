@@ -2,13 +2,13 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ASG Card API",
-    "version": "0.1.0",
-    "description": "OpenAPI summary for ASG Card virtual card issuance and management for AI agents. Paid endpoints use x402 with USDC on Stellar. For the most current examples and auth flow details, see https://asgcard.dev/docs."
+    "version": "0.3.0",
+    "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 v2 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
   },
   "servers": [
     {
-      "url": "https://api-stellar.asgcard.dev",
-      "description": "ASG Card API (Stellar)"
+      "url": "https://api.asgcard.dev",
+      "description": "ASG Card API — Stellar Mainnet"
     }
   ],
   "tags": [
@@ -28,7 +28,9 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": ["public"],
+        "tags": [
+          "public"
+        ],
         "summary": "Health check",
         "operationId": "getHealth",
         "responses": {
@@ -47,7 +49,9 @@
     },
     "/pricing": {
       "get": {
-        "tags": ["public"],
+        "tags": [
+          "public"
+        ],
         "summary": "Get pricing tiers and fee breakdowns",
         "operationId": "getPricing",
         "responses": {
@@ -66,7 +70,9 @@
     },
     "/cards/tiers": {
       "get": {
-        "tags": ["public"],
+        "tags": [
+          "public"
+        ],
         "summary": "Get available create/fund tiers",
         "operationId": "getCardTiers",
         "responses": {
@@ -85,9 +91,11 @@
     },
     "/cards/create/tier/{amount}": {
       "post": {
-        "tags": ["x402"],
+        "tags": [
+          "x402"
+        ],
         "summary": "Create a virtual card for a supported tier amount",
-        "description": "This endpoint participates in the x402 payment flow. Clients may first receive HTTP 402 with a challenge, then retry after payment proof submission.",
+        "description": "x402 v2 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction.",
         "operationId": "createCardByTier",
         "parameters": [
           {
@@ -130,7 +138,9 @@
     },
     "/cards/fund/tier/{amount}": {
       "post": {
-        "tags": ["x402"],
+        "tags": [
+          "x402"
+        ],
         "summary": "Fund an existing card by tier amount",
         "description": "This endpoint participates in the x402 payment flow.",
         "operationId": "fundCardByTier",
@@ -175,7 +185,9 @@
     },
     "/cards": {
       "get": {
-        "tags": ["wallet"],
+        "tags": [
+          "wallet"
+        ],
         "summary": "List cards for authenticated wallet",
         "operationId": "listCards",
         "description": "Requires wallet signature authentication. Header names and signing details are documented at https://asgcard.dev/docs.",
@@ -198,7 +210,9 @@
     },
     "/cards/{cardId}": {
       "get": {
-        "tags": ["wallet"],
+        "tags": [
+          "wallet"
+        ],
         "summary": "Get card metadata",
         "operationId": "getCard",
         "description": "Requires wallet signature authentication.",
@@ -229,7 +243,9 @@
     },
     "/cards/{cardId}/details": {
       "get": {
-        "tags": ["wallet"],
+        "tags": [
+          "wallet"
+        ],
         "summary": "Get sensitive card details",
         "operationId": "getCardSensitiveDetails",
         "description": "Requires wallet signature authentication. Sensitive endpoint. Docs note a rate limit of 3 requests per card per hour.",
@@ -263,7 +279,9 @@
     },
     "/cards/{cardId}/freeze": {
       "post": {
-        "tags": ["wallet"],
+        "tags": [
+          "wallet"
+        ],
         "summary": "Freeze a card",
         "operationId": "freezeCard",
         "description": "Requires wallet signature authentication.",
@@ -294,7 +312,9 @@
     },
     "/cards/{cardId}/unfreeze": {
       "post": {
-        "tags": ["wallet"],
+        "tags": [
+          "wallet"
+        ],
         "summary": "Unfreeze a card",
         "operationId": "unfreezeCard",
         "description": "Requires wallet signature authentication.",
@@ -351,7 +371,9 @@
     "schemas": {
       "HealthResponse": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "type": "string",
@@ -369,7 +391,9 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string",
@@ -433,7 +457,10 @@
       },
       "CreateCardRequest": {
         "type": "object",
-        "required": ["nameOnCard", "email"],
+        "required": [
+          "nameOnCard",
+          "email"
+        ],
         "properties": {
           "nameOnCard": {
             "type": "string",
@@ -467,20 +494,38 @@
       "BillingAddress": {
         "type": "object",
         "properties": {
-          "street": { "type": "string" },
-          "city": { "type": "string" },
-          "state": { "type": "string" },
-          "zip": { "type": "string" },
-          "country": { "type": "string" }
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
         }
       },
       "SensitiveCardDetails": {
         "type": "object",
         "properties": {
-          "cardNumber": { "type": "string" },
-          "expiryMonth": { "type": "integer" },
-          "expiryYear": { "type": "integer" },
-          "cvv": { "type": "string" },
+          "cardNumber": {
+            "type": "string"
+          },
+          "expiryMonth": {
+            "type": "integer"
+          },
+          "expiryYear": {
+            "type": "integer"
+          },
+          "cvv": {
+            "type": "string"
+          },
           "billingAddress": {
             "$ref": "#/components/schemas/BillingAddress"
           }
@@ -493,16 +538,28 @@
             "type": "string",
             "format": "uuid"
           },
-          "nameOnCard": { "type": "string" },
-          "balance": { "type": "number", "format": "float" },
-          "status": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "nameOnCard": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number",
+            "format": "float"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CreateCardResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean" },
+          "success": {
+            "type": "boolean"
+          },
           "card": {
             "$ref": "#/components/schemas/CardSummary"
           },
@@ -516,7 +573,9 @@
       },
       "FundCardRequest": {
         "type": "object",
-        "required": ["cardId"],
+        "required": [
+          "cardId"
+        ],
         "properties": {
           "cardId": {
             "type": "string",
@@ -527,10 +586,21 @@
       "FundCardResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean" },
-          "cardId": { "type": "string", "format": "uuid" },
-          "fundedAmount": { "type": "number", "format": "float" },
-          "newBalance": { "type": "number", "format": "float" },
+          "success": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fundedAmount": {
+            "type": "number",
+            "format": "float"
+          },
+          "newBalance": {
+            "type": "number",
+            "format": "float"
+          },
           "payment": {
             "$ref": "#/components/schemas/PaymentInfo"
           }
@@ -544,12 +614,27 @@
             "items": {
               "type": "object",
               "properties": {
-                "cardId": { "type": "string", "format": "uuid" },
-                "nameOnCard": { "type": "string" },
-                "lastFour": { "type": "string" },
-                "balance": { "type": "number", "format": "float" },
-                "status": { "type": "string" },
-                "createdAt": { "type": "string", "format": "date-time" }
+                "cardId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nameOnCard": {
+                  "type": "string"
+                },
+                "lastFour": {
+                  "type": "string"
+                },
+                "balance": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
               }
             }
           }
@@ -561,14 +646,36 @@
           "card": {
             "type": "object",
             "properties": {
-              "cardId": { "type": "string", "format": "uuid" },
-              "nameOnCard": { "type": "string" },
-              "email": { "type": "string", "format": "email" },
-              "balance": { "type": "number", "format": "float" },
-              "initialAmountUsd": { "type": "number", "format": "float" },
-              "status": { "type": "string" },
-              "createdAt": { "type": "string", "format": "date-time" },
-              "updatedAt": { "type": "string", "format": "date-time" }
+              "cardId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nameOnCard": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "balance": {
+                "type": "number",
+                "format": "float"
+              },
+              "initialAmountUsd": {
+                "type": "number",
+                "format": "float"
+              },
+              "status": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
             }
           }
         }
@@ -584,11 +691,19 @@
       "CardStatusMutationResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean" },
-          "cardId": { "type": "string", "format": "uuid" },
+          "success": {
+            "type": "boolean"
+          },
+          "cardId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "status": {
             "type": "string",
-            "enum": ["active", "frozen"]
+            "enum": [
+              "active",
+              "frozen"
+            ]
           }
         }
       }

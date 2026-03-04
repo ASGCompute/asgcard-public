@@ -9,11 +9,15 @@
 import { Router } from "express";
 import { requireWalletAuth } from "../../middleware/walletAuth";
 import { LinkService } from "./linkService";
+import { agentAccessRouter } from "./agentAccess";
 
 export const portalRouter = Router();
 
 // All portal routes require wallet auth
 portalRouter.use(requireWalletAuth);
+
+// Mount REALIGN agent access management
+portalRouter.use(agentAccessRouter);
 
 /**
  * POST /portal/telegram/link-token

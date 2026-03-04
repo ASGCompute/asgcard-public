@@ -54,6 +54,17 @@ const envSchema = z.object({
   // ── Ops dashboard security ─────────────────────────────
   OPS_API_KEY: z.string().optional(),
   OPS_IP_ALLOWLIST: z.string().optional(),           // comma-separated CIDRs/IPs
+
+  // ── Telegram Bot (ASGAgentBot) ──────────────────────────
+  TG_BOT_ENABLED: z.enum(["true", "false"]).default("false"),
+  TG_BOT_TOKEN: z.string().optional(),
+  TG_WEBHOOK_SECRET: z.string().optional(),
+
+  // ── Owner Portal ───────────────────────────────────────
+  OWNER_PORTAL_ENABLED: z.enum(["true", "false"]).default("false"),
+
+  // ── Bot Alerts (event notifications to TG) ─────────────
+  BOT_ALERTS_ENABLED: z.enum(["true", "false"]).default("false"),
 });
 
 // ── Fail-fast startup validation ──────────────────────────

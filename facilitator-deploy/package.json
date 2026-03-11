@@ -1,0 +1,17 @@
+{
+    "name": "x402-stellar-facilitator",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "node bundle.cjs"
+    },
+    "engines": {
+        "node": ">=22"
+    },
+    "dependencies": {
+        "dotenv": "^16.6.1",
+        "pino": "^9.14.0",
+        "pino-http": "^10.5.0",
+        "pino-pretty": "^13.1.3"
+    }
+}

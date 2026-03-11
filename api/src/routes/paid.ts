@@ -9,7 +9,7 @@ const createCardSchema = z.object({
 });
 
 const fundCardSchema = z.object({
-  cardId: z.string().uuid()
+  cardId: z.string().min(1)
 });
 
 export const paidRouter = Router();

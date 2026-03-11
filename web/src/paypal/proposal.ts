@@ -104,7 +104,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
         <div class="text-[12px] text-gray-500 leading-snug mt-1">Drives real-world PYUSD volume and positions PayPal's stablecoin as the trusted settlement layer for autonomous AI agents.</div>
       </div>
       <div class="space-y-1">
-        <div class="text-[14px] font-bold text-gray-900 border-b border-gray-200 pb-1 mb-2">PayAI / x402</div>
+        <div class="text-[14px] font-bold text-gray-900 border-b border-gray-200 pb-1 mb-2">x402 / x402</div>
         <div class="text-[12px] text-gray-800 font-medium">Facilitator adoption in production-grade flows.</div>
         <div class="text-[12px] text-gray-500 leading-snug mt-1">Visible reference integration for x402 monetization orchestration using PYUSD.</div>
       </div>
@@ -123,7 +123,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
     <div class="grid md:grid-cols-2 gap-x-8 gap-y-4 items-start">
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">1.</div>
-        <div class="leading-snug"><b>Co-Development &amp; Sandbox:</b> Integrate ASG Card via PayAI's framework to accept PYUSD on test networks. Validate the flow.</div>
+        <div class="leading-snug"><b>Co-Development &amp; Sandbox:</b> Integrate ASG Card via x402's framework to accept PYUSD on test networks. Validate the flow.</div>
       </div>
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">2.</div>

@@ -134,7 +134,7 @@ function renderIntroduction(): string {
   return `
     <section id="introduction" aria-label="Introduction">
       <div class="docs-hero">
-        <h1>ASG Card Stellar + PayAI API Documentation</h1>
+        <h1>ASG Card Stellar x402 API Documentation</h1>
         <p>x402-powered virtual card issuance for AI agents on Stellar. Pay with USDC, get a card in seconds.</p>
       </div>
 
@@ -164,7 +164,7 @@ function renderOverview(): string {
             </tr>
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-post">Paid (x402)</span></td>
-              <td data-label="Auth">USDC payment on Stellar (PayAI facilitator-ready)</td>
+              <td data-label="Auth">USDC payment on Stellar (x402 facilitator)</td>
               <td data-label="Description">Create/fund cards</td>
             </tr>
             <tr>
@@ -455,7 +455,7 @@ function renderAuthentication(): string {
       <p>ASG Card uses two authentication modes depending on the endpoint.</p>
 
       <h3 id="x402-payment-flow">x402 Payment Flow</h3>
-      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path aligned with PayAI. The flow has 4 steps:</p>
+      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path on Stellar. The flow has 4 steps:</p>
 
       <h4>Step 1 — Request without payment</h4>
       ${codeBlock(`curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\
@@ -1082,7 +1082,7 @@ document.querySelector<HTMLDivElement>('#docs-app')!.innerHTML = `
       <!-- Topbar -->
       <div class="docs-topbar">
         <a href="/" class="docs-topbar-back">← Home</a>
-        <span class="docs-topbar-title">Stellar + PayAI Docs</span>
+        <span class="docs-topbar-title">Stellar x402 Docs</span>
       </div>
 
       <div class="docs-content-wrap">

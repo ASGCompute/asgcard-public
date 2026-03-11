@@ -10,6 +10,7 @@ export interface CreateCardInput {
     tierAmount: TierAmount;
     txHash: string;
     details: CardDetails;
+    fourPaymentsId?: string;
 }
 
 export interface CardRepository {

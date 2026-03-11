@@ -16,7 +16,8 @@ export class InMemoryCardRepository implements CardRepository {
             status: "active",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            details: input.details
+            details: input.details,
+            fourPaymentsId: input.fourPaymentsId,
         };
 
         this.cards.set(card.cardId, card);

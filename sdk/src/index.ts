@@ -13,18 +13,22 @@ export type {
   CreateCardParams,
   FundCardParams,
   TierResponse,
+  TierEntry,
   CardResult,
   FundResult,
   HealthResponse,
+  BillingAddress,
+  SensitiveCardDetails,
   X402Challenge,
   X402Accept,
-  X402PaymentProof
+  X402PaymentPayload
 } from "./types";
 
 export {
   parseChallenge,
   checkBalance,
   executePayment,
-  buildPaymentProof,
+  buildPaymentPayload,
+  buildPaymentTransaction,
   handleX402Payment
 } from "./utils/x402";

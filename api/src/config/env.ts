@@ -23,7 +23,7 @@ const envSchema = z.object({
     .default("https://horizon.stellar.org"),
   STELLAR_USDC_ASSET: z
     .string()
-    .default("USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"),
+    .default("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"),
 
   // ── MANDATORY in all environments (no unsafe defaults) ───
   STELLAR_TREASURY_ADDRESS: stellarAddress,
@@ -55,7 +55,7 @@ const envSchema = z.object({
   OPS_API_KEY: z.string().optional(),
   OPS_IP_ALLOWLIST: z.string().optional(),           // comma-separated CIDRs/IPs
 
-  // ── Telegram Bot (ASGAgentBot) ──────────────────────────
+  // ── Telegram Bot (@ASGCardbot) ──────────────────────────
   TG_BOT_ENABLED: z.enum(["true", "false"]).default("false"),
   TG_BOT_TOKEN: z.string().optional(),
   TG_WEBHOOK_SECRET: z.string().optional(),

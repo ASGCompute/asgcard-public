@@ -20,7 +20,7 @@ import { AuditService } from "../authz/auditService";
 
 const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_PREFIX = "lnk_";
-const BOT_USERNAME = "ASGAgentBot";
+const BOT_USERNAME = "ASGCardbot";
 
 // ── Types ──────────────────────────────────────────────────
 

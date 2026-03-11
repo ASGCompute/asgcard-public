@@ -16,7 +16,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
         Programmable Virtual Cards for AI Agents on Arbitrum
       </h1>
       <p class="text-[14px] text-gray-600 max-w-2xl leading-snug mt-1">
-        Enable autonomous AI agents to spend safely and programmatically. ASG Card provides instant virtual cards for agent-driven payments — funded via the x402 protocol, settled in USDC on Arbitrum, and secured by PayAI.
+        Enable autonomous AI agents to spend safely and programmatically. ASG Card provides instant virtual cards for agent-driven payments — funded via the x402 protocol, settled in USDC on Arbitrum, and secured by x402.
       </p>
     </div>
     <div class="flex items-center pt-2 shrink-0">
@@ -52,7 +52,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
         </div>
         <div class="flex gap-3">
           <div class="font-bold text-gray-400 text-[13px]">2.</div>
-          <div class="text-[13px] text-gray-700 leading-snug"><span class="font-semibold text-gray-900">x402 challenge & payment:</span> PayAI path verifies payment intent and execution.</div>
+          <div class="text-[13px] text-gray-700 leading-snug"><span class="font-semibold text-gray-900">x402 challenge & payment:</span> x402 facilitator verifies payment intent and execution.</div>
         </div>
         <div class="flex gap-3">
           <div class="font-bold text-gray-400 text-[13px]">3.</div>
@@ -105,7 +105,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
         <div class="text-[12px] text-gray-500 leading-snug mt-1">Drives real-world USDC volume and highlights Arbitrum’s high-throughput L2 infrastructure for scalable AI native use-cases.</div>
       </div>
       <div class="space-y-1">
-        <div class="text-[14px] font-bold text-gray-900 border-b border-gray-200 pb-1 mb-2">PayAI</div>
+        <div class="text-[14px] font-bold text-gray-900 border-b border-gray-200 pb-1 mb-2">x402 Facilitator</div>
         <div class="text-[12px] text-gray-800 font-medium">Facilitator adoption in production-grade flows.</div>
         <div class="text-[12px] text-gray-500 leading-snug mt-1">Visible reference integration for x402 monetization orchestration.</div>
       </div>
@@ -124,7 +124,7 @@ document.querySelector<HTMLDivElement>('#proposal-app')!.innerHTML = `
     <div class="grid md:grid-cols-2 gap-x-8 gap-y-4 items-start">
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">1.</div>
-        <div class="leading-snug"><b>Co-Development & Sandbox:</b> Integrate ASG Card with PayAI's upcoming Arbitrum infrastructure. Validate the x402 USDC flow.</div>
+        <div class="leading-snug"><b>Co-Development & Sandbox:</b> Integrate ASG Card with the x402 Arbitrum infrastructure. Validate the x402 USDC flow.</div>
       </div>
       <div class="flex gap-2 text-[13px] text-gray-700">
         <div class="font-bold text-gray-400">2.</div>

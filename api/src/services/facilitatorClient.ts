@@ -124,6 +124,8 @@ export class FacilitatorClient {
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.apiKey}`,
+                    "Bypass-Tunnel-Reminder": "true",
+                    "User-Agent": "curl/8.x"
                 },
                 body: JSON.stringify(body),
                 signal: controller.signal

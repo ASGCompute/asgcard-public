@@ -1,6 +1,8 @@
 import type { CardDetails, TierAmount } from "../types/domain";
 import type { CardRepository } from "../repositories/types";
 import { cardRepository } from "../repositories/runtime";
+import { getFourPaymentsClient, FourPaymentsError } from "./fourPaymentsClient";
+import type { FPCardIssued, FPSensitiveInfo } from "./fourPaymentsClient";
 
 class HttpError extends Error {
   readonly status: number;
@@ -11,25 +13,6 @@ class HttpError extends Error {
   }
 }
 
-const DEFAULT_BILLING = {
-  street: "123 Main St",
-  city: "San Francisco",
-  state: "CA",
-  zip: "94105",
-  country: "US"
-};
-
-const createMockCardDetails = (): CardDetails => {
-  const lastFour = Math.floor(1000 + Math.random() * 9000).toString();
-  return {
-    cardNumber: `411111111111${lastFour}`,
-    expiryMonth: 12,
-    expiryYear: 2028,
-    cvv: Math.floor(100 + Math.random() * 900).toString(),
-    billingAddress: DEFAULT_BILLING
-  };
-};
-
 class CardService {
   private readonly repo: CardRepository;
 
@@ -37,6 +20,12 @@ class CardService {
     this.repo = repo;
   }
 
+  /**
+   * Create a new prepaid card via 4payments API.
+   * 1. Issue card via 4payments (returns real card number, CVV, expiry)
+   * 2. Top up with initial balance
+   * 3. Store in our DB with 4payments ID
+   */
   async createCard(input: {
     walletAddress: string;
     nameOnCard: string;
@@ -46,6 +35,53 @@ class CardService {
     chargedUsd: number;
     txHash: string;
   }) {
+    const fp = getFourPaymentsClient();
+
+    // Generate our own external ID for tracking
+    const externalId = `asg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Parse name into first/last for 4payments
+    const nameParts = input.nameOnCard.trim().split(/\s+/);
+    const firstName = nameParts[0] || "Card";
+    const lastName = nameParts.slice(1).join(" ") || "Holder";
+
+    // Step 1: Issue card via 4payments
+    let fpCard: FPCardIssued;
+    try {
+      fpCard = await fp.issueCard({
+        externalId,
+        firstName,
+        lastName,
+        email: input.email,
+        phone: "+14155551234", // 4payments requires valid phone; using placeholder for virtual cards
+        label: `ASG ${input.nameOnCard}`.slice(0, 50),
+        initialBalance: input.initialAmountUsd,
+      });
+    } catch (error) {
+      if (error instanceof FourPaymentsError) {
+        console.error("[4payments] issueCard failed:", error.statusCode, error.responseBody);
+        throw new HttpError(502, `Card issuance failed: ${error.message}`);
+      }
+      throw error;
+    }
+
+    // Step 2: Top up with initial amount (if card was issued without initialBalance)
+    if (fpCard.cardBalance < input.initialAmountUsd) {
+      try {
+        await fp.topUpCard(fpCard.id, input.initialAmountUsd, externalId);
+      } catch (error) {
+        if (error instanceof FourPaymentsError) {
+          console.error("[4payments] topUpCard failed:", error.statusCode, error.responseBody);
+          // Card was issued but top-up failed — still return card but note the issue
+          console.error("[4payments] Card issued but top-up failed. Card ID:", fpCard.id);
+        }
+      }
+    }
+
+    // Step 3: Parse card details from 4payments response
+    const cardDetails = this.parseCardDetails(fpCard);
+
+    // Step 4: Store in our DB
     const card = await this.repo.create({
       walletAddress: input.walletAddress,
       nameOnCard: input.nameOnCard,
@@ -53,7 +89,8 @@ class CardService {
       initialAmountUsd: input.initialAmountUsd,
       tierAmount: input.tierAmount,
       txHash: input.txHash,
-      details: createMockCardDetails()
+      details: cardDetails,
+      fourPaymentsId: fpCard.id,
     });
 
     return {
@@ -61,19 +98,22 @@ class CardService {
       card: {
         cardId: card.cardId,
         nameOnCard: card.nameOnCard,
-        balance: card.balance,
+        balance: input.initialAmountUsd,
         status: card.status,
-        createdAt: card.createdAt
+        createdAt: card.createdAt,
       },
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
-        network: "stellar"
+        network: "stellar",
       },
-      details: card.details
+      details: cardDetails,
     };
   }
 
+  /**
+   * Fund an existing card via 4payments API.
+   */
   async fundCard(input: {
     walletAddress: string;
     cardId: string;
@@ -86,6 +126,24 @@ class CardService {
       throw new HttpError(404, "Card not found");
     }
 
+    if (!card.fourPaymentsId) {
+      throw new HttpError(400, "Card missing 4payments ID — cannot top up");
+    }
+
+    const fp = getFourPaymentsClient();
+
+    // Top up via 4payments
+    try {
+      await fp.topUpCard(card.fourPaymentsId, input.fundAmountUsd);
+    } catch (error) {
+      if (error instanceof FourPaymentsError) {
+        console.error("[4payments] topUpCard failed:", error.statusCode, error.responseBody);
+        throw new HttpError(502, `Card top-up failed: ${error.message}`);
+      }
+      throw error;
+    }
+
+    // Update local balance
     const updated = await this.repo.addBalance(card.cardId, input.fundAmountUsd);
     if (!updated) {
       throw new HttpError(500, "Unable to update card balance");
@@ -104,22 +162,21 @@ class CardService {
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
-        network: "stellar"
-      }
+        network: "stellar",
+      },
     };
   }
 
   async listCards(walletAddress: string) {
     const cards = await this.repo.findByWallet(walletAddress);
-    return cards
-      .map((card) => ({
-        cardId: card.cardId,
-        nameOnCard: card.nameOnCard,
-        lastFour: card.details.cardNumber.slice(-4),
-        balance: card.balance,
-        status: card.status,
-        createdAt: card.createdAt
-      }));
+    return cards.map((card) => ({
+      cardId: card.cardId,
+      nameOnCard: card.nameOnCard,
+      lastFour: card.details?.cardNumber?.slice(-4) ?? "XXXX",
+      balance: card.balance,
+      status: card.status,
+      createdAt: card.createdAt,
+    }));
   }
 
   async getCard(walletAddress: string, cardId: string) {
@@ -137,11 +194,16 @@ class CardService {
         initialAmountUsd: card.initialAmountUsd,
         status: card.status,
         createdAt: card.createdAt,
-        updatedAt: card.updatedAt
-      }
+        updatedAt: card.updatedAt,
+      },
     };
   }
 
+  /**
+   * Get card sensitive details.
+   * If 4payments ID exists, fetches fresh data from 4payments API.
+   * Otherwise falls back to locally stored details.
+   */
   async getCardDetails(walletAddress: string, cardId: string) {
     const card = await this.repo.findById(cardId);
     if (!card || card.walletAddress !== walletAddress) {
@@ -153,8 +215,22 @@ class CardService {
       throw new HttpError(403, "Card details access revoked by owner");
     }
 
+    // If we have a 4payments ID, fetch fresh sensitive info
+    if (card.fourPaymentsId) {
+      try {
+        const fp = getFourPaymentsClient();
+        const sensitive = await fp.getSensitiveInfo(card.fourPaymentsId);
+        return {
+          details: this.parseSensitiveInfo(sensitive),
+        };
+      } catch (error) {
+        console.error("[4payments] getSensitiveInfo failed, falling back to local:", error);
+        // Fall through to local details
+      }
+    }
+
     return {
-      details: card.details
+      details: card.details,
     };
   }
 
@@ -162,6 +238,24 @@ class CardService {
     const card = await this.repo.findById(cardId);
     if (!card || card.walletAddress !== walletAddress) {
       throw new HttpError(404, "Card not found");
+    }
+
+    // Sync with 4payments if we have an ID
+    if (card.fourPaymentsId) {
+      const fp = getFourPaymentsClient();
+      try {
+        if (status === "frozen") {
+          await fp.freezeCard(card.fourPaymentsId);
+        } else {
+          await fp.unfreezeCard(card.fourPaymentsId);
+        }
+      } catch (error) {
+        if (error instanceof FourPaymentsError) {
+          console.error("[4payments] freeze/unfreeze failed:", error.statusCode, error.responseBody);
+          throw new HttpError(502, `Card status update failed: ${error.message}`);
+        }
+        throw error;
+      }
     }
 
     const updated = await this.repo.updateStatus(cardId, status);
@@ -172,7 +266,7 @@ class CardService {
     return {
       success: true,
       cardId: card.cardId,
-      status
+      status,
     };
   }
 
@@ -191,7 +285,52 @@ class CardService {
     return {
       success: true,
       cardId: card.cardId,
-      detailsRevoked: revoked
+      detailsRevoked: revoked,
+    };
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+
+  private parseCardDetails(fpCard: FPCardIssued): CardDetails {
+    // Parse expiry "MM/YY" or "MM/YYYY"
+    const parts = fpCard.cardExpire.split("/");
+    let expiryMonth = parseInt(parts[0], 10);
+    let expiryYear = parseInt(parts[1], 10);
+    if (expiryYear < 100) expiryYear += 2000;
+
+    return {
+      cardNumber: fpCard.cardNumber,
+      expiryMonth,
+      expiryYear,
+      cvv: fpCard.cardCVC,
+      billingAddress: {
+        street: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
+      },
+    };
+  }
+
+  private parseSensitiveInfo(sensitive: FPSensitiveInfo): CardDetails {
+    const parts = sensitive.expire.split("/");
+    let expiryMonth = parseInt(parts[0], 10);
+    let expiryYear = parseInt(parts[1], 10);
+    if (expiryYear < 100) expiryYear += 2000;
+
+    return {
+      cardNumber: sensitive.number,
+      expiryMonth,
+      expiryYear,
+      cvv: sensitive.cvc,
+      billingAddress: {
+        street: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
+      },
     };
   }
 }

@@ -29,8 +29,7 @@ describe("x402 Challenge — Create Tiers", () => {
             const accept = res.body.accepts[0];
             expect(accept.scheme).toBe("exact");
             expect(accept.network).toBe("stellar:pubnet");
-            expect(accept.asset).toContain("USDC:");
-            expect(accept.asset).toContain("GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN");
+            expect(accept.asset).toBe("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
             expect(accept.amount).toBe(expectedAtomicAmounts[amount]);
             expect(accept.payTo).toMatch(/^G[A-Z2-7]{55}$/);
             expect(accept.maxTimeoutSeconds).toBe(300);

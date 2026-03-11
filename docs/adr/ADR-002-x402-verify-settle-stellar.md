@@ -33,7 +33,7 @@ Agent → POST /cards/create/tier/25
        "accepts": [{
          "scheme": "exact",
          "network": "stellar:pubnet",
-         "asset": "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+         "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
          "amount": "32500000",
          "payTo": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
          "maxTimeoutSeconds": 300,

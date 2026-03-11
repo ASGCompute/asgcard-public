@@ -1,4 +1,10 @@
-import { Connection, Keypair } from "@solana/web3.js";
+/**
+ * @asgcard/sdk — ASGCardClient
+ *
+ * Main client for the ASG Card API.
+ * Handles x402 payment flow on Stellar automatically.
+ */
+import { Keypair, rpc as StellarRpc } from "@stellar/stellar-sdk";
 import { ApiError, TimeoutError } from "./errors";
 import type {
   ASGCardClientConfig,
@@ -7,13 +13,13 @@ import type {
   FundCardParams,
   FundResult,
   HealthResponse,
-  TierResponse
+  TierResponse,
+  WalletAdapter,
 } from "./types";
 import { handleX402Payment } from "./utils/x402";
-import { decodeSolanaSecretKey } from "./utils/solana";
 
 const DEFAULT_BASE_URL = "https://api.asgcard.dev";
-const DEFAULT_RPC_URL = "https://api.mainnet-beta.solana.com";
+const DEFAULT_RPC_URL = "https://mainnet.sorobanrpc.com";
 const DEFAULT_TIMEOUT = 60_000;
 
 export class ASGCardClient {
@@ -21,11 +27,11 @@ export class ASGCardClient {
 
   private readonly timeout: number;
 
-  private readonly connection: Connection;
+  private readonly rpcServer: StellarRpc.Server;
 
   private readonly keypair?: Keypair;
 
-  private readonly walletAdapter?: ASGCardClientConfig["walletAdapter"];
+  private readonly walletAdapter?: WalletAdapter;
 
   constructor(config: ASGCardClientConfig) {
     if (!config.privateKey && !config.walletAdapter) {
@@ -34,23 +40,28 @@ export class ASGCardClient {
 
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
-    this.connection = new Connection(config.rpcUrl ?? DEFAULT_RPC_URL, "confirmed");
+    this.rpcServer = new StellarRpc.Server(config.rpcUrl ?? DEFAULT_RPC_URL);
 
     if (config.privateKey) {
-      this.keypair = Keypair.fromSecretKey(decodeSolanaSecretKey(config.privateKey));
+      this.keypair = Keypair.fromSecret(config.privateKey);
     }
 
     this.walletAdapter = config.walletAdapter;
   }
 
+  /** Stellar public key (G...) */
   get address(): string {
     if (this.keypair) {
-      return this.keypair.publicKey.toBase58();
+      return this.keypair.publicKey();
     }
 
-    return this.walletAdapter!.publicKey.toBase58();
+    return this.walletAdapter!.publicKey;
   }
 
+  /**
+   * Create a virtual card for a supported tier amount.
+   * Handles 402 → x402 payment → 201 automatically.
+   */
   async createCard(params: CreateCardParams): Promise<CardResult> {
     return this.requestWithX402<CardResult>(`/cards/create/tier/${params.amount}`, {
       method: "POST",
@@ -61,6 +72,10 @@ export class ASGCardClient {
     });
   }
 
+  /**
+   * Fund an existing card by tier amount.
+   * Handles 402 → x402 payment → 200 automatically.
+   */
   async fundCard(params: FundCardParams): Promise<FundResult> {
     return this.requestWithX402<FundResult>(`/cards/fund/tier/${params.amount}`, {
       method: "POST",
@@ -68,13 +83,17 @@ export class ASGCardClient {
     });
   }
 
+  /** Get available create/fund tier amounts and pricing */
   async getTiers(): Promise<TierResponse> {
     return this.request<TierResponse>("/cards/tiers", { method: "GET" });
   }
 
+  /** Health check */
   async health(): Promise<HealthResponse> {
     return this.request<HealthResponse>("/health", { method: "GET" });
   }
+
+  // ── x402 payment flow ────────────────────────────────
 
   private async requestWithX402<T>(path: string, init: RequestInit): Promise<T> {
     const first = await this.rawFetch(path, init);
@@ -86,7 +105,7 @@ export class ASGCardClient {
     const challengePayload = await first.json();
 
     const paymentHeader = await handleX402Payment({
-      connection: this.connection,
+      rpcServer: this.rpcServer,
       challengePayload,
       keypair: this.keypair,
       walletAdapter: this.walletAdapter
@@ -96,13 +115,15 @@ export class ASGCardClient {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        "X-Payment": paymentHeader,
+        "X-PAYMENT": paymentHeader,
         ...(init.headers ?? {})
       }
     });
 
     return this.parseResponse<T>(retry);
   }
+
+  // ── HTTP primitives ──────────────────────────────────
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const response = await this.rawFetch(path, init);

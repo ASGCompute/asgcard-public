@@ -19,3 +19,6 @@ gh_extracted/
 gh.zip
 gh.tar.gz
 .vercel
+__clean_room_audit/
+check-balances.js
+asg-facilitator/

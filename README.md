@@ -1,23 +1,60 @@
 # ASG Card
 
-ASG Card is an agent-focused virtual card platform with x402 payments, currently preparing a Stellar-first pilot.
+ASG Card is an **agent-first** virtual card platform. AI agents programmatically issue and manage MasterCard virtual cards, paying in USDC via the **x402** protocol on **Stellar**.
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Clients
+        SDK["@asgcard/sdk<br>(npm, TypeScript)"]
+        TG["Telegram Bot<br>@ASGCardbot"]
+        WEB["asgcard.dev"]
+    end
+
+    subgraph ASG Infrastructure
+        API["ASG Card API<br>api.asgcard.dev"]
+        FAC["x402 Facilitator"]
+        DB["PostgreSQL"]
+    end
+
+    subgraph External
+        ISSUER["Card Issuer<br>(MasterCard)"]
+        STELLAR["Stellar Pubnet<br>USDC"]
+    end
+
+    SDK -->|"x402 HTTP"| API
+    TG -->|"Webhook"| API
+    WEB -->|"Pricing"| API
+    API -->|"verify/settle"| FAC
+    API -->|"SQL"| DB
+    API -->|"REST"| ISSUER
+    FAC -->|"Soroban RPC"| STELLAR
+    SDK -->|"Sign TX"| STELLAR
+```
+
+## How It Works
+
+1. **Agent requests a card** → API returns a `402 Payment Required` with USDC amount
+2. **Agent signs a Stellar USDC transfer** via the SDK
+3. **x402 Facilitator verifies and settles** the payment on-chain
+4. **API issues a real MasterCard** via the card issuer
+5. **Card details returned immediately** in the response (agent-first)
 
 ## Workspace
 
-- `/api` - ASG Card API (Express + x402 + wallet auth)
-- `/sdk` - `@asgcard/sdk` TypeScript client
-- `/web` - main ASG Card website
-- `/web-stellar-mg` - isolated Stellar + MoneyGram landing/docs variant
+| Directory | Description |
+|-----------|-------------|
+| `/api` | ASG Card API (Express + x402 + wallet auth) |
+| `/sdk` | `@asgcard/sdk` TypeScript client |
+| `/web` | Marketing website (asgcard.dev) |
+| `/docs` | Internal documentation and ADRs |
 
 ## Quick Start
 
 ```bash
 npm install
-```
 
-Run API and web app in separate terminals:
-
-```bash
 # Terminal 1: API
 npm run dev:api
 
@@ -25,26 +62,128 @@ npm run dev:api
 npm run dev
 ```
 
-- Stellar-only landing/docs variant (separate folder, does not modify main web):
+- API: `http://localhost:3000`
+- Web: `http://localhost:3001`
 
-```bash
-npm run dev:stellar
+## SDK Usage
+
+```typescript
+import { ASGCardClient } from "@asgcard/sdk";
+
+const client = new ASGCardClient({
+  privateKey: "S...",  // Stellar secret key
+  rpcUrl: "https://mainnet.sorobanrpc.com"
+});
+
+// Automatically handles: 402 → USDC payment → card creation
+const card = await client.createCard({
+  amount: 10,        // $10 card load
+  nameOnCard: "AI Agent",
+  email: "agent@example.com"
+});
+
+// card.detailsEnvelope = { cardNumber, cvv, expiryMonth, expiryYear }
 ```
 
-- API defaults to `http://localhost:3000`.
-- Web defaults to `http://localhost:3001`.
-- Stellar variant defaults to Vite dev server auto-port (typically `http://localhost:3001` if free).
-- Web pricing requests go directly to `http://localhost:3000/pricing` in local dev.
-- In production, web fetches pricing via same-origin `/api/pricing` (Vercel rewrite to `api.asgcard.dev`).
-- Optional override: set `VITE_API_BASE_URL` in web env to force a specific API origin.
+### SDK Methods
 
-## Founder/CTO Execution Context (Stellar Pilot)
+| Method | Description |
+|--------|-------------|
+| `createCard({amount, nameOnCard, email})` | Issue a virtual card with x402 payment |
+| `fundCard({amount, cardId})` | Top up an existing card |
+| `getTiers()` | Get current pricing tiers |
+| `health()` | API health check |
 
-- Persistent operating context: `docs/execution/FOUNDER_CTO_OPERATING_CONTEXT_STELLAR.md`
-- Full CTO onboarding + scope: `docs/execution/CTO_FULL_CONTEXT_AND_SCOPE_STELLAR.md`
-- First CTO scope: `docs/execution/CTO_SCOPE_SPRINT_01_STELLAR.md`
-- CTO Day 1–2 execution packet: `docs/execution/CTO_DAY1_DAY2_EXECUTION_PACKET.md`
-- GitHub backlog (canonical): `docs/execution/github/ISSUE_BACKLOG_STELLAR_PILOT.md`
-- GitHub backlog (CSV): `docs/execution/github/stellar_pilot_issue_backlog.csv`
-- Auto-create issues via `gh`: `scripts/github/create_stellar_pilot_issues.sh`
-- Audit GitHub backlog consistency: `scripts/github/audit_stellar_pilot_backlog.sh`
+## Pricing
+
+### Card Creation
+
+| Card Load | Total Cost (USDC) |
+|-----------|:-----------------:|
+| $10 | **$17.20** |
+| $25 | **$32.50** |
+| $50 | **$58.00** |
+| $100 | **$110.00** |
+| $200 | **$214.00** |
+| $500 | **$522.00** |
+
+### Card Funding (Top-Up)
+
+| Fund Amount | Total Cost (USDC) |
+|-------------|:-----------------:|
+| $10 | **$14.20** |
+| $25 | **$29.50** |
+| $50 | **$55.00** |
+| $100 | **$107.00** |
+| $200 | **$211.00** |
+| $500 | **$519.00** |
+
+Live pricing: `GET https://api.asgcard.dev/pricing`
+
+## API Endpoints
+
+### Public
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/health` | GET | Health check |
+| `/pricing` | GET | Current pricing tiers |
+| `/cards/tiers` | GET | Detailed tier breakdown |
+| `/supported` | GET | x402 capabilities |
+
+### Paid (x402 Payment Required)
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/cards/create/tier/:amount` | POST | Create a virtual card |
+| `/cards/fund/tier/:amount` | POST | Fund an existing card |
+
+### Wallet Authenticated
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/cards/` | GET | List wallet's cards |
+| `/cards/:id` | GET | Card details |
+| `/cards/:id/details` | GET | Sensitive data (nonce required) |
+| `/cards/:id/freeze` | POST | Freeze card |
+| `/cards/:id/unfreeze` | POST | Unfreeze card |
+
+## Telegram Bot (@ASGCardbot)
+
+Link your wallet to Telegram for card management:
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome / Link account |
+| `/mycards` | List your cards |
+| `/faq` | FAQ |
+| `/support` | Support |
+
+### Linking Flow
+1. Generate a deep-link token via the Owner Portal
+2. Click `t.me/ASGCardbot?start=lnk_xxx`
+3. Bot verifies and creates the wallet ↔ Telegram binding
+4. Use `/mycards` to view and manage cards with inline buttons
+
+## x402 Protocol
+
+ASG Card implements the **x402 payment protocol v2** on **Stellar**:
+
+- **Network:** Stellar Pubnet
+- **Asset:** USDC (Stellar SAC contract)
+- **Scheme:** `exact` (pay the exact amount required)
+- **Fees sponsored:** Yes (Stellar transaction fees covered)
+
+The flow follows the standard x402 challenge-response: `402 → sign → verify → settle → deliver`.
+
+## Security
+
+- Card details encrypted at rest with **AES-256-GCM**
+- Agent nonce-based anti-replay protection (5 reads/hour)
+- Wallet signature authentication
+- Telegram webhook secret validation
+- Ops endpoints protected by API key + IP allowlist
+
+## License
+
+MIT

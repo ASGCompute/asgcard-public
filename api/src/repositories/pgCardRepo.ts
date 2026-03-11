@@ -34,14 +34,15 @@ export class PostgresCardRepository implements CardRepository {
             status: string;
             details_encrypted: Buffer;
             details_revoked: boolean;
+            four_payments_id: string | null;
             created_at: Date;
             updated_at: Date;
         }>(
             `INSERT INTO cards
-               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked)
-             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false)
+               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id)
+             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false, $8)
              RETURNING card_id, wallet_address, name_on_card, email,
-                       balance, initial_amount, status, details_encrypted, details_revoked,
+                       balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
                        created_at, updated_at`,
             [
                 cardId,
@@ -50,7 +51,8 @@ export class PostgresCardRepository implements CardRepository {
                 input.email,
                 input.initialAmountUsd,
                 input.initialAmountUsd,
-                detailsEncrypted
+                detailsEncrypted,
+                input.fourPaymentsId || null
             ]
         );
 
@@ -68,11 +70,12 @@ export class PostgresCardRepository implements CardRepository {
             status: string;
             details_encrypted: Buffer;
             details_revoked: boolean;
+            four_payments_id: string | null;
             created_at: Date;
             updated_at: Date;
         }>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted, details_revoked,
+                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
                     created_at, updated_at
              FROM cards
              WHERE card_id = $1`,
@@ -93,11 +96,12 @@ export class PostgresCardRepository implements CardRepository {
             status: string;
             details_encrypted: Buffer;
             details_revoked: boolean;
+            four_payments_id: string | null;
             created_at: Date;
             updated_at: Date;
         }>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted, details_revoked,
+                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
                     created_at, updated_at
              FROM cards
              WHERE wallet_address = $1
@@ -209,20 +213,35 @@ export class PostgresCardRepository implements CardRepository {
         status: string;
         details_encrypted: Buffer;
         details_revoked: boolean;
+        four_payments_id: string | null;
         created_at: Date;
         updated_at: Date;
     }): StoredCard {
+        let details: CardDetails;
+        try {
+            details = decryptCardDetails(row.details_encrypted, this.encKey);
+        } catch {
+            // Decryption may fail for cards encrypted with a different key
+            details = {
+                cardNumber: "0000000000000000",
+                expiryMonth: 0,
+                expiryYear: 0,
+                cvv: "000",
+                billingAddress: { street: "", city: "", state: "", zip: "", country: "" },
+            };
+        }
         return {
             cardId: row.card_id,
             walletAddress: row.wallet_address,
             nameOnCard: row.name_on_card,
             email: row.email,
-            balance: parseFloat(row.balance),             // NUMERIC → number
-            initialAmountUsd: parseFloat(row.initial_amount), // NUMERIC → number
+            balance: parseFloat(row.balance),
+            initialAmountUsd: parseFloat(row.initial_amount),
             status: row.status as "active" | "frozen",
             createdAt: row.created_at.toISOString(),
             updatedAt: row.updated_at.toISOString(),
-            details: decryptCardDetails(row.details_encrypted, this.encKey),
+            details,
+            fourPaymentsId: row.four_payments_id || undefined,
             detailsRevoked: row.details_revoked
         } as StoredCard & { detailsRevoked: boolean };
     }

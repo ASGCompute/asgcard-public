@@ -77,6 +77,14 @@ const NAV: NavItem[] = [
       { id: 'wallet-signed-endpoints', label: 'Wallet-Signed' },
     ]
   },
+  {
+    id: 'agent-first', label: 'Agent-First Details', children: [
+      { id: 'details-envelope', label: 'Details Envelope' },
+      { id: 'get-card-details', label: 'GET /cards/:cardId/details' },
+      { id: 'nonce-replay', label: 'Nonce & Anti-Replay' },
+      { id: 'revoke-restore', label: 'Revoke / Restore' },
+    ]
+  },
   { id: 'errors', label: 'Errors' },
   { id: 'rate-limits', label: 'Rate Limits' },
   { id: 'architecture', label: 'Architecture' },
@@ -164,7 +172,7 @@ function renderOverview(): string {
             </tr>
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-post">Paid (x402)</span></td>
-              <td data-label="Auth">USDC payment on Stellar (PayAI facilitator-ready)</td>
+              <td data-label="Auth">USDC payment on Stellar via x402</td>
               <td data-label="Description">Create/fund cards</td>
             </tr>
             <tr>
@@ -186,7 +194,7 @@ function renderSDK(): string {
       <p>The official client SDK wraps the raw x402 flow (402 → parse challenge → pay USDC → retry with proof) into one-liner methods. No need to handle the payment handshake yourself.</p>
 
       <h3 id="sdk-install">Install</h3>
-      ${codeBlock('npm install @asgcard/sdk stellar-sdk', 'bash')}
+      ${codeBlock('npm install @asgcard/sdk', 'bash')}
 
       <hr class="docs-divider" />
 
@@ -196,7 +204,7 @@ function renderSDK(): string {
 const client = new ASGCardClient({
   privateKey: '<stellar_secret_seed>',
   baseUrl: 'https://api.asgcard.dev',
-  rpcUrl: 'https://horizon.stellar.org',
+  rpcUrl: 'https://mainnet.sorobanrpc.com',
 });
 
 // One line — SDK handles payment automatically
@@ -354,7 +362,8 @@ try {
   parseChallenge,
   checkBalance,
   executePayment,
-  buildPaymentProof,
+  buildPaymentPayload,
+  buildPaymentTransaction,
   handleX402Payment,
 } from '@asgcard/sdk';`, 'typescript')}
 
@@ -380,9 +389,14 @@ try {
               <td data-label="Description">Sends USDC on Stellar, returns txHash</td>
             </tr>
             <tr>
-              <td data-label="Function"><code>buildPaymentProof</code></td>
-              <td data-label="Signature"><code>(input) → string</code></td>
-              <td data-label="Description">Builds base64-encoded X-Payment header value</td>
+              <td data-label="Function"><code>buildPaymentPayload</code></td>
+              <td data-label="Signature"><code>(accepted, signedXDR) → string</code></td>
+              <td data-label="Description">Builds base64-encoded X-PAYMENT header value</td>
+            </tr>
+            <tr>
+              <td data-label="Function"><code>buildPaymentTransaction</code></td>
+              <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
+              <td data-label="Description">Build + sign a Soroban SAC USDC transfer</td>
             </tr>
             <tr>
               <td data-label="Function"><code>handleX402Payment</code></td>
@@ -455,7 +469,7 @@ function renderAuthentication(): string {
       <p>ASG Card uses two authentication modes depending on the endpoint.</p>
 
       <h3 id="x402-payment-flow">x402 Payment Flow</h3>
-      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path aligned with PayAI. The flow has 4 steps:</p>
+      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol on Stellar. The flow has 4 steps:</p>
 
       <h4>Step 1 — Request without payment</h4>
       ${codeBlock(`curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\
@@ -474,9 +488,9 @@ function renderAuthentication(): string {
   "accepts": [{
     "scheme": "exact",
     "network": "stellar:pubnet",
-    "asset": "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+    "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
     "amount": "17200000",
-    "payTo": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
+    "payTo": "GAHYHA55RTD2J4LAVJILTNHWMF2H2YVK5QXLQT3CHCJSVET3VRWPOCW6",
     "maxTimeoutSeconds": 300,
     "extra": { "areFeesSponsored": true }
   }]
@@ -502,7 +516,7 @@ function renderAuthentication(): string {
       <p>Parse the <code>accepts</code> array and send the specified USDC amount to the <code>payTo</code> address on Stellar, then proceed with facilitator verification if enabled.</p>
 
       <h4>Step 4 — Retry with X-PAYMENT header</h4>
-      <p>Re-send the original request with an <code>X-PAYMENT</code> header containing base64-encoded JSON (x402 v2 PaymentPayload):</p>
+      <p>Re-send the original request with an <code>X-PAYMENT</code> header containing base64-encoded JSON (x402 PaymentPayload):</p>
       ${codeBlock(`{
   "x402Version": 2,
   "accepted": {
@@ -846,9 +860,21 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/:cardId/details</code>
         </div>
-        <p>Retrieve sensitive card details — full card number, CVV, expiry, and billing address.</p>
+        <p>Retrieve sensitive card details — full card number, CVV, expiry, and billing address. See <a href="#agent-first">Agent-First Details</a> for the full protocol.</p>
         <div class="docs-callout docs-callout-warn">
-          Rate limited to <strong>3 requests per card per hour</strong>.
+          Requires <code>X-AGENT-NONCE</code> header (UUID v4). Rate limited to <strong>3 unique nonces per card per hour</strong>. Returns <code>409</code> on replay, <code>403</code> if owner revoked access.
+        </div>
+        <strong>Required Headers:</strong>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Header</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Header"><code>X-WALLET-ADDRESS</code></td><td data-label="Description">Stellar public key</td></tr>
+              <tr><td data-label="Header"><code>X-WALLET-SIGNATURE</code></td><td data-label="Description">Ed25519 detached signature</td></tr>
+              <tr><td data-label="Header"><code>X-WALLET-TIMESTAMP</code></td><td data-label="Description">Unix timestamp (seconds)</td></tr>
+              <tr><td data-label="Header"><code>X-AGENT-NONCE</code></td><td data-label="Description">UUID v4 — unique per request, anti-replay</td></tr>
+            </tbody>
+          </table>
         </div>
         <strong>Response 200:</strong>
         ${codeBlock(`{
@@ -866,6 +892,17 @@ function renderEndpoints(): string {
     }
   }
 }`, 'json')}
+        <strong>Error Responses:</strong>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Code</th><th>When</th><th>Body</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Code"><code>403</code></td><td data-label="When">Owner revoked details access</td><td data-label="Body"><code>{"error":"Details access revoked by card owner"}</code></td></tr>
+              <tr><td data-label="Code"><code>409</code></td><td data-label="When">Nonce already used (replay)</td><td data-label="Body"><code>{"error":"Nonce already used (replay detected)","code":"REPLAY_REJECTED"}</code></td></tr>
+              <tr><td data-label="Code"><code>429</code></td><td data-label="When">Rate limit exceeded</td><td data-label="Body"><code>{"error":"Card details rate limit exceeded (3 requests / hour)"}</code></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
@@ -899,6 +936,120 @@ function renderEndpoints(): string {
   `;
 }
 
+function renderAgentFirst(): string {
+  return `
+    <section id="agent-first" aria-label="Agent-First Details">
+      <h2>Agent-First Details Access</h2>
+      <p>ASG Card uses an <strong>agent-first model</strong> for sensitive card data. Card details (number, CVV, expiry) are delivered via two mechanisms designed for autonomous agents.</p>
+
+      <h3 id="details-envelope">Details Envelope</h3>
+      <p>When a card is created via <code>POST /cards/create/tier/:amount</code>, the <code>201</code> response includes a <code>detailsEnvelope</code> field with full card details:</p>
+      ${codeBlock(`{
+  "success": true,
+  "card": { "cardId": "...", "status": "active" },
+  "payment": { "txHash": "...", "network": "stellar" },
+  "detailsEnvelope": {
+    "cardNumber": "4111111111111111",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "123",
+    "billingAddress": {
+      "street": "123 Main St",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94105",
+      "country": "US"
+    },
+    "oneTimeAccess": true,
+    "expiresInSeconds": 300
+  }
+}`, 'json')}
+      <div class="docs-callout docs-callout-info">
+        <strong>One-time access:</strong> The <code>detailsEnvelope</code> is returned only in the initial <code>201</code> response. It is not stored server-side. Agents should persist card details securely on their side.
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="get-card-details">GET /cards/:cardId/details</h3>
+      <p>If the agent loses the initial envelope, card details can be retrieved via <code>GET /cards/:cardId/details</code> using wallet signature authentication plus a unique nonce.</p>
+
+      <h4>Required Headers</h4>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead><tr><th>Header</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Header"><code>X-WALLET-ADDRESS</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Stellar public key (G...)</td></tr>
+            <tr><td data-label="Header"><code>X-WALLET-SIGNATURE</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Ed25519 detached signature (base64)</td></tr>
+            <tr><td data-label="Header"><code>X-WALLET-TIMESTAMP</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Unix timestamp (seconds)</td></tr>
+            <tr><td data-label="Header"><code>X-AGENT-NONCE</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">UUID v4 — must be unique per request</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      ${codeBlock(`import { v4 as uuid } from 'uuid';
+
+const nonce = uuid();
+const timestamp = Math.floor(Date.now() / 1000);
+const message = \`asgcard-auth:\${timestamp}\`;
+const signature = await wallet.signMessage(new TextEncoder().encode(message));
+
+const res = await fetch('https://api.asgcard.dev/cards/<cardId>/details', {
+  headers: {
+    'X-WALLET-ADDRESS': wallet.publicKey,
+    'X-WALLET-SIGNATURE': Buffer.from(signature).toString('base64'),
+    'X-WALLET-TIMESTAMP': String(timestamp),
+    'X-AGENT-NONCE': nonce,
+  },
+});
+
+if (res.status === 409) {
+  // Nonce replay detected — generate a new UUID and retry
+}
+if (res.status === 403) {
+  // Card owner has revoked details access
+}`, 'typescript')}
+
+      <hr class="docs-divider" />
+
+      <h3 id="nonce-replay">Nonce & Anti-Replay (409)</h3>
+      <p>Every call to <code>GET /cards/:cardId/details</code> requires a fresh <code>X-AGENT-NONCE</code> (UUID v4). If a nonce has already been used for the same card, the server returns:</p>
+      ${codeBlock(`HTTP/1.1 409 Conflict
+{
+  "error": "Nonce already used (replay detected)",
+  "code": "REPLAY_REJECTED"
+}`, 'json')}
+      <p>This prevents replay attacks and ensures each details retrieval is intentional. Combined with the 3-request-per-hour rate limit per card, this protects cardholder data.</p>
+
+      <hr class="docs-divider" />
+
+      <h3 id="revoke-restore">Revoke / Restore</h3>
+      <p>Card owners can control whether agents (or themselves, via the portal) can retrieve card details:</p>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead><tr><th>Action</th><th>Endpoint</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr>
+              <td data-label="Action">Revoke</td>
+              <td data-label="Endpoint"><code>POST /cards/:cardId/revoke-details</code></td>
+              <td data-label="Effect">Blocks all future <code>GET /details</code> → returns <code>403</code></td>
+            </tr>
+            <tr>
+              <td data-label="Action">Restore</td>
+              <td data-label="Endpoint"><code>POST /cards/:cardId/restore-details</code></td>
+              <td data-label="Effect">Re-enables <code>GET /details</code> access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Both endpoints require wallet signature authentication (same headers as card management). Revoked status returns:</p>
+      ${codeBlock(`HTTP/1.1 403 Forbidden
+{
+  "error": "Details access revoked by card owner"
+}`, 'json')}
+    </section>
+  `;
+}
+
 function renderErrors(): string {
   return `
     <section id="errors" aria-label="Errors">
@@ -928,9 +1079,19 @@ function renderErrors(): string {
               <td data-label="Example">Challenge JSON (see <a href="#x402-payment-flow">x402 Flow</a>)</td>
             </tr>
             <tr>
+              <td data-label="Code"><code>403</code></td>
+              <td data-label="When">Details access revoked by card owner</td>
+              <td data-label="Example"><code>{"error":"Details access revoked by card owner"}</code></td>
+            </tr>
+            <tr>
               <td data-label="Code"><code>404</code></td>
               <td data-label="When">Card not found</td>
               <td data-label="Example"><code>{"error":"Card not found"}</code></td>
+            </tr>
+            <tr>
+              <td data-label="Code"><code>409</code></td>
+              <td data-label="When">Nonce replay detected</td>
+              <td data-label="Example"><code>{"error":"Nonce already used (replay detected)","code":"REPLAY_REJECTED"}</code></td>
             </tr>
             <tr>
               <td data-label="Code"><code>429</code></td>
@@ -1095,6 +1256,7 @@ document.querySelector<HTMLDivElement>('#docs-app')!.innerHTML = `
           ${renderAuthentication()}
           ${renderPricing()}
           ${renderEndpoints()}
+          ${renderAgentFirst()}
           ${renderErrors()}
           ${renderRateLimits()}
           ${renderArchitecture()}

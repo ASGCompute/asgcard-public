@@ -44,4 +44,5 @@ export interface StoredCard {
   createdAt: string;
   updatedAt: string;
   details: CardDetails;
+  fourPaymentsId?: string;
 }

@@ -1,6 +1,6 @@
 # SCF #42 Application Pack — ASG Card
 
-Last updated: 2026-02-27  
+Last updated: 2026-03-11  
 Prepared for: Stellar Community Fund (SCF #42, Build Award Round)
 
 ## 1) Round Snapshot (What matters right now)
@@ -154,3 +154,78 @@ Answer: payment-is-auth flow via x402 on Stellar, agent-native pricing tiers, an
 
 3. `Any migration risk?`  
 Answer: some legacy Solana-era SDK utilities remain in repo; Stellar-first API and integration path are active, and SDK cleanup is included in milestone delivery.
+
+## 9) Revised Milestone Copy (Technical-Only, SCF-Safe)
+
+This version is stronger than the first draft for three reasons:
+
+1. It removes weak wording like `setup costs` and `bootstrapping`.
+2. It frames each tranche as a verifiable development milestone, which matches current SCF guidance.
+3. It avoids over-promising a full Soroban smart-wallet system before core payment and issuer flows are production-ready.
+
+### Deliverable 1: x402 Payment Flow + Sandbox Issuer Integration
+
+Brief description:  
+This milestone delivers the first working product loop for ASG Card on Stellar testnet. We will implement the x402 challenge-response server flow, connect the API to Stellar testnet USDC payment verification, and integrate our card issuer's sandbox environment for card provisioning. The result is a staging system where an agent can request a card, receive an HTTP 402 challenge, pay testnet USDC, and automatically receive a provisioned sandbox card through the issuer integration.
+
+How to measure completion:  
+A staging API is live and publicly testable. A request to the paid card-creation endpoint returns a valid 402 challenge. After a successful Stellar testnet USDC payment, the system verifies the payment, completes the issuer sandbox call, and returns a mock or sandbox virtual card response end-to-end.
+
+Budget allocation:  
+`$24,000` allocated to Milestone 1 development work.
+
+### Deliverable 2: Wallet Authentication Layer + Agent Spend Controls
+
+Brief description:  
+This milestone adds the authenticated control plane for ASG Card. We will implement wallet-based request authentication for card management actions, add reusable agent wallet/signing support for Stellar-compatible clients, and connect policy controls such as freeze/unfreeze, spending limits, and merchant restrictions to the issuer sandbox. Where possible, this milestone should explicitly reference the chosen SCF Integration Track building block, for example `Stellar Wallets Kit` or `Freighter Connect`, if those are part of the submitted scope.
+
+How to measure completion:  
+Agents or wallet-enabled clients can sign management requests using Stellar-compatible credentials and successfully authenticate against the ASG Card API. The authenticated routes reach the issuer sandbox and enforce configured card-management controls, including at minimum card state changes and spend-policy configuration.
+
+Budget allocation:  
+`$36,000` allocated to Milestone 2 development work.
+
+### Deliverable 3: Mainnet Deployment + Production Integration Release
+
+Brief description:  
+This milestone delivers the production release of ASG Card on Stellar mainnet. We will deploy the paid API to production, enable live USDC payment handling on Stellar mainnet, transition the issuer integration from sandbox to production, and publish the final developer package for integrating Stellar-based agent payments and card provisioning. This includes production documentation, operational monitoring, and a reusable integration module or SDK for developers.
+
+How to measure completion:  
+ASG Card is live on Stellar mainnet. A production client can trigger a valid 402 payment flow, complete a real USDC payment on Stellar mainnet, and receive a live provisioned card through the production issuer path. Production API documentation and integration documentation are published, and monitoring is in place for payment, issuer, and webhook flows.
+
+Budget allocation:  
+`$48,000` allocated to Milestone 3 development work.
+
+## 10) Important Budget Note (SCF Tranche Math)
+
+SCF Build currently pays awards in 4 payments:
+
+- `Tranche 0`: 10% on award acceptance
+- `Tranche 1`: 20%
+- `Tranche 2`: 30%
+- `Tranche 3`: 40%
+
+That means:
+
+1. If you keep milestone allocations of `$24k + $36k + $48k`, you should present the total award ask as `$120k`, because those numbers match the `20/30/40` structure and imply a `Tranche 0` payment of `$12k`.
+2. If your true total ask is `$108k`, then the SCF payout equivalents would be:
+- `Tranche 0`: `$10.8k`
+- `Tranche 1`: `$21.6k`
+- `Tranche 2`: `$32.4k`
+- `Tranche 3`: `$43.2k`
+
+Reviewer note:
+Do not describe the milestone budgets as the literal tranche payout schedule unless they match the SCF payment percentages.
+
+## 11) Integration Track Positioning Note
+
+Current risk in the draft:
+
+1. `Issuer partner` is important to the product, but it is not by itself a Stellar ecosystem building block.
+2. For Integration Track, SCF requires you to choose at least one approved ecosystem integration from the current list, and most of the requested budget should go toward that integration work.
+
+To reduce reviewer pushback:
+
+1. Explicitly name the Stellar-side integration in the form.
+2. Good candidates, if they are truly in scope, are `Stellar Wallets Kit`, `Freighter Connect`, or `MoneyGram`, depending on the exact product path you want to claim.
+3. If you do not want to commit to one of those ecosystem building blocks, your project may read more like `Open Track` than `Integration Track`.

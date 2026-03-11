@@ -65,10 +65,7 @@ botRouter.post("/telegram/webhook", async (req, res) => {
         return;
     }
 
-    // 3. Respond immediately (Telegram expects 200 within 60s)
-    res.status(200).json({ ok: true });
-
-    // 4. Route to handler (fire-and-forget after 200)
+    // 3. Process update BEFORE responding (Vercel kills function after res.send)
     try {
         const client = getTelegramClient();
 
@@ -80,6 +77,9 @@ botRouter.post("/telegram/webhook", async (req, res) => {
     } catch (error) {
         appLogger.error({ err: error }, "[BOT] Update handling error");
     }
+
+    // 4. Respond 200 after processing (Telegram retries on non-200)
+    res.status(200).json({ ok: true });
 });
 
 // ── Setup command (one-time, called manually or on deploy) ──

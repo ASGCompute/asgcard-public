@@ -28,7 +28,7 @@ ASG Card is a virtual card issuance API that enables AI agents to pay with USDC 
 
 - Protocol: x402 v2 (`exact` scheme)  
 - Network: `stellar:pubnet`  
-- Asset: USDC (`GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`)  
+- Asset: USDC (`CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75`)  
 - Facilitator: OpenZeppelin Channels (`channels.openzeppelin.com/x402`)  
 - Fees sponsored by facilitator (zero Stellar gas for payers)  
 

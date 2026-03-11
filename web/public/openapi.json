@@ -3,7 +3,7 @@
   "info": {
     "title": "ASG Card API",
     "version": "0.3.1",
-    "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 v2 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
+    "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
   },
   "servers": [
     {
@@ -103,7 +103,7 @@
           "x402"
         ],
         "summary": "Create a virtual card for a supported tier amount",
-        "description": "x402 v2 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. When AGENT_DETAILS_ENABLED=true, the 201 response includes a `details` envelope with full PAN, CVV, expiry, and billing address (agent-first model). PAN/CVV are never logged or exposed in metrics.",
+        "description": "x402 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. When AGENT_DETAILS_ENABLED=true, the 201 response includes a `details` envelope with full PAN, CVV, expiry, and billing address (agent-first model). PAN/CVV are never logged or exposed in metrics.",
         "operationId": "createCardByTier",
         "parameters": [
           {

@@ -1,4 +1,4 @@
-# ASG Card x402 on Stellar + PayAI
+# ASG Card x402 on Stellar + x402
 
 ## One-Page Commercial Proposal
 
@@ -7,7 +7,7 @@ ASG Card is payment-to-card infrastructure for AI agents. It converts paid API a
 
 ### How it Works
 1. Agent calls paid card create/fund endpoint.
-2. API returns x402 challenge and payment is verified through PayAI facilitator path.
+2. API returns x402 challenge and payment is verified through x402 facilitator path.
 3. USDC settles on Stellar and payment is confirmed.
 4. ASG Card issues/funds virtual card and returns details plus controls.
 
@@ -24,12 +24,12 @@ ASG Card is payment-to-card infrastructure for AI agents. It converts paid API a
 - API platforms launching paid agent endpoints.
 - FinOps and operations teams needing spend controls and traceability.
 - Treasury/compliance teams adopting USDC settlement rails.
-- Ecosystem and growth teams at Stellar and PayAI.
+- Ecosystem and growth teams at Stellar and x402.
 
 ### Value by Platform
 - **Stellar:** USDC settlement growth plus brand leadership in agentic commerce.
   - Positions Stellar in the core agentic narrative and shows it is shipping with the trend.
-- **PayAI:** Facilitator adoption in production-grade partner flows.
+- **x402:** Facilitator adoption in production-grade partner flows.
   - Creates a visible reference integration for x402 monetization and orchestration.
 - **ASG Card + Partners:** New transaction revenue stream with low integration friction.
   - Faster pilot-to-scale conversion with measurable payment and usage KPIs.

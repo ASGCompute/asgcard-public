@@ -39,6 +39,15 @@ export const createApp = async () => {
     appLogger.info("[APP] Owner portal module enabled → /portal/*");
   }
 
+  // ── Admin Bot (feature-flagged) ────────────────────────────
+  if (env.ADMIN_BOT_ENABLED === "true") {
+    const { adminRouter, AdminBot } = await import("./modules/admin");
+    app.use("/admin", adminRouter);
+    appLogger.info("[APP] Admin bot module enabled → /admin/*");
+    // Notify admin on startup
+    AdminBot.startup().catch(() => {});
+  }
+
   app.use((_req, res) => {
     res.status(404).json({ error: "Not Found" });
   });

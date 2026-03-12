@@ -66,6 +66,11 @@ const envSchema = z.object({
   // ── Bot Alerts (event notifications to TG) ─────────────
   BOT_ALERTS_ENABLED: z.enum(["true", "false"]).default("false"),
 
+  // ── Admin Bot (ops notifications to admin TG chat) ─────
+  ADMIN_BOT_ENABLED: z.enum(["true", "false"]).default("false"),
+  ADMIN_BOT_TOKEN: z.string().optional(),
+  ADMIN_CHAT_ID: z.string().optional(),
+
   // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
   AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("false"),
   DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),

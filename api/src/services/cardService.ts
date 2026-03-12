@@ -3,6 +3,7 @@ import type { CardRepository } from "../repositories/types";
 import { cardRepository } from "../repositories/runtime";
 import { getFourPaymentsClient, FourPaymentsError } from "./fourPaymentsClient";
 import type { FPCardIssued, FPSensitiveInfo } from "./fourPaymentsClient";
+import { AdminBot } from "../modules/admin/adminBot";
 
 /** Default billing address for ASG virtual cards */
 const ASG_DEFAULT_BILLING_ADDRESS = {
@@ -114,8 +115,8 @@ class CardService {
       fourPaymentsId: fpCard.id,
     });
 
-    return {
-      success: true,
+    const result = {
+      success: true as const,
       card: {
         cardId: card.cardId,
         nameOnCard: card.nameOnCard,
@@ -126,10 +127,21 @@ class CardService {
       payment: {
         amountCharged: input.chargedUsd,
         txHash: input.txHash,
-        network: "stellar",
+        network: "stellar" as const,
       },
       details: cardDetails,
     };
+
+    // Notify admin bot
+    AdminBot.cardCreated({
+      cardId: card.cardId,
+      wallet: input.walletAddress,
+      tier: input.tierAmount,
+      balance: input.initialAmountUsd,
+      last4: cardDetails.cardNumber?.slice(-4) ?? "????",
+    }).catch(() => {});
+
+    return result;
   }
 
   /**
@@ -186,6 +198,8 @@ class CardService {
         network: "stellar",
       },
     };
+
+    // Note: AdminBot.cardFunded is called from the route handler after return
   }
 
   async listCards(walletAddress: string) {

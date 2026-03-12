@@ -19,6 +19,7 @@ import { handleStartCommand } from "./commands/start";
 import { handleMyCardsCommand, handleCardCallback } from "./commands/myCards";
 import { handleFaqCommand } from "./commands/faq";
 import { handleSupportCommand } from "./commands/support";
+import { handleFundCommand, handleFundCallback } from "./commands/fund";
 import { AuditService } from "../authz/auditService";
 
 // ── Router ─────────────────────────────────────────────────
@@ -137,6 +138,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
         await client.setMyCommands([
             { command: "start", description: "Start / Link account" },
             { command: "mycards", description: "💳 My Cards" },
+            { command: "fund", description: "💰 Fund a Card" },
             { command: "faq", description: "❓ FAQ's" },
             { command: "support", description: "🧑‍💻 Support" },
         ]);
@@ -148,7 +150,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
         res.json({
             status: "ok",
             webhook: webhookUrl,
-            commands: ["start", "mycards", "faq", "support"],
+            commands: ["start", "mycards", "fund", "faq", "support"],
         });
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });
@@ -198,6 +200,11 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
         return;
     }
 
+    if (cmd === "/fund" || text === "💰 Fund") {
+        await handleFundCommand(client, chatId, userId);
+        return;
+    }
+
     if (cmd === "/faq" || text === "❓ FAQ's") {
         await handleFaqCommand(client, chatId);
         return;
@@ -221,6 +228,12 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
 
     const chatId = cbq.message?.chat.id;
     if (!chatId) return;
+
+    // Route fund callbacks
+    if (cbq.data.startsWith("fund_select:") || cbq.data.startsWith("fund_info:")) {
+        await handleFundCallback(client, chatId, cbq.from.id, cbq.data);
+        return;
+    }
 
     await handleCardCallback(client, chatId, cbq.from.id, cbq.data);
 }

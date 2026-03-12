@@ -489,7 +489,7 @@ function renderAuthentication(): string {
     "scheme": "exact",
     "network": "stellar:pubnet",
     "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
-    "amount": "17200000",
+    "amount": "172000000",
     "payTo": "GAHYHA55RTD2J4LAVJILTNHWMF2H2YVK5QXLQT3CHCJSVET3VRWPOCW6",
     "maxTimeoutSeconds": 300,
     "extra": { "areFeesSponsored": true }
@@ -505,7 +505,7 @@ function renderAuthentication(): string {
             <tr><td data-label="Field"><code>scheme</code></td><td data-label="Description">Always <code>"exact"</code></td></tr>
             <tr><td data-label="Field"><code>network</code></td><td data-label="Description"><code>"stellar:pubnet"</code></td></tr>
             <tr><td data-label="Field"><code>asset</code></td><td data-label="Description">USDC SAC on Stellar mainnet</td></tr>
-            <tr><td data-label="Field"><code>amount</code></td><td data-label="Description">Amount in atomic USDC (6 decimals)</td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Description">Amount in atomic USDC (7 decimals). 1 USDC = 10,000,000</td></tr>
             <tr><td data-label="Field"><code>payTo</code></td><td data-label="Description">ASG Treasury public key</td></tr>
             <tr><td data-label="Field"><code>maxTimeoutSeconds</code></td><td data-label="Description">Payment window (300s)</td></tr>
           </tbody>
@@ -614,7 +614,7 @@ function renderPricing(): string {
       <div class="docs-callout docs-callout-tip" id="pricing-source-note">
         Pricing is served by <code>GET /pricing</code> and reflected in the tables below.
       </div>
-      <p>All amounts are in USD. 1 USDC = 1,000,000 atomic units.</p>
+      <p>All amounts are in USD. 1 USDC = 10,000,000 atomic units (Stellar uses 7 decimal places).</p>
 
       <h3 id="card-creation">Card Creation</h3>
       <p>Creating a new virtual card includes the card load amount plus fees.</p>

@@ -4,6 +4,15 @@ import { cardRepository } from "../repositories/runtime";
 import { getFourPaymentsClient, FourPaymentsError } from "./fourPaymentsClient";
 import type { FPCardIssued, FPSensitiveInfo } from "./fourPaymentsClient";
 
+/** Default billing address for ASG virtual cards */
+const ASG_DEFAULT_BILLING_ADDRESS = {
+  street: "1 Market Street",
+  city: "San Francisco",
+  state: "CA",
+  zip: "94105",
+  country: "US",
+} as const;
+
 class HttpError extends Error {
   readonly status: number;
 
@@ -79,7 +88,19 @@ class CardService {
     }
 
     // Step 3: Parse card details from 4payments response
-    const cardDetails = this.parseCardDetails(fpCard);
+    let cardDetails = this.parseCardDetails(fpCard);
+
+    // Fallback: if issueCard response has empty sensitive fields,
+    // fetch them separately via getSensitiveInfo (P2 fix)
+    if (!cardDetails.cardNumber || cardDetails.expiryMonth === 0) {
+      try {
+        const sensitive = await fp.getSensitiveInfo(fpCard.id);
+        cardDetails = this.parseSensitiveInfo(sensitive);
+      } catch (err) {
+        console.error("[4payments] getSensitiveInfo fallback failed:", err);
+        // Continue with whatever we have from issueCard
+      }
+    }
 
     // Step 4: Store in our DB
     const card = await this.repo.create({
@@ -294,8 +315,8 @@ class CardService {
   private parseCardDetails(fpCard: FPCardIssued): CardDetails {
     // Parse expiry "MM/YY" or "MM/YYYY"
     const parts = fpCard.cardExpire.split("/");
-    let expiryMonth = parseInt(parts[0], 10);
-    let expiryYear = parseInt(parts[1], 10);
+    let expiryMonth = parseInt(parts[0], 10) || 0;
+    let expiryYear = parseInt(parts[1], 10) || 0;
     if (expiryYear < 100) expiryYear += 2000;
 
     return {
@@ -303,20 +324,14 @@ class CardService {
       expiryMonth,
       expiryYear,
       cvv: fpCard.cardCVC,
-      billingAddress: {
-        street: "",
-        city: "",
-        state: "",
-        zip: "",
-        country: "",
-      },
+      billingAddress: ASG_DEFAULT_BILLING_ADDRESS,
     };
   }
 
   private parseSensitiveInfo(sensitive: FPSensitiveInfo): CardDetails {
     const parts = sensitive.expire.split("/");
-    let expiryMonth = parseInt(parts[0], 10);
-    let expiryYear = parseInt(parts[1], 10);
+    let expiryMonth = parseInt(parts[0], 10) || 0;
+    let expiryYear = parseInt(parts[1], 10) || 0;
     if (expiryYear < 100) expiryYear += 2000;
 
     return {
@@ -324,13 +339,7 @@ class CardService {
       expiryMonth,
       expiryYear,
       cvv: sensitive.cvc,
-      billingAddress: {
-        street: "",
-        city: "",
-        state: "",
-        zip: "",
-        country: "",
-      },
+      billingAddress: ASG_DEFAULT_BILLING_ADDRESS,
     };
   }
 }

@@ -9,12 +9,12 @@ beforeAll(async () => { app = await createApp(); });
 describe("x402 Challenge — Create Tiers", () => {
     const createTiers = [10, 25, 50, 100, 200, 500] as const;
     const expectedAtomicAmounts: Record<number, string> = {
-        10: "17200000",   // totalCost = 17.2
-        25: "32500000",   // totalCost = 32.5
-        50: "58000000",   // totalCost = 58.0
-        100: "110000000", // totalCost = 110.0
-        200: "214000000", // totalCost = 214.0
-        500: "522000000"  // totalCost = 522.0
+        10: "172000000",   // totalCost = 17.2 × 10^7
+        25: "325000000",   // totalCost = 32.5 × 10^7
+        50: "580000000",   // totalCost = 58.0 × 10^7
+        100: "1100000000", // totalCost = 110.0 × 10^7
+        200: "2140000000", // totalCost = 214.0 × 10^7
+        500: "5220000000"  // totalCost = 522.0 × 10^7
     };
 
     for (const amount of createTiers) {
@@ -42,12 +42,12 @@ describe("x402 Challenge — Create Tiers", () => {
 describe("x402 Challenge — Fund Tiers", () => {
     const fundTiers = [10, 25, 50, 100, 200, 500] as const;
     const expectedAtomicAmounts: Record<number, string> = {
-        10: "14200000",   // totalCost = 14.2
-        25: "29500000",   // totalCost = 29.5
-        50: "55000000",   // totalCost = 55.0
-        100: "107000000", // totalCost = 107.0
-        200: "211000000", // totalCost = 211.0
-        500: "519000000"  // totalCost = 519.0
+        10: "142000000",   // totalCost = 14.2 × 10^7
+        25: "295000000",   // totalCost = 29.5 × 10^7
+        50: "550000000",   // totalCost = 55.0 × 10^7
+        100: "1070000000", // totalCost = 107.0 × 10^7
+        200: "2110000000", // totalCost = 211.0 × 10^7
+        500: "5190000000"  // totalCost = 519.0 × 10^7
     };
 
     for (const amount of fundTiers) {

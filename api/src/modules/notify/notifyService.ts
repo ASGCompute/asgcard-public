@@ -11,6 +11,7 @@ import { appLogger } from "../../utils/logger";
 import crypto from "node:crypto";
 import { query } from "../../db/db";
 import { TelegramClient } from "../bot/telegramClient";
+import { getTelegramClient } from "../bot/webhook";
 import { env } from "../../config/env";
 import {
     chargeAlertMessage,
@@ -98,7 +99,7 @@ export class NotifyService {
         }
 
         // Deliver to all active bindings
-        const client = new TelegramClient(env.TG_BOT_TOKEN);
+        const client = getTelegramClient();
 
         for (const binding of bindings) {
             const chatId = Number(binding.chat_id);

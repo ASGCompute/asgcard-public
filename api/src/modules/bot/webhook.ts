@@ -40,13 +40,26 @@ export function getTelegramClient(): TelegramClient {
     return tgClient;
 }
 
-// ── Simple Rate Limiter (P1 #5) ────────────────────────────
+// ── Rate Limiter (per-instance, fits serverless warm instances) ──
+// Note: On Vercel serverless each cold start resets state.
+// For cross-instance rate limiting, use Redis/KV in a future phase.
 const rateLimitMap = new Map<number, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = 30; // 30 actions per minute per user
+const RATE_LIMIT_MAX_ENTRIES = 10_000; // safety cap
+let lastCleanup = Date.now();
 
 function checkRateLimit(userId: number): boolean {
     const now = Date.now();
+
+    // Periodic cleanup: purge expired entries every 5 min (or if Map is too big)
+    if (now - lastCleanup > 5 * 60_000 || rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
+        for (const [key, val] of rateLimitMap) {
+            if (now > val.resetAt) rateLimitMap.delete(key);
+        }
+        lastCleanup = now;
+    }
+
     const entry = rateLimitMap.get(userId);
     if (!entry || now > entry.resetAt) {
         rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });

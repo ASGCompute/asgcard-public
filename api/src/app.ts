@@ -41,11 +41,10 @@ export const createApp = async () => {
 
   // ── Admin Bot (feature-flagged) ────────────────────────────
   if (env.ADMIN_BOT_ENABLED === "true") {
-    const { adminRouter, AdminBot } = await import("./modules/admin");
+    const { adminRouter } = await import("./modules/admin");
     app.use("/admin", adminRouter);
     appLogger.info("[APP] Admin bot module enabled → /admin/*");
-    // Notify admin on startup
-    AdminBot.startup().catch(() => {});
+    // Note: startup notification removed — fires on every Vercel cold start
   }
 
   app.use((_req, res) => {

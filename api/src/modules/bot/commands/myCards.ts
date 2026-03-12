@@ -26,12 +26,16 @@ import {
     persistentMenu,
 } from "../keyboards";
 
+// ── Constants ──────────────────────────────────────────────
+const CARDS_PER_PAGE = 3;
+
 // ── My Cards ───────────────────────────────────────────────
 
 export async function handleMyCardsCommand(
     client: TelegramClient,
     chatId: number,
-    userId: number
+    userId: number,
+    page: number = 1
 ): Promise<void> {
     // 1. Verify binding
     const owner = await requireOwnerBinding(userId, "my_cards");
@@ -45,15 +49,32 @@ export async function handleMyCardsCommand(
         return;
     }
 
-    // 2. Fetch cards from existing cardService
-    // listCards returns: { cardId, nameOnCard, lastFour, balance, status, createdAt }[]
-    const cards = await cardService.listCards(owner.ownerWallet);
+    // 2. Fetch all cards from cardService
+    const allCards = await cardService.listCards(owner.ownerWallet);
 
-    // 3. Calculate total balance
-    const totalBalance = cards.reduce((sum, c) => sum + c.balance, 0);
+    if (allCards.length === 0) {
+        await client.sendMessage({
+            chat_id: chatId,
+            text:
+                `<b>💳 My Cards</b>\n\n` +
+                `You don't have any cards yet.\n` +
+                `Create one at <a href="https://asgcard.dev">asgcard.dev</a> or via the API.`,
+            parse_mode: "HTML",
+        });
+        return;
+    }
 
-    // 4. Build card summaries for template
-    const summaries = cards.map((c) => ({
+    // 3. Pagination
+    const totalPages = Math.ceil(allCards.length / CARDS_PER_PAGE);
+    const safePage = Math.max(1, Math.min(page, totalPages));
+    const start = (safePage - 1) * CARDS_PER_PAGE;
+    const pageCards = allCards.slice(start, start + CARDS_PER_PAGE);
+
+    // 4. Total balance (across ALL cards)
+    const totalBalance = allCards.reduce((sum, c) => sum + c.balance, 0);
+
+    // 5. Build summaries for this page
+    const summaries = pageCards.map((c) => ({
         cardId: c.cardId,
         nameOnCard: c.nameOnCard,
         last4: c.lastFour,
@@ -61,23 +82,38 @@ export async function handleMyCardsCommand(
         status: c.status as "active" | "frozen",
     }));
 
-    // 5. Send account balance header
+    // 6. Send header with total balance + page info
+    const pageInfo = totalPages > 1 ? `\n\n<i>Page ${safePage}/${totalPages} (${allCards.length} cards)</i>` : "";
     await client.sendMessage({
         chat_id: chatId,
-        text: accountBalanceMessage(totalBalance, summaries),
+        text: accountBalanceMessage(totalBalance, summaries) + pageInfo,
         parse_mode: "HTML",
     });
 
-    // 6. Send each card with action buttons
-    if (summaries.length > 0) {
-        for (const card of summaries) {
-            const statusIcon = card.status === "frozen" ? "❄️" : "💳";
-            await client.sendMessage({
-                chat_id: chatId,
-                text: `${statusIcon} ASG Virtual Card - xxxx ${card.last4}`,
-                reply_markup: cardActionsKeyboard(card.cardId, card.status),
-            });
+    // 7. Send each card with action buttons
+    for (const card of summaries) {
+        const statusIcon = card.status === "frozen" ? "❄️" : "💳";
+        await client.sendMessage({
+            chat_id: chatId,
+            text: `${statusIcon} ASG Virtual Card - xxxx ${card.last4}`,
+            reply_markup: cardActionsKeyboard(card.cardId, card.status),
+        });
+    }
+
+    // 8. Send pagination buttons (if needed)
+    if (totalPages > 1) {
+        const navButtons: { text: string; callback_data: string }[] = [];
+        if (safePage > 1) {
+            navButtons.push({ text: "◀️ Prev", callback_data: `cards_page:${safePage - 1}` });
         }
+        if (safePage < totalPages) {
+            navButtons.push({ text: "▶️ Next", callback_data: `cards_page:${safePage + 1}` });
+        }
+        await client.sendMessage({
+            chat_id: chatId,
+            text: `📄 Page ${safePage} of ${totalPages}`,
+            reply_markup: { inline_keyboard: [navButtons] },
+        });
     }
 }
 

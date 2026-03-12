@@ -294,10 +294,19 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
     const chatId = cbq.message?.chat.id;
     if (!chatId) return;
 
-    // Validate callback data format (action:cardId[:extra...])
+    // Validate callback data format (action:cardId[:extra...]) — skip for pagination
     const parts = cbq.data.split(":");
-    if (parts.length >= 2 && !isValidCardId(parts[1])) {
+    if (parts.length >= 2 && !cbq.data.startsWith("cards_page:") && !isValidCardId(parts[1])) {
         appLogger.warn({ data: cbq.data }, "[Bot] Invalid cardId in callback_data");
+        return;
+    }
+
+    // Route pagination callbacks
+    if (cbq.data.startsWith("cards_page:")) {
+        const page = parseInt(parts[1], 10);
+        if (!isNaN(page) && page > 0) {
+            await handleMyCardsCommand(client, chatId, cbq.from.id, page);
+        }
         return;
     }
 

@@ -67,6 +67,42 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
 
     try {
         const client = getClient();
+
+        // ── Handle Callback Queries (button clicks) ──────────
+        if (update.callback_query) {
+            const cbq = update.callback_query;
+            const cbChatId = cbq.message?.chat.id;
+            if (!cbChatId || !cbq.data) {
+                res.status(200).json({ ok: true });
+                return;
+            }
+
+            // Acknowledge
+            await client.answerCallbackQuery({ callback_query_id: cbq.id });
+
+            if (cbq.data === "admin_status") {
+                await client.sendMessage({
+                    chat_id: cbChatId,
+                    text: "⏳ Collecting status…",
+                    parse_mode: "HTML",
+                });
+                const status = await collectStatus();
+                const message = formatStatusMessage(status);
+                await client.sendMessage({
+                    chat_id: cbChatId,
+                    text: message,
+                    parse_mode: "HTML",
+                    reply_markup: adminActionsKeyboard(),
+                });
+            } else if (cbq.data === "admin_help") {
+                await sendHelpMessage(client, cbChatId);
+            }
+
+            res.status(200).json({ ok: true });
+            return;
+        }
+
+        // ── Handle Text Messages (commands) ──────────────────
         const msg = update.message;
 
         if (msg?.text && msg.from) {
@@ -79,11 +115,10 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
                     text:
                         `🛡️ <b>ASG Card Admin Bot</b>\n\n` +
                         `Your Chat ID: <code>${chatId}</code>\n\n` +
-                        `Set this as <code>ADMIN_CHAT_ID</code> in your environment to receive all notifications.\n\n` +
-                        `Available commands:\n` +
-                        `/status — System status\n` +
-                        `/help — Show this message`,
+                        `Set this as <code>ADMIN_CHAT_ID</code> in your environment to receive notifications.\n\n` +
+                        `<i>Only important events are pushed: transactions, errors, card operations.</i>`,
                     parse_mode: "HTML",
+                    reply_markup: adminActionsKeyboard(),
                 });
             } else if (text === "/status") {
                 await client.sendMessage({
@@ -99,18 +134,10 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
                     chat_id: chatId,
                     text: message,
                     parse_mode: "HTML",
+                    reply_markup: adminActionsKeyboard(),
                 });
             } else if (text === "/help") {
-                await client.sendMessage({
-                    chat_id: chatId,
-                    text:
-                        `🛡️ <b>Admin Bot Commands</b>\n\n` +
-                        `/start — Get chat ID & setup info\n` +
-                        `/status — System status & uptime\n` +
-                        `/help — Show this message\n\n` +
-                        `<i>All card events, webhook events, and errors are pushed to this chat automatically.</i>`,
-                    parse_mode: "HTML",
-                });
+                await sendHelpMessage(client, chatId);
             }
         }
     } catch (error) {
@@ -119,6 +146,45 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
 
     res.status(200).json({ ok: true });
 });
+
+// ── Admin Keyboards ────────────────────────────────────────
+
+function adminActionsKeyboard(): { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] } {
+    return {
+        inline_keyboard: [
+            [
+                { text: "📊 Status", callback_data: "admin_status" },
+                { text: "🔄 Refresh", callback_data: "admin_status" },
+            ],
+            [
+                { text: "🌐 Dashboard", url: "https://asgcard.dev" },
+                { text: "📖 API Docs", url: "https://docs.asgcard.dev" },
+            ],
+            [
+                { text: "❓ Help", callback_data: "admin_help" },
+            ],
+        ],
+    };
+}
+
+async function sendHelpMessage(client: ReturnType<typeof getClient>, chatId: number): Promise<void> {
+    await client.sendMessage({
+        chat_id: chatId,
+        text:
+            `🛡️ <b>Admin Bot Commands</b>\n\n` +
+            `/start — Setup info + Chat ID\n` +
+            `/status — 📊 System status & metrics\n` +
+            `/help — ❓ Show this message\n\n` +
+            `<b>Auto-notifications:</b>\n` +
+            `• 💳 Card operations (create, fund, freeze)\n` +
+            `• 💰 Transactions (charges, declines, refunds)\n` +
+            `• 🔗 Account linking events\n` +
+            `• 🔴 Errors & webhook failures\n\n` +
+            `<i>Or use the buttons below:</i>`,
+        parse_mode: "HTML",
+        reply_markup: adminActionsKeyboard(),
+    });
+}
 
 // ── Setup endpoint (register webhook) ──────────────────────
 

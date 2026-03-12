@@ -123,12 +123,8 @@ export const AdminBot = {
         );
     },
 
-    async webhookDuplicate(type: string, key: string): Promise<void> {
-        await this.send(
-            `🔄 <b>4P Webhook Duplicate</b>\n` +
-            `├ Type: <code>${type}</code>\n` +
-            `└ Key: <code>${key.slice(0, 16)}</code>`
-        );
+    async webhookDuplicate(_type: string, _key: string): Promise<void> {
+        // Silently skip — duplicates are normal idempotency (not worth admin noise)
     },
 
     async webhookSigFailure(ip: string): Promise<void> {
@@ -180,6 +176,11 @@ export const AdminBot = {
     // ── Bot Commands ───────────────────────────────────────
 
     async botCommand(userId: number, command: string, username?: string): Promise<void> {
+        // Only log financially-relevant commands, skip routine ones
+        const routineCommands = ["/start", "/mycards", "/help", "/faq"];
+        const cmd = command.split(" ")[0].toLowerCase();
+        if (routineCommands.includes(cmd)) return;
+
         const user = username ? `@${username}` : `ID:${userId}`;
         await this.send(
             `🤖 <b>Bot Command</b>\n` +
@@ -207,19 +208,8 @@ export const AdminBot = {
 
     // ── System ─────────────────────────────────────────────
 
-    async startup(): Promise<void> {
-        await this.send(
-            `🟢 <b>ASG Card API Started</b>\n` +
-            `└ ${new Date().toISOString()}`
-        );
-    },
-
-    async deploy(commit?: string): Promise<void> {
-        await this.send(
-            `🚀 <b>Deployment</b>\n` +
-            `└ Commit: <code>${commit ?? "unknown"}</code>`
-        );
-    },
+    // startup() removed — fires on every Vercel cold start, creating spam
+    // deploy() removed — not called from anywhere
 
     /** Expose the underlying TelegramClient for advanced usage (e.g. admin webhook) */
     getClient: getAdminClient,

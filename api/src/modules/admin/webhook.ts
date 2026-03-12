@@ -26,9 +26,38 @@ function getClient(): TelegramClient {
     return adminClient;
 }
 
+// ── Helpers ─────────────────────────────────────────────────
+
+function safeEqual(a: string, b: string): boolean {
+    const bufA = Buffer.from(a, "utf-8");
+    const bufB = Buffer.from(b, "utf-8");
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/** Derive admin webhook secret (must match what setup endpoint registers). */
+function getAdminWebhookSecret(): string | null {
+    return env.TG_WEBHOOK_SECRET ? `admin_${env.TG_WEBHOOK_SECRET}` : null;
+}
+
 // ── Webhook endpoint ───────────────────────────────────────
 
 adminRouter.post("/telegram/webhook", async (req, res) => {
+    // 1. Verify Telegram secret token (fail-closed)
+    const expectedSecret = getAdminWebhookSecret();
+    if (expectedSecret) {
+        const headerToken = req.header("X-Telegram-Bot-Api-Secret-Token");
+        if (!headerToken || !safeEqual(headerToken, expectedSecret)) {
+            appLogger.warn(
+                { ip: req.ip },
+                "[AdminBot] Invalid webhook signature — rejecting"
+            );
+            res.status(401).json({ error: "Invalid webhook secret" });
+            return;
+        }
+    }
+
+    // 2. Parse update
     const update = req.body as TgUpdate;
 
     if (!update || !update.update_id) {

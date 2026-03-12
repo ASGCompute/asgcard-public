@@ -111,6 +111,67 @@ export async function handleFundCallback(
 
     if (action === "fund_select") {
         await showFundTiers(client, chatId, owner.ownerWallet, cardId);
+    } else if (action === "fund_info") {
+        const amount = Number(parts[2]);
+        await showFundDetails(client, chatId, owner.ownerWallet, cardId, amount);
+    }
+}
+
+// ── Fund Details (tier selected) ───────────────────────────
+
+async function showFundDetails(
+    client: TelegramClient,
+    chatId: number,
+    wallet: string,
+    cardId: string,
+    amount: number
+): Promise<void> {
+    try {
+        const tier = FUNDING_TIERS.find((t) => t.fundAmount === amount);
+        if (!tier) {
+            await client.sendMessage({
+                chat_id: chatId,
+                text: "⚠️ Invalid funding tier.",
+            });
+            return;
+        }
+
+        const result = await cardService.getCard(wallet, cardId);
+        const last4 = result.card.lastFour;
+
+        const fundEndpoint = `https://api.asgcard.dev${tier.endpoint}`;
+
+        await client.sendMessage({
+            chat_id: chatId,
+            text:
+                `<b>💰 Fund Card xxxx ${last4}</b>\n\n` +
+                `<b>Load Amount:</b> $${tier.fundAmount.toFixed(2)}\n` +
+                `<b>Top-up Fee:</b> $${tier.topUpFee.toFixed(2)}\n` +
+                `<b>Service Fee:</b> $${tier.serviceFee.toFixed(2)}\n` +
+                `<b>Total USDC Cost:</b> $${tier.totalCost.toFixed(2)}\n\n` +
+                `<i>Payment: USDC on Stellar via x402 protocol</i>\n\n` +
+                `To fund this card, use the SDK or API:\n` +
+                `<code>POST ${tier.endpoint}</code>\n` +
+                `with the card ID and x402 payment header.\n\n` +
+                `📖 <a href="https://docs.asgcard.dev/api/fund">Documentation</a>`,
+            parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: "⬅️ Back to tiers",
+                            callback_data: `fund_select:${cardId}`,
+                        },
+                    ],
+                ],
+            },
+        });
+    } catch (error) {
+        const msg =
+            error instanceof HttpError
+                ? `⚠️ ${error.message}`
+                : "⚠️ Something went wrong.";
+        await client.sendMessage({ chat_id: chatId, text: msg });
     }
 }
 

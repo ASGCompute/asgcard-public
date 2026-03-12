@@ -4,8 +4,7 @@ import { Router } from "express";
 import { env } from "../config/env";
 import { webhookEventRepository } from "../repositories/runtime";
 import { emitMetric } from "../services/metrics";
-import { AlertService } from "../modules/bot/services/alertService";
-import { getTelegramClient } from "../modules/bot/webhook";
+import { routeCardEvent } from "../modules/notify";
 import { AdminBot } from "../modules/admin/adminBot";
 
 // ── Types ──────────────────────────────────────────────────
@@ -118,27 +117,10 @@ webhookRouter.post(
             res.status(200).json({ status: "already_processed" });
             return;
         }
-        // Route card events to Telegram alerts (when enabled)
-        if (env.BOT_ALERTS_ENABLED === "true" && env.TG_BOT_ENABLED === "true") {
+        // Route card events to Telegram alerts via unified notify pipeline
+        if (env.BOT_ALERTS_ENABLED === "true") {
             try {
-                const tgClient = getTelegramClient();
-                await AlertService.deliverAlert(
-                    {
-                        type: event.type,
-                        fourPaymentsId: event.payload.card_id as string,
-                        externalCardId: event.payload.external_card_id as string,
-                        amount: event.payload.amount as number,
-                        merchant: (event.payload.merchant ?? event.payload.merchant_name) as string,
-                        balance: event.payload.balance as number,
-                        reason: event.payload.reason as string,
-                        txnId: event.idempotencyKey,
-                        last4: event.payload.card_last4 as string,
-                        payload: event.payload,
-                    },
-                    async (chatId: number, text: string) => {
-                        await tgClient.sendMessage({ chat_id: chatId, text });
-                    }
-                );
+                await routeCardEvent(event.type, event.payload);
             } catch (alertErr) {
                 appLogger.error({ err: alertErr }, "[Webhook] Alert delivery error (non-fatal)");
             }

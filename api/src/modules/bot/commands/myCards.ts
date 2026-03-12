@@ -253,9 +253,7 @@ async function handleCardReveal(
             `INSERT INTO card_reveal_tokens (token, card_id, wallet_address, expires_at)
              VALUES ($1, $2, $3, $4)`,
             [revealToken, cardId, wallet, expiresAt.toISOString()]
-        ).catch(() => {
-            // Table may not exist yet — log but don't block
-        });
+        );
 
         const revealUrl = `https://asgcard.dev/reveal?token=${revealToken}&card=${cardId}`;
 

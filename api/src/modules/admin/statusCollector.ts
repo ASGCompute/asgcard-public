@@ -73,8 +73,8 @@ async function getTreasuryBalance(): Promise<number | null> {
         // Find USDC balance (classic or SAC)
         const usdc = data.balances.find(
             (b) =>
-                b.asset_code === "USDC" ||
-                b.asset_type === "credit_alphanum4" && b.asset_code === "USDC"
+                b.asset_code === "USDC" &&
+                (b.asset_type === "credit_alphanum4" || b.asset_type === "credit_alphanum12")
         );
 
         return usdc ? parseFloat(usdc.balance) : 0;
@@ -161,7 +161,7 @@ async function getCardStats(): Promise<{
 async function getLinkedAccounts(): Promise<number | null> {
     try {
         const rows = await query<{ count: string }>(
-            `SELECT COUNT(*) as count FROM telegram_bindings`
+            `SELECT COUNT(*) as count FROM owner_telegram_links WHERE status = 'active'`
         );
         return parseInt(rows[0].count, 10);
     } catch (err) {

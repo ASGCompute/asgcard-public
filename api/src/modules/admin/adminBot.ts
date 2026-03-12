@@ -228,6 +228,4 @@ export const AdminBot = {
 
 // ── Helpers ────────────────────────────────────────────────
 
-function escapeHtml(s: string): string {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+import { escapeHtml } from "../../utils/html";

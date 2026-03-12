@@ -138,7 +138,8 @@ adminRouter.post("/telegram/setup", async (req, res) => {
             { command: "help", description: "Show commands" },
         ]);
 
-        const webhookUrl = "https://api.asgcard.dev/admin/telegram/webhook";
+        const baseUrl = process.env.API_BASE_URL ?? `https://${req.hostname}`;
+        const webhookUrl = `${baseUrl}/admin/telegram/webhook`;
         // Generate admin webhook secret if not set
         const secret = env.TG_WEBHOOK_SECRET
             ? `admin_${env.TG_WEBHOOK_SECRET}`

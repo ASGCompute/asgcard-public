@@ -120,6 +120,22 @@ export class TelegramClient {
         return resp ?? false;
     }
 
+    /** Get current webhook info (for health checks). */
+    async getWebhookInfo(): Promise<{
+        url: string;
+        pending_update_count: number;
+        last_error_date?: number;
+        last_error_message?: string;
+    }> {
+        const resp = await this.call<{
+            url: string;
+            pending_update_count: number;
+            last_error_date?: number;
+            last_error_message?: string;
+        }>("getWebhookInfo", {});
+        return resp ?? { url: "", pending_update_count: 0 };
+    }
+
     /** Remove the webhook. */
     async deleteWebhook(): Promise<boolean> {
         const resp = await this.call<boolean>("deleteWebhook", {});

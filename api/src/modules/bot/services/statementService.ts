@@ -77,71 +77,62 @@ export class StatementService {
 
         const total = parseInt(countResult[0]?.count ?? "0", 10);
 
-        // Fetch paginated events
-        const events = await query<{
+        // Fetch paginated events with merchant/amount via LEFT JOIN (no N+1)
+        const rows = await query<{
             idempotency_key: string;
             event_type: string;
             payload_hash: string;
             created_at: string;
+            merchant: string;
+            amount: number;
+            card_last4: string;
         }>(
-            `SELECT idempotency_key, event_type, payload_hash, created_at
-       FROM bot_events
-       WHERE idempotency_key LIKE $1
-         AND delivery_status != 'skipped'
-       ORDER BY created_at DESC
-       LIMIT $2 OFFSET $3`,
+            `SELECT
+               be.idempotency_key,
+               be.event_type,
+               be.payload_hash,
+               be.created_at,
+               COALESCE(
+                 we.payload->>'merchant',
+                 we.payload->>'merchant_name',
+                 'Unknown'
+               ) as merchant,
+               COALESCE(
+                 (we.payload->>'amount')::numeric,
+                 (we.payload->>'transaction_amount')::numeric,
+                 0
+               ) as amount,
+               COALESCE(
+                 we.payload->>'card_last4',
+                 RIGHT(we.payload->>'card_number', 4),
+                 '????'
+               ) as card_last4
+             FROM bot_events be
+             LEFT JOIN webhook_events we
+               ON we.event_type = be.event_type
+              AND we.idempotency_key = be.idempotency_key
+             WHERE be.idempotency_key LIKE $1
+               AND be.delivery_status != 'skipped'
+             ORDER BY be.created_at DESC
+             LIMIT $2 OFFSET $3`,
             [`%:${safeCardId}:%`, pageSize, offset]
         );
 
-        // Try to pull merchant/amount from bot_messages correlation
-        const items: StatementEntry[] = [];
+        // Build statement entries
+        const items: StatementEntry[] = rows.map((row) => {
+            const parts = row.idempotency_key.split(":");
+            const txnId = parts[2] ?? row.payload_hash.substring(0, 12);
 
-        for (const evt of events) {
-            // Parse idempotency key: "eventType:cardId:txnId"
-            const parts = evt.idempotency_key.split(":");
-            const txnId = parts[2] ?? evt.payload_hash.substring(0, 12);
-
-            // Try to pull amount from the original event payload via webhook_events
-            const webhookData = await query<{
-                merchant: string;
-                amount: number;
-                card_last4: string;
-            }>(
-                `SELECT
-           COALESCE(
-             payload->>'merchant',
-             payload->>'merchant_name',
-             'Unknown'
-           ) as merchant,
-           COALESCE(
-             (payload->>'amount')::numeric,
-             (payload->>'transaction_amount')::numeric,
-             0
-           ) as amount,
-           COALESCE(
-             payload->>'card_last4',
-             RIGHT(payload->>'card_number', 4),
-             '????'
-           ) as card_last4
-         FROM webhook_events
-         WHERE event_type = $1
-           AND idempotency_key = $2
-         LIMIT 1`,
-                [evt.event_type, evt.idempotency_key]
-            ).catch(() => [] as { merchant: string; amount: number; card_last4: string }[]);
-
-            const data = webhookData[0];
-
-            items.push({
+            return {
                 txnId,
-                date: evt.created_at,
-                type: evt.event_type.replace("card.", ""),
-                merchant: data?.merchant ?? "Unknown",
-                amount: data?.amount ?? 0,
-                status: mapEventStatus(evt.event_type),
-                last4: data?.card_last4 ?? "????",
-            });
-        }
+                date: row.created_at,
+                type: row.event_type.replace("card.", ""),
+                merchant: row.merchant,
+                amount: Number(row.amount),
+                status: mapEventStatus(row.event_type),
+                last4: row.card_last4,
+            };
+        });
 
         return {
             items,

@@ -322,13 +322,7 @@ async function handleCardStatement(
 
 // ── Error helper ───────────────────────────────────────────
 
-/** Escape HTML special chars for safe Telegram rendering (P2 #12 fix) */
-function escapeHtml(text: string): string {
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-}
+import { escapeHtml } from "../../../utils/html";
 
 async function sendCardError(
     client: TelegramClient,

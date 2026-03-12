@@ -71,6 +71,11 @@ function checkRateLimit(userId: number): boolean {
 }
 
 /** Strip @botusername from commands (P2 #11) */
+/** Basic card ID format validation (alphanumeric + underscores, 5-64 chars) */
+function isValidCardId(id: string): boolean {
+    return /^[a-zA-Z0-9_-]{5,64}$/.test(id);
+}
+
 function normalizeCommand(text: string): string {
     return text.replace(/@\S+/, "").trim();
 }
@@ -134,6 +139,23 @@ botRouter.post("/telegram/webhook", async (req, res) => {
     // 4. Respond 200 after processing (Telegram retries on non-200)
     res.status(200).json({ ok: true });
 });
+// ── Webhook Health (P3) ────────────────────────────────────
+
+botRouter.get("/telegram/health", async (_req, res) => {
+    try {
+        const client = getTelegramClient();
+        const info = await client.getWebhookInfo();
+        res.json({
+            status: info.url ? "active" : "not_set",
+            url: info.url,
+            pending_update_count: info.pending_update_count,
+            last_error_date: info.last_error_date,
+            last_error_message: info.last_error_message,
+        });
+    } catch (error) {
+        res.status(500).json({ status: "error", message: (error as Error).message });
+    }
+});
 
 // ── Setup command (one-time, called manually or on deploy) ──
 
@@ -155,10 +177,12 @@ botRouter.post("/telegram/setup", async (req, res) => {
             { command: "fund", description: "💰 Fund a Card" },
             { command: "faq", description: "❓ FAQ's" },
             { command: "support", description: "🧑‍💻 Support" },
+            { command: "help", description: "📋 Commands" },
         ]);
 
         // Register webhook
-        const webhookUrl = "https://api.asgcard.dev/bot/telegram/webhook";
+        const baseUrl = process.env.API_BASE_URL ?? `https://${req.hostname}`;
+        const webhookUrl = `${baseUrl}/bot/telegram/webhook`;
         await client.setWebhook(webhookUrl, env.TG_WEBHOOK_SECRET);
 
         res.json({
@@ -234,7 +258,29 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
         return;
     }
 
-    // Unknown — ignore silently (don't spam user)
+    if (cmd === "/help") {
+        await client.sendMessage({
+            chat_id: chatId,
+            text:
+                `<b>📋 ASG Card Bot — Commands</b>\n\n` +
+                `/mycards — 💳 View and manage your cards\n` +
+                `/fund — 💰 Fund a card\n` +
+                `/faq — ❓ Frequently asked questions\n` +
+                `/support — 🧑‍💻 Contact support\n` +
+                `/help — 📋 Show this message\n\n` +
+                `<i>First time? Link your wallet at</i> <a href="https://asgcard.dev">asgcard.dev</a>`,
+            parse_mode: "HTML",
+        });
+        return;
+    }
+
+    // Unknown command or text — suggest /help
+    if (text.startsWith("/")) {
+        await client.sendMessage({
+            chat_id: chatId,
+            text: `Unknown command. Type /help to see available commands.`,
+        });
+    }
 }
 
 // ── Callback Router ────────────────────────────────────────
@@ -247,6 +293,13 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
 
     const chatId = cbq.message?.chat.id;
     if (!chatId) return;
+
+    // Validate callback data format (action:cardId[:extra...])
+    const parts = cbq.data.split(":");
+    if (parts.length >= 2 && !isValidCardId(parts[1])) {
+        appLogger.warn({ data: cbq.data }, "[Bot] Invalid cardId in callback_data");
+        return;
+    }
 
     // Route fund callbacks
     if (cbq.data.startsWith("fund_select:") || cbq.data.startsWith("fund_info:")) {

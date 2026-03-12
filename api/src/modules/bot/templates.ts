@@ -189,13 +189,21 @@ export function loadAlertMessage(
 
 export function faqMessage(): string {
     return (
-        `FAQ: <a href="https://asgcard.dev/docs">https://asgcard.dev/docs</a>\n\n` +
-        `Common questions:\n` +
-        `• How to create a card?\n` +
-        `• How to fund a card?\n` +
-        `• What are the fees?\n` +
-        `• How does x402 payment work?\n\n` +
-        `Visit the docs page for detailed answers.`
+        `<b>❓ Frequently Asked Questions</b>\n\n` +
+        `<b>How do I create a card?</b>\n` +
+        `Use our SDK: <code>client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com' })</code>. ` +
+        `Payment is automatic via x402 on Stellar.\n\n` +
+        `<b>How do I fund my card?</b>\n` +
+        `Use <code>client.fundCard({ amount: 25, cardId: 'uuid' })</code> to top up an existing card.\n\n` +
+        `<b>What are the fees?</b>\n` +
+        `Issuance: $3 (one-time). Top-up: $2.20–$12 based on amount. ASG service fee: $2–$7. ` +
+        `Full breakdown at <a href="https://asgcard.dev/docs#pricing">asgcard.dev/docs#pricing</a>.\n\n` +
+        `<b>How does x402 payment work?</b>\n` +
+        `You send a request → get a 402 challenge → pay USDC on Stellar → retry with X-Payment proof. ` +
+        `The SDK handles this automatically.\n\n` +
+        `<b>Are Stellar fees sponsored?</b>\n` +
+        `Yes! The x402 facilitator covers network fees. You only need USDC.\n\n` +
+        `📚 Full docs: <a href="https://asgcard.dev/docs">asgcard.dev/docs</a>`
     );
 }
 

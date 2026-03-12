@@ -63,13 +63,16 @@ export class StatementService {
     ): Promise<StatementPage> {
         const offset = (page - 1) * pageSize;
 
+        // Escape SQL LIKE special chars to prevent pattern injection (P0 #3)
+        const safeCardId = cardId.replace(/[%_\\]/g, "\\$&");
+
         // Count total events for this card
         const countResult = await query<{ count: string }>(
             `SELECT COUNT(*) as count
        FROM bot_events be
        WHERE be.idempotency_key LIKE $1
          AND be.delivery_status != 'skipped'`,
-            [`%:${cardId}:%`]
+            [`%:${safeCardId}:%`]
         );
 
         const total = parseInt(countResult[0]?.count ?? "0", 10);
@@ -87,7 +90,7 @@ export class StatementService {
          AND delivery_status != 'skipped'
        ORDER BY created_at DESC
        LIMIT $2 OFFSET $3`,
-            [`%:${cardId}:%`, pageSize, offset]
+            [`%:${safeCardId}:%`, pageSize, offset]
         );
 
         // Try to pull merchant/amount from bot_messages correlation

@@ -214,6 +214,7 @@ class CardService {
         balance: card.balance,
         initialAmountUsd: card.initialAmountUsd,
         status: card.status,
+        lastFour: card.details?.cardNumber?.slice(-4) ?? "XXXX",
         createdAt: card.createdAt,
         updatedAt: card.updatedAt,
       },

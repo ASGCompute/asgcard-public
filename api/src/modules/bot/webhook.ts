@@ -38,6 +38,28 @@ export function getTelegramClient(): TelegramClient {
     return tgClient;
 }
 
+// ── Simple Rate Limiter (P1 #5) ────────────────────────────
+const rateLimitMap = new Map<number, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 30; // 30 actions per minute per user
+
+function checkRateLimit(userId: number): boolean {
+    const now = Date.now();
+    const entry = rateLimitMap.get(userId);
+    if (!entry || now > entry.resetAt) {
+        rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+        return true;
+    }
+    entry.count++;
+    if (entry.count > RATE_LIMIT_MAX) return false;
+    return true;
+}
+
+/** Strip @botusername from commands (P2 #11) */
+function normalizeCommand(text: string): string {
+    return text.replace(/@\S+/, "").trim();
+}
+
 // ── Webhook endpoint ───────────────────────────────────────
 
 botRouter.post("/telegram/webhook", async (req, res) => {
@@ -70,8 +92,24 @@ botRouter.post("/telegram/webhook", async (req, res) => {
         const client = getTelegramClient();
 
         if (update.message) {
+            const userId = update.message.from?.id;
+            if (userId && !checkRateLimit(userId)) {
+                // Silently drop rate-limited messages
+                res.status(200).json({ ok: true });
+                return;
+            }
             await handleMessage(client, update.message);
         } else if (update.callback_query) {
+            const userId = update.callback_query.from?.id;
+            if (userId && !checkRateLimit(userId)) {
+                await client.answerCallbackQuery({
+                    callback_query_id: update.callback_query.id,
+                    text: "Too many requests. Please wait a moment.",
+                    show_alert: true,
+                });
+                res.status(200).json({ ok: true });
+                return;
+            }
             await handleCallback(client, update.callback_query);
         }
     } catch (error) {
@@ -85,9 +123,9 @@ botRouter.post("/telegram/webhook", async (req, res) => {
 // ── Setup command (one-time, called manually or on deploy) ──
 
 botRouter.post("/telegram/setup", async (req, res) => {
-    // Protected: require same auth as ops
+    // Protected: require ops key (P3 #14: fail-closed)
     const opsKey = env.OPS_API_KEY;
-    if (opsKey && req.header("X-Ops-Key") !== opsKey) {
+    if (!opsKey || req.header("X-Ops-Key") !== opsKey) {
         res.status(401).json({ error: "Unauthorized" });
         return;
     }
@@ -121,7 +159,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
 
 botRouter.get("/ops/metrics", async (req, res) => {
     const opsKey = env.OPS_API_KEY;
-    if (opsKey && req.header("X-Ops-Key") !== opsKey) {
+    if (!opsKey || req.header("X-Ops-Key") !== opsKey) {
         res.status(401).json({ error: "Unauthorized" });
         return;
     }
@@ -142,11 +180,12 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
     if (!msg.text || !msg.from) return;
 
     const text = msg.text.trim();
+    const cmd = normalizeCommand(text);
     const chatId = msg.chat.id;
     const userId = msg.from.id;
 
     // /start with optional deep-link token
-    if (text.startsWith("/start")) {
+    if (cmd.startsWith("/start")) {
         const parts = text.split(" ");
         const token = parts.length > 1 ? parts[1] : undefined;
         await handleStartCommand(client, chatId, userId, token);
@@ -154,17 +193,17 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
     }
 
     // Slash commands
-    if (text === "/mycards" || text === "💳 My Cards") {
+    if (cmd === "/mycards" || text === "💳 My Cards") {
         await handleMyCardsCommand(client, chatId, userId);
         return;
     }
 
-    if (text === "/faq" || text === "❓ FAQ's") {
+    if (cmd === "/faq" || text === "❓ FAQ's") {
         await handleFaqCommand(client, chatId);
         return;
     }
 
-    if (text === "/support" || text.startsWith("🧑‍💻") || text === "Support") {
+    if (cmd === "/support" || text.startsWith("🧑‍💻") || text === "Support") {
         await handleSupportCommand(client, chatId);
         return;
     }

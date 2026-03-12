@@ -154,7 +154,7 @@ export class MetricsService {
                 totalExpired: expired,
                 totalRevoked: revoked,
                 successRate: denominator > 0 ? consumed / denominator : 0,
-                denyRate: totalAudit > 0 ? denyCount / totalAudit : 0,
+                denyRate: denominator > 0 ? (expired + revoked) / denominator : 0,
             },
             reveals: {
                 totalRequested: parseInt(reveals.total, 10),

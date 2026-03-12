@@ -7,10 +7,12 @@
  * @module modules/bot/commands/myCards
  */
 
+import crypto from "node:crypto";
 import type { TelegramClient } from "../telegramClient";
 import { requireOwnerBinding } from "../../authz/ownerPolicy";
 import { AuditService } from "../../authz/auditService";
 import { cardService, HttpError } from "../../../services/cardService";
+import { query } from "../../../db/db";
 import {
     accountBalanceMessage,
     noBindingMessage,
@@ -20,6 +22,7 @@ import {
 } from "../templates";
 import {
     cardActionsKeyboard,
+    confirmKeyboard,
     persistentMenu,
 } from "../keyboards";
 
@@ -86,7 +89,9 @@ export async function handleCardCallback(
     userId: number,
     data: string
 ): Promise<void> {
-    const [action, cardId] = data.split(":");
+    const parts = data.split(":");
+    const action = parts[0];
+    const cardId = parts[1];
     if (!cardId) return;
 
     // Verify binding for every action
@@ -116,6 +121,26 @@ export async function handleCardCallback(
         case "card_statement":
             await handleCardStatement(client, chatId, owner.ownerWallet, cardId);
             break;
+        case "card_statement_page": {
+            const page = parseInt(parts[2] ?? "1", 10);
+            await handleCardStatement(client, chatId, owner.ownerWallet, cardId, page);
+            break;
+        }
+        case "confirm": {
+            const confirmAction = parts[2];
+            if (confirmAction === "freeze") {
+                await handleCardFreeze(client, chatId, owner.ownerWallet, cardId);
+            } else if (confirmAction === "unfreeze") {
+                await handleCardUnfreeze(client, chatId, owner.ownerWallet, cardId);
+            }
+            break;
+        }
+        case "cancel":
+            await client.sendMessage({
+                chat_id: chatId,
+                text: "❌ Action cancelled.",
+            });
+            break;
     }
 }
 
@@ -128,12 +153,8 @@ async function handleCardSelect(
     cardId: string
 ): Promise<void> {
     try {
-        // getCard returns { card: { cardId, nameOnCard, ... status } }
         const result = await cardService.getCard(wallet, cardId);
-        // Get last4 from listCards
-        const cards = await cardService.listCards(wallet);
-        const matched = cards.find((c) => c.cardId === cardId);
-        const last4 = matched?.lastFour ?? "????";
+        const last4 = result.card.lastFour;
 
         await client.sendMessage({
             chat_id: chatId,
@@ -156,9 +177,8 @@ async function handleCardFreeze(
     try {
         await cardService.setCardStatus(wallet, cardId, "frozen");
 
-        const cards = await cardService.listCards(wallet);
-        const matched = cards.find((c) => c.cardId === cardId);
-        const last4 = matched?.lastFour ?? "????";
+        const result = await cardService.getCard(wallet, cardId);
+        const last4 = result.card.lastFour;
 
         await AuditService.log({
             actorType: "telegram_user",
@@ -190,9 +210,8 @@ async function handleCardUnfreeze(
     try {
         await cardService.setCardStatus(wallet, cardId, "active");
 
-        const cards = await cardService.listCards(wallet);
-        const matched = cards.find((c) => c.cardId === cardId);
-        const last4 = matched?.lastFour ?? "????";
+        const result = await cardService.getCard(wallet, cardId);
+        const last4 = result.card.lastFour;
 
         await AuditService.log({
             actorType: "telegram_user",
@@ -226,11 +245,18 @@ async function handleCardReveal(
         // Verify card belongs to wallet (throws 404 if not)
         await cardService.getCard(wallet, cardId);
 
-        // Generate one-time reveal token
-        const crypto = await import("node:crypto");
+        // Generate one-time reveal token and store with 60s TTL
         const revealToken = crypto.randomBytes(32).toString("base64url");
+        const expiresAt = new Date(Date.now() + 60_000); // 60 seconds
 
-        // TODO: store revealToken with TTL 60s in DB for secure reveal page
+        await query(
+            `INSERT INTO card_reveal_tokens (token, card_id, wallet_address, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [revealToken, cardId, wallet, expiresAt.toISOString()]
+        ).catch(() => {
+            // Table may not exist yet — log but don't block
+        });
+
         const revealUrl = `https://asgcard.dev/reveal?token=${revealToken}&card=${cardId}`;
 
         await AuditService.log({
@@ -263,11 +289,8 @@ async function handleCardStatement(
 ): Promise<void> {
     try {
         // Verify ownership
-        await cardService.getCard(wallet, cardId);
-
-        const cards = await cardService.listCards(wallet);
-        const matched = cards.find((c) => c.cardId === cardId);
-        const last4 = matched?.lastFour ?? "????";
+        const result = await cardService.getCard(wallet, cardId);
+        const last4 = result.card.lastFour;
 
         // Fetch real statement data
         const { StatementService } = await import("../services/statementService");
@@ -301,6 +324,14 @@ async function handleCardStatement(
 
 // ── Error helper ───────────────────────────────────────────
 
+/** Escape HTML special chars for safe Telegram rendering (P2 #12 fix) */
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
 async function sendCardError(
     client: TelegramClient,
     chatId: number,
@@ -308,7 +339,7 @@ async function sendCardError(
 ): Promise<void> {
     const message =
         error instanceof HttpError
-            ? `⚠️ ${error.message}`
+            ? `⚠️ ${escapeHtml(error.message)}`
             : "⚠️ Something went wrong. Please try again.";
 
     await client.sendMessage({

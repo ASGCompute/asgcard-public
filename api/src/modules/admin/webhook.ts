@@ -12,6 +12,7 @@ import { env } from "../../config/env";
 import { TelegramClient } from "../bot/telegramClient";
 import type { TgUpdate } from "../bot/telegramClient";
 import { appLogger } from "../../utils/logger";
+import { collectStatus, formatStatusMessage } from "./statusCollector";
 
 export const adminRouter = Router();
 
@@ -56,22 +57,18 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
                     parse_mode: "HTML",
                 });
             } else if (text === "/status") {
-                const uptime = process.uptime();
-                const hours = Math.floor(uptime / 3600);
-                const mins = Math.floor((uptime % 3600) / 60);
-                const memMb = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+                await client.sendMessage({
+                    chat_id: chatId,
+                    text: "⏳ Collecting status…",
+                    parse_mode: "HTML",
+                });
+
+                const status = await collectStatus();
+                const message = formatStatusMessage(status);
 
                 await client.sendMessage({
                     chat_id: chatId,
-                    text:
-                        `📊 <b>System Status</b>\n\n` +
-                        `├ Uptime: ${hours}h ${mins}m\n` +
-                        `├ Memory: ${memMb} MB\n` +
-                        `├ Node: ${process.version}\n` +
-                        `├ Bot Alerts: ${env.BOT_ALERTS_ENABLED}\n` +
-                        `├ Admin Bot: ${env.ADMIN_BOT_ENABLED}\n` +
-                        `├ TG Bot: ${env.TG_BOT_ENABLED}\n` +
-                        `└ Portal: ${env.OWNER_PORTAL_ENABLED}`,
+                    text: message,
                     parse_mode: "HTML",
                 });
             } else if (text === "/help") {

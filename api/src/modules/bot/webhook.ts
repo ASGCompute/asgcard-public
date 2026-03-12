@@ -21,6 +21,7 @@ import { handleFaqCommand } from "./commands/faq";
 import { handleSupportCommand } from "./commands/support";
 import { handleFundCommand, handleFundCallback } from "./commands/fund";
 import { AuditService } from "../authz/auditService";
+import { AdminBot } from "../admin/adminBot";
 
 // ── Router ─────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ botRouter.post("/telegram/webhook", async (req, res) => {
         if (update.message) {
             const userId = update.message.from?.id;
             if (userId && !checkRateLimit(userId)) {
-                // Silently drop rate-limited messages
+                AdminBot.rateLimited(userId).catch(() => {});
                 res.status(200).json({ ok: true });
                 return;
             }
@@ -185,6 +186,11 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
     const cmd = normalizeCommand(text);
     const chatId = msg.chat.id;
     const userId = msg.from.id;
+
+    // Track command in admin bot (non-blocking)
+    if (text.startsWith("/")) {
+        AdminBot.botCommand(userId, text, msg.from.username).catch(() => {});
+    }
 
     // /start with optional deep-link token
     if (cmd.startsWith("/start")) {

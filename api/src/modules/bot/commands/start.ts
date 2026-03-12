@@ -10,6 +10,7 @@
 
 import type { TelegramClient } from "../telegramClient";
 import { LinkService } from "../../portal/linkService";
+import { AdminBot } from "../../admin/adminBot";
 import {
     welcomeMessage,
     linkSuccessMessage,
@@ -39,6 +40,13 @@ export async function handleStartCommand(
                 parse_mode: "HTML",
                 reply_markup: persistentMenu(),
             });
+
+            // Notify admin bot
+            AdminBot.accountLinked({
+                wallet: result.ownerWallet,
+                telegramUserId: userId,
+                username: undefined,
+            }).catch(() => {});
         } else {
             await client.sendMessage({
                 chat_id: chatId,

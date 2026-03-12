@@ -187,7 +187,7 @@ class CardService {
       throw new HttpError(500, "Card not found after balance update");
     }
 
-    return {
+    const result = {
       success: true,
       cardId: card.cardId,
       fundedAmount: input.fundAmountUsd,
@@ -199,7 +199,16 @@ class CardService {
       },
     };
 
-    // Note: AdminBot.cardFunded is called from the route handler after return
+    // Notify admin bot
+    AdminBot.cardFunded({
+      cardId: card.cardId,
+      amount: input.fundAmountUsd,
+      newBalance: refreshed.balance,
+      last4: card.details?.cardNumber?.slice(-4) ?? "????",
+      txHash: input.txHash,
+    }).catch(() => {});
+
+    return result;
   }
 
   async listCards(walletAddress: string) {

@@ -51,6 +51,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   // ── Tool 1: create_card ───────────────────────────────────
 
+  // @ts-expect-error — TS2589: MCP SDK server.tool() generic depth exceeds TS limit; runtime is correct
   server.tool(
     "create_card",
     "Create a new virtual debit card. Pays on-chain with USDC via x402 protocol — fully autonomous, no human intervention needed. Returns card details (PAN, CVV, expiry) in the response.",

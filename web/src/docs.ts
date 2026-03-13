@@ -170,7 +170,7 @@ function renderOverview(): string {
   return `
     <section id="overview" aria-label="Overview">
       <h2>Overview</h2>
-      <p>ASG Card exposes a REST API with three classes of endpoints:</p>
+      <p>ASG Card exposes a REST API with five classes of endpoints:</p>
       <div class="docs-table-wrap">
         <table class="docs-table">
           <thead>
@@ -481,8 +481,7 @@ function renderMCPServer(): string {
       <p>The <code>@asgcard/mcp-server</code> package exposes 8 tools via the <strong>Model Context Protocol</strong>, enabling AI agents in Claude Code, Claude Desktop, Cursor, and other MCP-compatible clients to manage ASG Card programmatically.</p>
 
       <div class="docs-callout docs-callout-info">
-        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a> &nbsp;|&nbsp;
-        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard/tree/main/mcp-server" target="_blank" rel="noopener">mcp-server/</a>
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a>
       </div>
 
       <hr class="docs-divider" />
@@ -543,8 +542,7 @@ function renderCLI(): string {
       <p>The <code>@asgcard/cli</code> package provides a terminal interface for managing ASG Card — create, fund, freeze, and inspect virtual cards from your command line.</p>
 
       <div class="docs-callout docs-callout-info">
-        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a> &nbsp;|&nbsp;
-        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard/tree/main/cli" target="_blank" rel="noopener">cli/</a>
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a>
       </div>
 
       <hr class="docs-divider" />
@@ -893,8 +891,8 @@ function renderEndpoints(): string {
     "txHash": "<stellar_tx_hash>",
     "network": "stellar"
   },
-  "details": {
-    "cardNumber": "4111111111111111",
+  "detailsEnvelope": {
+    "cardNumber": "5395000000007890",
     "expiryMonth": 12,
     "expiryYear": 2028,
     "cvv": "123",
@@ -904,7 +902,10 @@ function renderEndpoints(): string {
       "state": "CA",
       "zip": "94105",
       "country": "US"
-    }
+    },
+    "oneTimeAccess": true,
+    "expiresInSeconds": 300,
+    "note": "Store securely. Use GET /cards/:id/details with X-AGENT-NONCE for subsequent access."
   }
 }`, 'json')}
       </div>
@@ -954,7 +955,7 @@ function renderEndpoints(): string {
   "cards": [{
     "cardId": "550e8400-e29b-41d4-a716-446655440000",
     "nameOnCard": "AGENT ALPHA",
-    "lastFour": "1111",
+    "lastFour": "7890",
     "balance": 10.0,
     "status": "active",
     "createdAt": "2026-02-11T14:00:00.000Z"
@@ -990,7 +991,7 @@ function renderEndpoints(): string {
         </div>
         <p>Retrieve sensitive card details — full card number, CVV, expiry, and billing address. See <a href="#agent-first">Agent-First Details</a> for the full protocol.</p>
         <div class="docs-callout docs-callout-warn">
-          Requires <code>X-AGENT-NONCE</code> header (UUID v4). Rate limited to <strong>3 unique nonces per card per hour</strong>. Returns <code>409</code> on replay, <code>403</code> if owner revoked access.
+          Requires <code>X-AGENT-NONCE</code> header (UUID v4). Rate limited to <strong>5 unique nonces per card per hour</strong>. Returns <code>409</code> on replay, <code>403</code> if owner revoked access.
         </div>
         <strong>Required Headers:</strong>
         <div class="docs-table-wrap">
@@ -1007,7 +1008,7 @@ function renderEndpoints(): string {
         <strong>Response 200:</strong>
         ${codeBlock(`{
   "details": {
-    "cardNumber": "4111111111111111",
+    "cardNumber": "5395000000007890",
     "expiryMonth": 12,
     "expiryYear": 2028,
     "cvv": "123",
@@ -1027,7 +1028,7 @@ function renderEndpoints(): string {
             <tbody>
               <tr><td data-label="Code"><code>403</code></td><td data-label="When">Owner revoked details access</td><td data-label="Body"><code>{"error":"Details access revoked by card owner"}</code></td></tr>
               <tr><td data-label="Code"><code>409</code></td><td data-label="When">Nonce already used (replay)</td><td data-label="Body"><code>{"error":"Nonce already used (replay detected)","code":"REPLAY_REJECTED"}</code></td></tr>
-              <tr><td data-label="Code"><code>429</code></td><td data-label="When">Rate limit exceeded</td><td data-label="Body"><code>{"error":"Card details rate limit exceeded (3 requests / hour)"}</code></td></tr>
+              <tr><td data-label="Code"><code>429</code></td><td data-label="When">Rate limit exceeded</td><td data-label="Body"><code>{"error":"Card details rate limit exceeded (5 requests / hour)"}</code></td></tr>
             </tbody>
           </table>
         </div>
@@ -1077,7 +1078,7 @@ function renderAgentFirst(): string {
   "card": { "cardId": "...", "status": "active" },
   "payment": { "txHash": "...", "network": "stellar" },
   "detailsEnvelope": {
-    "cardNumber": "4111111111111111",
+    "cardNumber": "5395000000007890",
     "expiryMonth": 12,
     "expiryYear": 2028,
     "cvv": "123",
@@ -1146,7 +1147,7 @@ if (res.status === 403) {
   "error": "Nonce already used (replay detected)",
   "code": "REPLAY_REJECTED"
 }`, 'json')}
-      <p>This prevents replay attacks and ensures each details retrieval is intentional. Combined with the 3-request-per-hour rate limit per card, this protects cardholder data.</p>
+      <p>This prevents replay attacks and ensures each details retrieval is intentional. Combined with the 5-request-per-hour rate limit per card, this protects cardholder data.</p>
 
       <hr class="docs-divider" />
 
@@ -1224,7 +1225,7 @@ function renderErrors(): string {
             <tr>
               <td data-label="Code"><code>429</code></td>
               <td data-label="When">Details endpoint rate limit</td>
-              <td data-label="Example"><code>{"error":"Card details rate limit exceeded (3 requests / hour)"}</code></td>
+              <td data-label="Example"><code>{"error":"Card details rate limit exceeded (5 requests / hour)"}</code></td>
             </tr>
             <tr>
               <td data-label="Code"><code>500</code></td>
@@ -1248,7 +1249,7 @@ function renderRateLimits(): string {
             <tr><th>Endpoint</th><th>Limit</th><th>Window</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Endpoint"><code>GET /cards/:cardId/details</code></td><td data-label="Limit">3 requests per card</td><td data-label="Window">1 hour</td></tr>
+            <tr><td data-label="Endpoint"><code>GET /cards/:cardId/details</code></td><td data-label="Limit">5 requests per card</td><td data-label="Window">1 hour</td></tr>
             <tr><td data-label="Endpoint">All other endpoints</td><td data-label="Limit">Standard per-IP limits apply</td><td data-label="Window">—</td></tr>
           </tbody>
         </table>

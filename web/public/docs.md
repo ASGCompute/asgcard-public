@@ -13,7 +13,7 @@ ASG Card is an API for issuing and managing virtual MasterCard cards for AI agen
 - Website: <https://asgcard.dev/>
 - HTML docs: <https://asgcard.dev/docs>
 - OpenAPI: <https://asgcard.dev/openapi.json>
-- GitHub: <https://github.com/ASGCompute/asgcard>
+- GitHub: <https://github.com/ASGCompute/asgcard-public>
 - Agent discovery: <https://asgcard.dev/agent.txt>
 
 ## npm Packages
@@ -22,7 +22,7 @@ ASG Card is an API for issuing and managing virtual MasterCard cards for AI agen
 |---------|-------------|
 | `@asgcard/sdk` | TypeScript SDK — wraps x402 payment flow into one-liner methods |
 | `@asgcard/mcp-server` | MCP Server — 8 tools for Claude Code/Desktop/Cursor |
-| `@asgcard/cli` | CLI — 11 commands for terminal card management |
+| `@asgcard/cli` | CLI — 10 commands for terminal card management |
 
 ## Install
 
@@ -139,7 +139,7 @@ Returns (201):
 
 - `card` — card summary (`cardId`, status, balance)
 - `payment` — payment info (`amountCharged`, `txHash`, `network`)
-- `details` — **agent-first**: full PAN, CVV, expiry, billing address
+- `detailsEnvelope` — **agent-first**: full PAN, CVV, expiry, billing address (one-time access on create)
 
 ### `POST /cards/fund/tier/:amount`
 
@@ -202,7 +202,7 @@ Common statuses: 400, 401, 402, 403, 404, 409, 429, 500
 
 ## Rate Limits
 
-- `GET /cards/:cardId/details`: **3 unique nonces per card per hour**
+- `GET /cards/:cardId/details`: **5 unique nonces per card per hour**
 
 ## Canonical Source
 

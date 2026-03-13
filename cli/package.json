@@ -1,7 +1,7 @@
 {
   "name": "@asgcard/cli",
   "version": "0.1.0",
-  "description": "CLI for ASG Card — manage virtual Visa cards for AI agents from the terminal",
+  "description": "CLI for ASG Card — manage virtual MasterCard cards for AI agents from the terminal",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -30,7 +30,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/asgcard/cli"
+    "url": "https://github.com/ASGCompute/asgcard-public"
   },
   "homepage": "https://asgcard.dev",
   "publishConfig": {

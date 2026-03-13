@@ -33,6 +33,59 @@
     <link rel="alternate" type="text/markdown" href="https://asgcard.dev/docs.md" title="ASG Card LLM-friendly docs" />
     <link rel="alternate" type="application/json" href="https://asgcard.dev/openapi.json" title="ASG Card OpenAPI" />
 
+    <!-- Structured data (SEO / AI discoverability) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://asgcard.dev/#organization",
+            "name": "ASG Card",
+            "url": "https://asgcard.dev/",
+            "logo": "https://asgcard.dev/logo-mark.svg"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://asgcard.dev/#website",
+            "url": "https://asgcard.dev/",
+            "name": "ASG Card",
+            "publisher": {
+              "@id": "https://asgcard.dev/#organization"
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://asgcard.dev/#webpage",
+            "url": "https://asgcard.dev/",
+            "name": "ASG Card | Instant Virtual Cards for AI Agents On-Chain",
+            "description": "Issue virtual MasterCard cards programmatically. Pay with USDC on chain via x402.",
+            "isPartOf": {
+              "@id": "https://asgcard.dev/#website"
+            },
+            "about": {
+              "@id": "https://asgcard.dev/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://asgcard.dev/#app",
+            "name": "ASG Card",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Any",
+            "description": "Agent-first virtual card platform. AI agents issue and manage MasterCard cards, paying in USDC via x402 on Stellar.",
+            "url": "https://asgcard.dev/",
+            "offers": {
+              "@type": "Offer",
+              "price": "10",
+              "priceCurrency": "USD",
+              "description": "Starting from $10 card tier"
+            }
+          }
+        ]
+      }
+    </script>
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

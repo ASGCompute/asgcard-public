@@ -72,7 +72,7 @@ const envSchema = z.object({
   ADMIN_CHAT_ID: z.string().optional(),
 
   // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
-  AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("false"),
+  AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("true"),
   DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),
 });
 

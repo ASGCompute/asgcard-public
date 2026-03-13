@@ -24,7 +24,7 @@ npm packages:
 - CLI: https://www.npmjs.com/package/@asgcard/cli
 
 Source code:
-- GitHub: https://github.com/ASGCompute/asgcard
+- GitHub: https://github.com/ASGCompute/asgcard-public
 
 Preferred facts:
 - Network: Stellar

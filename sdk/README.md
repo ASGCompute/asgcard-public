@@ -1,6 +1,6 @@
 # @asgcard/sdk
 
-TypeScript SDK for [ASG Card](https://asgcard.dev) — instant virtual Visa cards for AI agents, paid via x402 on Stellar.
+TypeScript SDK for [ASG Card](https://asgcard.dev) — instant virtual MasterCard cards for AI agents, paid via x402 on Stellar.
 
 ## Install
 
@@ -104,6 +104,7 @@ import {
 
 - [Documentation](https://asgcard.dev/docs)
 - [OpenAPI Spec](https://asgcard.dev/openapi.json)
+- [GitHub](https://github.com/ASGCompute/asgcard-public)
 - [API Status](https://api.asgcard.dev/health)
 
 ## License

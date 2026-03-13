@@ -1,7 +1,7 @@
 {
   "name": "@asgcard/sdk",
   "version": "1.0.6",
-  "description": "SDK for ASG Card — virtual Visa cards for AI agents, paid via x402 on Stellar",
+  "description": "SDK for ASG Card — virtual MasterCard cards for AI agents, paid via x402 on Stellar",
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/asgcard/sdk"
+    "url": "https://github.com/ASGCompute/asgcard-public"
   },
   "homepage": "https://asgcard.dev",
   "publishConfig": {

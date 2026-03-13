@@ -75,4 +75,4 @@ payment:
 support:
   telegram: "@ASGCardbot"
   docs: "https://asgcard.dev/docs"
-  github: "https://github.com/ASGCompute/asgcard"
+  github: "https://github.com/ASGCompute/asgcard-public"

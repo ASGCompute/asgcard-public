@@ -6,7 +6,8 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build && node scripts/ssg.mjs",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
         "typescript": "^5.2.2",

@@ -164,7 +164,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
         <div class="flex items-center gap-3">
           <a
-            href="https://github.com/ASGCompute/asgcard"
+            href="https://github.com/ASGCompute/asgcard-public"
             target="_blank"
             rel="noopener noreferrer"
             class="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-lg text-white/70 hover:text-white transition-colors"
@@ -279,7 +279,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                     </div>
                     <!-- Bottom row -->
                     <div class="space-y-3">
-                      <div class="font-mono text-lg sm:text-xl text-white/60 tracking-[0.15em]">4111 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 4444</div>
+                      <div class="font-mono text-lg sm:text-xl text-white/60 tracking-[0.15em]">5395 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 7890</div>
                       <div class="flex items-center justify-between">
                         <div>
                           <div class="text-[10px] text-white/15 uppercase tracking-wider">Expires</div>
@@ -483,7 +483,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <div>
             <div class="text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-4">Community</div>
             <div class="flex flex-col gap-2.5">
-              <a href="https://github.com/ASGCompute/asgcard" target="_blank" rel="noopener" class="text-sm text-white/50 hover:text-white transition-colors">GitHub</a>
+              <a href="https://github.com/ASGCompute/asgcard-public" target="_blank" rel="noopener" class="text-sm text-white/50 hover:text-white transition-colors">GitHub</a>
               <a href="https://x.com/ASGCardx402" target="_blank" rel="noopener" class="text-sm text-white/50 hover:text-white transition-colors">X (Twitter)</a>
               <a href="https://t.me/ASGCardbot" target="_blank" rel="noopener" class="text-sm text-white/50 hover:text-white transition-colors">Telegram Bot</a>
             </div>

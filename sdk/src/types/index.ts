@@ -90,7 +90,7 @@ export interface CardResult {
     txHash: string;
     network: string;
   };
-  /** Sensitive card details (agent-first model, one-time access) */
+  /** Sensitive card details (agent-first model, one-time access on create) */
   detailsEnvelope?: {
     cardNumber: string;
     expiryMonth: number;
@@ -100,8 +100,6 @@ export interface CardResult {
     oneTimeAccess: boolean;
     expiresInSeconds: number;
   };
-  /** @deprecated use detailsEnvelope */
-  details?: SensitiveCardDetails;
 }
 
 export interface FundResult {

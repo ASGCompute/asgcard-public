@@ -103,7 +103,7 @@
           "x402"
         ],
         "summary": "Create a virtual card for a supported tier amount",
-        "description": "x402 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. When AGENT_DETAILS_ENABLED=true, the 201 response includes a `details` envelope with full PAN, CVV, expiry, and billing address (agent-first model). PAN/CVV are never logged or exposed in metrics.",
+        "description": "x402 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. The 201 response includes a `detailsEnvelope` with full PAN, CVV, expiry, billing address, and one-time-access metadata (agent-first model). PAN/CVV are never logged or exposed in metrics.",
         "operationId": "createCardByTier",
         "parameters": [
           {
@@ -256,7 +256,7 @@
         ],
         "summary": "Get sensitive card details (PAN, CVV, expiry)",
         "operationId": "getCardSensitiveDetails",
-        "description": "Agent-first endpoint for reading card PAN/CVV. Requires wallet signature + X-AGENT-NONCE header for anti-replay. Rate limited to 3 unique nonces per card per hour. Returns 403 if owner has revoked details access.",
+        "description": "Agent-first endpoint for reading card PAN/CVV. Requires wallet signature + X-AGENT-NONCE header for anti-replay. Rate limited to 5 unique nonces per card per hour. Returns 403 if owner has revoked details access.",
         "parameters": [
           {
             "$ref": "#/components/parameters/CardId"
@@ -320,7 +320,7 @@
             }
           },
           "429": {
-            "description": "Rate limit exceeded (max 3 reads per card per hour)",
+            "description": "Rate limit exceeded (max 5 reads per card per hour)",
             "content": {
               "application/json": {
                 "schema": {
@@ -709,8 +709,37 @@
           "payment": {
             "$ref": "#/components/schemas/PaymentInfo"
           },
-          "details": {
-            "$ref": "#/components/schemas/SensitiveCardDetails"
+          "detailsEnvelope": {
+            "type": "object",
+            "description": "Sensitive card details with one-time access metadata (agent-first model)",
+            "properties": {
+              "cardNumber": {
+                "type": "string"
+              },
+              "expiryMonth": {
+                "type": "integer"
+              },
+              "expiryYear": {
+                "type": "integer"
+              },
+              "cvv": {
+                "type": "string"
+              },
+              "billingAddress": {
+                "$ref": "#/components/schemas/BillingAddress"
+              },
+              "oneTimeAccess": {
+                "type": "boolean",
+                "description": "Indicates this envelope is only returned on creation"
+              },
+              "expiresInSeconds": {
+                "type": "integer",
+                "description": "Seconds before the caller should consider these details expired"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
           }
         }
       },

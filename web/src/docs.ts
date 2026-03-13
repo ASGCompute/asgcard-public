@@ -505,10 +505,6 @@ function renderMCPServer(): string {
   }
 }`, 'json')}
 
-      <div class="docs-callout docs-callout-warn">
-        <code>STELLAR_PRIVATE_KEY</code> is <strong>your agent's own</strong> Stellar wallet key. It never leaves your machine — used locally to sign x402 USDC payments and wallet-auth requests. ASG Card never sees or stores your private key.
-      </div>
-
       <hr class="docs-divider" />
 
       <h3 id="mcp-tools">Tools</h3>

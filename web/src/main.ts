@@ -293,11 +293,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                           <div class="text-[10px] text-white/15 uppercase tracking-wider">Balance</div>
                           <div class="font-mono text-xs text-asg-green/70 font-semibold">$50.00</div>
                         </div>
-                        <div class="text-right">
-                          <svg width="36" height="24" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="14" cy="12" r="10" fill="#EB001B" opacity="0.25"/>
-                            <circle cx="22" cy="12" r="10" fill="#F79E1B" opacity="0.25"/>
-                            <path d="M18 4.58a10 10 0 0 1 0 14.84 10 10 0 0 1 0-14.84z" fill="#FF5F00" opacity="0.3"/>
+                        <div class="text-right flex items-center justify-end">
+                          <svg width="48" height="30" viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="18" cy="15" r="12" fill="#EB001B" opacity="0.7"/>
+                            <circle cx="30" cy="15" r="12" fill="#F79E1B" opacity="0.7"/>
+                            <path d="M24 5.04a12 12 0 0 1 0 19.92 12 12 0 0 1 0-19.92z" fill="#FF5F00" opacity="0.85"/>
                           </svg>
                         </div>
                       </div>

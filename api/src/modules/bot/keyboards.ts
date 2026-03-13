@@ -11,7 +11,7 @@ import type { TgInlineButton, TgReplyMarkup } from "./telegramClient";
 export function persistentMenu(): TgReplyMarkup {
     return {
         keyboard: [
-            [{ text: "💳 My Cards" }],
+            [{ text: "💳 My Cards" }, { text: "👤 Profile" }],
             [{ text: "❓ FAQ's" }, { text: "🧑‍💻 Support" }],
         ],
         resize_keyboard: true,

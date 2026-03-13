@@ -17,6 +17,7 @@ import { TelegramClient } from "./telegramClient";
 import type { TgUpdate, TgMessage, TgCallbackQuery } from "./telegramClient";
 import { handleStartCommand } from "./commands/start";
 import { handleMyCardsCommand, handleCardCallback } from "./commands/myCards";
+import { handleProfileCommand, handleProfileCallback, handleProfileInput } from "./commands/profile";
 import { handleFaqCommand } from "./commands/faq";
 import { handleSupportCommand } from "./commands/support";
 import { handleFundCommand, handleFundCallback } from "./commands/fund";
@@ -248,6 +249,11 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
         return;
     }
 
+    if (cmd === "/profile" || text === "👤 Profile") {
+        await handleProfileCommand(client, chatId, userId);
+        return;
+    }
+
     if (cmd === "/faq" || text === "❓ FAQ's") {
         await handleFaqCommand(client, chatId);
         return;
@@ -265,6 +271,7 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
                 `<b>📋 ASG Card Bot — Commands</b>\n\n` +
                 `/mycards — 💳 View and manage your cards\n` +
                 `/fund — 💰 Fund a card\n` +
+                `/profile — 👤 Edit email & phone\n` +
                 `/faq — ❓ Frequently asked questions\n` +
                 `/support — 🧑‍💻 Contact support\n` +
                 `/help — 📋 Show this message\n\n` +
@@ -272,6 +279,12 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
             parse_mode: "HTML",
         });
         return;
+    }
+
+    // Check if this is a pending profile edit (email/phone input)
+    if (userId) {
+        const handled = await handleProfileInput(client, chatId, userId, text);
+        if (handled) return;
     }
 
     // Unknown command or text — suggest /help
@@ -326,6 +339,12 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
     // Route fund callbacks
     if (cbq.data.startsWith("fund_select:") || cbq.data.startsWith("fund_info:")) {
         await handleFundCallback(client, chatId, cbq.from.id, cbq.data);
+        return;
+    }
+
+    // Route profile callbacks
+    if (cbq.data.startsWith("profile_")) {
+        await handleProfileCallback(client, chatId, cbq.from.id, cbq.data);
         return;
     }
 

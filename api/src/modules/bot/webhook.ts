@@ -183,7 +183,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
         // Register webhook
         const baseUrl = process.env.API_BASE_URL ?? `https://${req.hostname}`;
         const webhookUrl = `${baseUrl}/bot/telegram/webhook`;
-        await client.setWebhook(webhookUrl, env.TG_WEBHOOK_SECRET);
+        await client.setWebhook(webhookUrl, env.TG_WEBHOOK_SECRET, ["message", "callback_query"]);
 
         res.json({
             status: "ok",

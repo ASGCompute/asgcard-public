@@ -113,9 +113,10 @@ export class TelegramClient {
     }
 
     /** Register a webhook URL. */
-    async setWebhook(url: string, secretToken?: string): Promise<boolean> {
+    async setWebhook(url: string, secretToken?: string, allowedUpdates?: string[]): Promise<boolean> {
         const params: Record<string, unknown> = { url };
         if (secretToken) params.secret_token = secretToken;
+        if (allowedUpdates) params.allowed_updates = allowedUpdates;
         const resp = await this.call<boolean>("setWebhook", params);
         return resp ?? false;
     }

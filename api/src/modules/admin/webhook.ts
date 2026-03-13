@@ -211,7 +211,7 @@ adminRouter.post("/telegram/setup", async (req, res) => {
             ? `admin_${env.TG_WEBHOOK_SECRET}`
             : crypto.randomUUID();
 
-        await client.setWebhook(webhookUrl, secret);
+        await client.setWebhook(webhookUrl, secret, ["message", "callback_query"]);
 
         res.json({
             status: "ok",

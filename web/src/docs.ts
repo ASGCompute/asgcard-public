@@ -481,7 +481,8 @@ function renderMCPServer(): string {
       <p>The <code>@asgcard/mcp-server</code> package exposes 8 tools via the <strong>Model Context Protocol</strong>, enabling AI agents in Claude Code, Claude Desktop, Cursor, and other MCP-compatible clients to manage ASG Card programmatically.</p>
 
       <div class="docs-callout docs-callout-info">
-        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a>
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a> &nbsp;|&nbsp;
+        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard-public/tree/main/mcp-server" target="_blank" rel="noopener">mcp-server/</a>
       </div>
 
       <hr class="docs-divider" />
@@ -542,7 +543,8 @@ function renderCLI(): string {
       <p>The <code>@asgcard/cli</code> package provides a terminal interface for managing ASG Card — create, fund, freeze, and inspect virtual cards from your command line.</p>
 
       <div class="docs-callout docs-callout-info">
-        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a>
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a> &nbsp;|&nbsp;
+        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard-public/tree/main/cli" target="_blank" rel="noopener">cli/</a>
       </div>
 
       <hr class="docs-divider" />

@@ -106,6 +106,12 @@ export class TelegramClient {
         return resp !== null;
     }
 
+    /** Delete a message from chat. */
+    async deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+        const resp = await this.call("deleteMessage", { chat_id: chatId, message_id: messageId });
+        return resp !== null;
+    }
+
     /** Set bot commands for the menu. */
     async setMyCommands(commands: { command: string; description: string }[]): Promise<boolean> {
         const resp = await this.call<boolean>("setMyCommands", { commands });

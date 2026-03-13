@@ -294,6 +294,11 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
     const chatId = cbq.message?.chat.id;
     if (!chatId) return;
 
+    const messageId = cbq.message?.message_id;
+
+    // Noop callback (pagination counter button)
+    if (cbq.data === "noop") return;
+
     // Validate callback data format (action:cardId[:extra...]) — skip for pagination
     const parts = cbq.data.split(":");
     if (parts.length >= 2 && !cbq.data.startsWith("cards_page:") && !isValidCardId(parts[1])) {
@@ -301,11 +306,11 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
         return;
     }
 
-    // Route pagination callbacks
+    // Route pagination callbacks — edit the current message in place
     if (cbq.data.startsWith("cards_page:")) {
         const page = parseInt(parts[1], 10);
         if (!isNaN(page) && page > 0) {
-            await handleMyCardsCommand(client, chatId, cbq.from.id, page);
+            await handleMyCardsCommand(client, chatId, cbq.from.id, page, messageId);
         }
         return;
     }

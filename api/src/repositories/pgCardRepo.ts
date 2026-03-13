@@ -24,25 +24,17 @@ export class PostgresCardRepository implements CardRepository {
         const cardId = `card_${crypto.randomUUID().slice(0, 8)}`;
         const detailsEncrypted = encryptCardDetails(input.details, this.encKey);
 
-        const rows = await query<{
-            card_id: string;
-            wallet_address: string;
-            name_on_card: string;
-            email: string;
-            balance: string;
-            initial_amount: string;
-            status: string;
-            details_encrypted: Buffer;
-            details_revoked: boolean;
-            four_payments_id: string | null;
-            created_at: Date;
-            updated_at: Date;
-        }>(
+        // Extract last4 from card details
+        const last4 = input.details.maskedCardNumber
+            ? (input.details.maskedCardNumber.replace(/[^0-9]/g, '').slice(-4) || null)
+            : (input.details.cardNumber ? input.details.cardNumber.slice(-4) : null);
+
+        const rows = await query<CardRow>(
             `INSERT INTO cards
-               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id)
-             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false, $8)
+               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four)
+             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false, $8, $9)
              RETURNING card_id, wallet_address, name_on_card, email,
-                       balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
+                       balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                        created_at, updated_at`,
             [
                 cardId,
@@ -52,7 +44,8 @@ export class PostgresCardRepository implements CardRepository {
                 input.initialAmountUsd,
                 input.initialAmountUsd,
                 detailsEncrypted,
-                input.fourPaymentsId || null
+                input.fourPaymentsId || null,
+                last4
             ]
         );
 
@@ -60,22 +53,9 @@ export class PostgresCardRepository implements CardRepository {
     }
 
     async findById(cardId: string): Promise<StoredCard | undefined> {
-        const rows = await query<{
-            card_id: string;
-            wallet_address: string;
-            name_on_card: string;
-            email: string;
-            balance: string;
-            initial_amount: string;
-            status: string;
-            details_encrypted: Buffer;
-            details_revoked: boolean;
-            four_payments_id: string | null;
-            created_at: Date;
-            updated_at: Date;
-        }>(
+        const rows = await query<CardRow>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
+                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                     created_at, updated_at
              FROM cards
              WHERE card_id = $1`,
@@ -86,22 +66,9 @@ export class PostgresCardRepository implements CardRepository {
     }
 
     async findByWallet(walletAddress: string): Promise<StoredCard[]> {
-        const rows = await query<{
-            card_id: string;
-            wallet_address: string;
-            name_on_card: string;
-            email: string;
-            balance: string;
-            initial_amount: string;
-            status: string;
-            details_encrypted: Buffer;
-            details_revoked: boolean;
-            four_payments_id: string | null;
-            created_at: Date;
-            updated_at: Date;
-        }>(
+        const rows = await query<CardRow>(
             `SELECT card_id, wallet_address, name_on_card, email,
-                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id,
+                    balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                     created_at, updated_at
              FROM cards
              WHERE wallet_address = $1
@@ -203,30 +170,17 @@ export class PostgresCardRepository implements CardRepository {
 
     // ── Row mapping ─────────────────────────────────────────
 
-    private rowToStoredCard(row: {
-        card_id: string;
-        wallet_address: string;
-        name_on_card: string;
-        email: string;
-        balance: string;
-        initial_amount: string;
-        status: string;
-        details_encrypted: Buffer;
-        details_revoked: boolean;
-        four_payments_id: string | null;
-        created_at: Date;
-        updated_at: Date;
-    }): StoredCard {
+    private rowToStoredCard(row: CardRow): StoredCard {
         let details: CardDetails;
         try {
             details = decryptCardDetails(row.details_encrypted, this.encKey);
         } catch {
-            // Decryption may fail for cards encrypted with a different key
+            // Decryption may fail for cards without details_encrypted
             details = {
-                cardNumber: "0000000000000000",
+                cardNumber: "",
                 expiryMonth: 0,
                 expiryYear: 0,
-                cvv: "000",
+                cvv: "",
                 billingAddress: { street: "", city: "", state: "", zip: "", country: "" },
             };
         }
@@ -242,7 +196,25 @@ export class PostgresCardRepository implements CardRepository {
             updatedAt: row.updated_at.toISOString(),
             details,
             fourPaymentsId: row.four_payments_id || undefined,
-            detailsRevoked: row.details_revoked
-        } as StoredCard & { detailsRevoked: boolean };
+            detailsRevoked: row.details_revoked,
+            lastFour: row.last_four || undefined,
+        } as StoredCard & { detailsRevoked: boolean; lastFour?: string };
     }
+}
+
+// ── Shared row type ────────────────────────────────────────
+interface CardRow {
+    card_id: string;
+    wallet_address: string;
+    name_on_card: string;
+    email: string;
+    balance: string;
+    initial_amount: string;
+    status: string;
+    details_encrypted: Buffer;
+    details_revoked: boolean;
+    four_payments_id: string | null;
+    last_four: string | null;
+    created_at: Date;
+    updated_at: Date;
 }

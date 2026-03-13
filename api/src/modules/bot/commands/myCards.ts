@@ -7,22 +7,17 @@
  * @module modules/bot/commands/myCards
  */
 
-import crypto from "node:crypto";
 import type { TelegramClient } from "../telegramClient";
 import { requireOwnerBinding } from "../../authz/ownerPolicy";
 import { AuditService } from "../../authz/auditService";
 import { cardService, HttpError } from "../../../services/cardService";
-import { query } from "../../../db/db";
 import {
-    accountBalanceMessage,
     noBindingMessage,
     cardFrozenMessage,
     cardUnfrozenMessage,
-    cardRevealLinkMessage,
 } from "../templates";
 import {
     cardActionsKeyboard,
-    confirmKeyboard,
     persistentMenu,
 } from "../keyboards";
 
@@ -35,7 +30,8 @@ export async function handleMyCardsCommand(
     client: TelegramClient,
     chatId: number,
     userId: number,
-    page: number = 1
+    page: number = 1,
+    editMessageId?: number
 ): Promise<void> {
     // 1. Verify binding
     const owner = await requireOwnerBinding(userId, "my_cards");
@@ -53,14 +49,15 @@ export async function handleMyCardsCommand(
     const allCards = await cardService.listCards(owner.ownerWallet);
 
     if (allCards.length === 0) {
-        await client.sendMessage({
-            chat_id: chatId,
-            text:
-                `<b>💳 My Cards</b>\n\n` +
-                `You don't have any cards yet.\n` +
-                `Create one at <a href="https://asgcard.dev">asgcard.dev</a> or via the API.`,
-            parse_mode: "HTML",
-        });
+        const text =
+            `<b>💳 My Cards</b>\n\n` +
+            `You don't have any cards yet.\n` +
+            `Create one at <a href="https://asgcard.dev">asgcard.dev</a> or via the API.`;
+        if (editMessageId) {
+            await client.editMessageText({ chat_id: chatId, message_id: editMessageId, text, parse_mode: "HTML" });
+        } else {
+            await client.sendMessage({ chat_id: chatId, text, parse_mode: "HTML" });
+        }
         return;
     }
 
@@ -73,46 +70,64 @@ export async function handleMyCardsCommand(
     // 4. Total balance (across ALL cards)
     const totalBalance = allCards.reduce((sum, c) => sum + c.balance, 0);
 
-    // 5. Build summaries for this page
-    const summaries = pageCards.map((c) => ({
-        cardId: c.cardId,
-        nameOnCard: c.nameOnCard,
-        last4: c.lastFour,
-        balance: c.balance,
-        status: c.status as "active" | "frozen",
-    }));
+    // 5. Build single combined message with header + all cards for this page
+    let text = `💳 <b>Account Balance</b> (USD): <b>$${totalBalance.toFixed(2)}</b>\n`;
+    if (totalPages > 1) {
+        text += `<i>Page ${safePage}/${totalPages} · ${allCards.length} cards</i>\n`;
+    }
+    text += `\n`;
 
-    // 6. Send header with total balance + page info
-    const pageInfo = totalPages > 1 ? `\n\n<i>Page ${safePage}/${totalPages} (${allCards.length} cards)</i>` : "";
-    await client.sendMessage({
-        chat_id: chatId,
-        text: accountBalanceMessage(totalBalance, summaries) + pageInfo,
-        parse_mode: "HTML",
-    });
-
-    // 7. Send each card with action buttons
-    for (const card of summaries) {
+    for (const card of pageCards) {
         const statusIcon = card.status === "frozen" ? "❄️" : "💳";
-        await client.sendMessage({
-            chat_id: chatId,
-            text: `${statusIcon} ASG Virtual Card - xxxx ${card.last4}`,
-            reply_markup: cardActionsKeyboard(card.cardId, card.status),
-        });
+        text += `${statusIcon} <b>ASG Virtual Card</b> · xxxx <code>${card.lastFour}</code>\n`;
+        text += `   Balance: <b>$${card.balance.toFixed(2)}</b> · ${card.status === "frozen" ? "❄️ Frozen" : "✅ Active"}\n\n`;
     }
 
-    // 8. Send pagination buttons (if needed)
+    // 6. Build inline keyboard: card action buttons + navigation
+    const keyboard: { text: string; callback_data: string }[][] = [];
+
+    for (const card of pageCards) {
+        const row: { text: string; callback_data: string }[] = [];
+        if (card.status === "active") {
+            row.push({ text: "❄️ Freeze", callback_data: `card_freeze:${card.cardId}` });
+        } else {
+            row.push({ text: "🔓 Unfreeze", callback_data: `card_unfreeze:${card.cardId}` });
+        }
+        row.push({ text: "👁 Reveal", callback_data: `card_reveal:${card.cardId}` });
+        row.push({ text: "📊 Statement", callback_data: `card_statement:${card.cardId}` });
+        keyboard.push(row);
+    }
+
+    // Navigation row
     if (totalPages > 1) {
-        const navButtons: { text: string; callback_data: string }[] = [];
+        const navRow: { text: string; callback_data: string }[] = [];
         if (safePage > 1) {
-            navButtons.push({ text: "◀️ Prev", callback_data: `cards_page:${safePage - 1}` });
+            navRow.push({ text: "◀️ Prev", callback_data: `cards_page:${safePage - 1}` });
         }
+        navRow.push({ text: `${safePage}/${totalPages}`, callback_data: "noop" });
         if (safePage < totalPages) {
-            navButtons.push({ text: "▶️ Next", callback_data: `cards_page:${safePage + 1}` });
+            navRow.push({ text: "▶️ Next", callback_data: `cards_page:${safePage + 1}` });
         }
+        keyboard.push(navRow);
+    }
+
+    const reply_markup = { inline_keyboard: keyboard };
+
+    // 7. Edit existing message or send new one
+    if (editMessageId) {
+        await client.editMessageText({
+            chat_id: chatId,
+            message_id: editMessageId,
+            text,
+            parse_mode: "HTML",
+            reply_markup,
+        });
+    } else {
         await client.sendMessage({
             chat_id: chatId,
-            text: `📄 Page ${safePage} of ${totalPages}`,
-            reply_markup: { inline_keyboard: [navButtons] },
+            text,
+            parse_mode: "HTML",
+            reply_markup,
         });
     }
 }
@@ -268,7 +283,7 @@ async function handleCardUnfreeze(
     }
 }
 
-// ── Reveal (secure one-time link, PAN/CVV never in Telegram) ──
+// ── Reveal (secure auto-deleting message with PCI data) ──
 
 async function handleCardReveal(
     client: TelegramClient,
@@ -278,35 +293,54 @@ async function handleCardReveal(
     cardId: string
 ): Promise<void> {
     try {
-        // Verify card belongs to wallet (throws 404 if not)
-        await cardService.getCard(wallet, cardId);
+        // Verify card belongs to wallet
+        const result = await cardService.getCard(wallet, cardId);
+        const fpId = result.card.fourPaymentsId;
 
-        // Generate one-time reveal token and store with 60s TTL
-        const revealToken = crypto.randomBytes(32).toString("base64url");
-        const expiresAt = new Date(Date.now() + 60_000); // 60 seconds
+        if (!fpId) {
+            await client.sendMessage({
+                chat_id: chatId,
+                text: "⚠️ Card details unavailable — no payment provider link.",
+                parse_mode: "HTML",
+            });
+            return;
+        }
 
-        await query(
-            `INSERT INTO card_reveal_tokens (token, card_id, wallet_address, expires_at)
-             VALUES ($1, $2, $3, $4)`,
-            [revealToken, cardId, wallet, expiresAt.toISOString()]
-        );
-
-        const revealUrl = `https://asgcard.dev/reveal?token=${revealToken}&card=${cardId}`;
+        // Fetch sensitive data from 4Payments
+        const { getFourPaymentsClient } = await import("../../../services/fourPaymentsClient");
+        const fpClient = getFourPaymentsClient();
+        const sensitive = await fpClient.getSensitiveInfo(fpId);
 
         await AuditService.log({
             actorType: "telegram_user",
             actorId: String(userId),
-            action: "card_reveal_requested",
+            action: "card_reveal_viewed",
             resourceId: cardId,
             decision: "allow",
         });
 
-        await client.sendMessage({
+        // Format card number with spaces
+        const formatted = sensitive.number.replace(/(.{4})/g, "$1 ").trim();
+
+        const text =
+            `🔐 <b>Card Details</b> (auto-deletes in 30s)\n\n` +
+            `💳 <code>${formatted}</code>\n` +
+            `📅 Exp: <code>${sensitive.expire}</code>\n` +
+            `🔑 CVV: <code>${sensitive.cvc}</code>\n\n` +
+            `<i>⚠️ This message will be deleted automatically.</i>`;
+
+        const msgId = await client.sendMessage({
             chat_id: chatId,
-            text: cardRevealLinkMessage(revealUrl),
+            text,
             parse_mode: "HTML",
-            disable_web_page_preview: true,
         });
+
+        // Auto-delete after 30 seconds for security
+        if (msgId) {
+            setTimeout(() => {
+                client.deleteMessage(chatId, msgId).catch(() => {});
+            }, 30_000);
+        }
     } catch (error) {
         await sendCardError(client, chatId, error);
     }

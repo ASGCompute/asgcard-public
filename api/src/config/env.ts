@@ -11,7 +11,7 @@ const logLevel = z.enum(["debug", "info", "warn", "error"]).default("info");
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
-  API_VERSION: z.string().default("0.3.0"),
+  API_VERSION: z.string().default("0.3.1"),
   NODE_ENV: nodeEnv,
   LOG_LEVEL: logLevel,
 
@@ -23,7 +23,7 @@ const envSchema = z.object({
     .default("https://horizon.stellar.org"),
   STELLAR_USDC_ASSET: z
     .string()
-    .default("USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"),
+    .default("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"),
 
   // ── MANDATORY in all environments (no unsafe defaults) ───
   STELLAR_TREASURY_ADDRESS: stellarAddress,
@@ -54,6 +54,26 @@ const envSchema = z.object({
   // ── Ops dashboard security ─────────────────────────────
   OPS_API_KEY: z.string().optional(),
   OPS_IP_ALLOWLIST: z.string().optional(),           // comma-separated CIDRs/IPs
+
+  // ── Telegram Bot (@ASGCardbot) ──────────────────────────
+  TG_BOT_ENABLED: z.enum(["true", "false"]).default("false"),
+  TG_BOT_TOKEN: z.string().optional(),
+  TG_WEBHOOK_SECRET: z.string().optional(),
+
+  // ── Owner Portal ───────────────────────────────────────
+  OWNER_PORTAL_ENABLED: z.enum(["true", "false"]).default("false"),
+
+  // ── Bot Alerts (event notifications to TG) ─────────────
+  BOT_ALERTS_ENABLED: z.enum(["true", "false"]).default("false"),
+
+  // ── Admin Bot (ops notifications to admin TG chat) ─────
+  ADMIN_BOT_ENABLED: z.enum(["true", "false"]).default("false"),
+  ADMIN_BOT_TOKEN: z.string().optional(),
+  ADMIN_CHAT_ID: z.string().optional(),
+
+  // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
+  AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("true"),
+  DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),
 });
 
 // ── Fail-fast startup validation ──────────────────────────

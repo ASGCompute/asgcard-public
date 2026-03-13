@@ -10,6 +10,8 @@ This repository (`ASGCompute/asgcard-public`) is a **read-only public mirror** o
 | `api/__tests__/` | Unit and integration tests |
 | `api/scripts/` | Automation scripts (preflight, E2E) |
 | `sdk/src/` | SDK source (`@asgcard/sdk`, Stellar x402 v2) |
+| `cli/src/` | CLI source (`@asgcard/cli`, terminal card management) |
+| `mcp-server/src/` | MCP Server source (`@asgcard/mcp-server`, AI agent tool server) |
 | `web/src/` | Frontend source (landing, docs page) |
 | `web/public/` | Static assets (openapi.json, docs.md, icons) |
 | `web/docs/` | Docs page entry |

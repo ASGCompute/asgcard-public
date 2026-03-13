@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireWalletAuth } from "../middleware/walletAuth";
+import { requireAgentNonce } from "../middleware/agentDetailsMiddleware";
 import { cardService, HttpError } from "../services/cardService";
 
 export const walletRouter = Router();
@@ -35,7 +36,8 @@ walletRouter.get("/:cardId", async (req, res) => {
   }
 });
 
-walletRouter.get("/:cardId/details", async (req, res) => {
+// REALIGN-003: Nonce + anti-replay always enabled for details access
+walletRouter.get("/:cardId/details", requireAgentNonce, async (req, res) => {
   if (!req.walletContext) {
     res.status(401).json({ error: "Wallet auth required" });
     return;

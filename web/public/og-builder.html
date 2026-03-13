@@ -243,13 +243,15 @@
       color: rgba(20, 241, 149, 0.78);
     }
 
-    .visa {
+    .mc-logo {
       margin-left: auto;
-      font-style: italic;
-      font-weight: 700;
-      font-size: 24px;
-      color: rgba(255, 255, 255, 0.16);
-      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+    }
+
+    .mc-logo svg {
+      width: 48px;
+      height: 30px;
     }
 
     .scan-zone {
@@ -359,7 +361,7 @@
     <div class="left">
       <div class="pill"><span class="pill-dot"></span>Powered by x402 on chain</div>
       <h1>ASG Card<br>for <span class="purple">AI Agents.</span></h1>
-      <p class="sub">Issue virtual Visa cards programmatically. Pay with USDC on chain via x402 and receive card details in seconds.</p>
+      <p class="sub">Issue virtual MasterCard cards programmatically. Pay with USDC on chain via x402 and receive card details in seconds.</p>
     </div>
 
     <div class="right">
@@ -380,7 +382,7 @@
             </div>
 
             <div class="bottom">
-              <div class="number">4111 •••• •••• 4444</div>
+              <div class="number">5395 •••• •••• 7890</div>
               <div class="meta-row">
                 <div class="meta-group">
                   <div class="meta-k">Expires</div>
@@ -394,7 +396,13 @@
                   <div class="meta-k">Balance</div>
                   <div class="meta-v green">$50.00</div>
                 </div>
-                <div class="visa">VISA</div>
+                <div class="mc-logo">
+                  <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="18" cy="15" r="12" fill="#EB001B" opacity="0.25"/>
+                    <circle cx="30" cy="15" r="12" fill="#F79E1B" opacity="0.25"/>
+                    <path d="M24 5.04a12 12 0 0 1 0 19.92 12 12 0 0 1 0-19.92z" fill="#FF5F00" opacity="0.3"/>
+                  </svg>
+                </div>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { appLogger } from "../utils/logger";
 /**
  * Metrics Service — non-blocking, fail-open.
  *
@@ -39,7 +40,7 @@ export function emitMetric(entry: MetricEntry): void {
     // Don't await — intentionally fire-and-forget
     writeMetric(entry).catch((err) => {
         // Fail-open: log and move on, never break the payment flow
-        console.error(
+        appLogger.error(
             `[metrics:fail-open] ${entry.eventType}: ${(err as Error).message ?? err}`
         );
     });

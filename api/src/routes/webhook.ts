@@ -1,8 +1,11 @@
+import { appLogger } from "../utils/logger";
 import crypto from "node:crypto";
 import { Router } from "express";
 import { env } from "../config/env";
 import { webhookEventRepository } from "../repositories/runtime";
 import { emitMetric } from "../services/metrics";
+import { routeCardEvent } from "../modules/notify";
+import { AdminBot } from "../modules/admin/adminBot";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -80,6 +83,7 @@ webhookRouter.post(
 
         if (!verifyHmac(rawBody, signatureHeader)) {
             emitMetric({ eventType: "webhook_sig_failure", source: "4payments" });
+            AdminBot.webhookSigFailure(req.ip ?? "unknown").catch(() => {});
             res.status(401).json({ error: "Invalid webhook signature" });
             return;
         }
@@ -109,14 +113,21 @@ webhookRouter.post(
         if (!inserted) {
             // Duplicate — already processed, return 200 to prevent retries
             emitMetric({ eventType: "webhook_duplicate", source: "4payments" });
+            AdminBot.webhookDuplicate(event.type, event.idempotencyKey).catch(() => {});
             res.status(200).json({ status: "already_processed" });
             return;
         }
-        // Route event to handler
-        // TODO: Implement concrete handlers for 4payments event types:
-        //   - card.created, card.funded, card.transaction, card.status_change
-        console.log(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
+        // Route card events to Telegram alerts via unified notify pipeline
+        if (env.BOT_ALERTS_ENABLED === "true") {
+            try {
+                await routeCardEvent(event.type, event.payload);
+            } catch (alertErr) {
+                appLogger.error({ err: alertErr }, "[Webhook] Alert delivery error (non-fatal)");
+            }
+        }
 
+        appLogger.info(`[Webhook] Received ${event.type} (key=${event.idempotencyKey})`);
+        AdminBot.webhookReceived(event).catch(() => {});
         emitMetric({ eventType: "webhook_accepted", source: "4payments" });
         res.status(200).json({ status: "accepted", type: event.type });
     }

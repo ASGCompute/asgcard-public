@@ -253,3 +253,46 @@ opsRouter.get("/rollout", async (_req, res) => {
         });
     }
 });
+
+// ── POST /ops/nonce-cleanup ───────────────────────────────
+
+import { appLogger } from "../utils/logger";
+
+opsRouter.post("/nonce-cleanup", async (req, res) => {
+    const retentionHours = Number(req.query.retention_hours) || 24;
+    const batchLimit = Number(req.query.batch_limit) || 10000;
+
+    const start = Date.now();
+    try {
+        const rows = await query<{ deleted_count: string }>(
+            `SELECT * FROM cleanup_expired_nonces($1, $2)`,
+            [retentionHours, batchLimit]
+        );
+
+        const deletedCount = Number(rows[0]?.deleted_count ?? 0);
+        const latencyMs = Date.now() - start;
+
+        appLogger.info({
+            event: "nonce_cleanup",
+            deletedCount,
+            retentionHours,
+            batchLimit,
+            latencyMs,
+        }, `[OPS] Nonce cleanup: deleted ${deletedCount} expired nonces in ${latencyMs}ms`);
+
+        res.json({
+            timestamp: new Date().toISOString(),
+            deleted_count: deletedCount,
+            retention_hours: retentionHours,
+            batch_limit: batchLimit,
+            latency_ms: latencyMs,
+        });
+    } catch (error) {
+        const latencyMs = Date.now() - start;
+        appLogger.error({ err: error, latencyMs }, "[OPS] Nonce cleanup failed");
+        res.status(500).json({
+            error: "Nonce cleanup failed",
+            detail: (error as Error).message,
+        });
+    }
+});

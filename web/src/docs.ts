@@ -59,6 +59,18 @@ const NAV: NavItem[] = [
     ]
   },
   {
+    id: 'mcp-server', label: 'MCP Server', children: [
+      { id: 'mcp-install', label: 'Setup' },
+      { id: 'mcp-tools', label: 'Tools' },
+    ]
+  },
+  {
+    id: 'cli', label: 'CLI', children: [
+      { id: 'cli-install', label: 'Install' },
+      { id: 'cli-commands', label: 'Commands' },
+    ]
+  },
+  {
     id: 'authentication', label: 'Authentication', children: [
       { id: 'x402-payment-flow', label: 'x402 Payment Flow' },
       { id: 'wallet-signature', label: 'Wallet Signature' },
@@ -75,6 +87,14 @@ const NAV: NavItem[] = [
       { id: 'public-endpoints', label: 'Public' },
       { id: 'paid-endpoints', label: 'Paid (x402)' },
       { id: 'wallet-signed-endpoints', label: 'Wallet-Signed' },
+    ]
+  },
+  {
+    id: 'agent-first', label: 'Agent-First Details', children: [
+      { id: 'details-envelope', label: 'Details Envelope' },
+      { id: 'get-card-details', label: 'GET /cards/:cardId/details' },
+      { id: 'nonce-replay', label: 'Nonce & Anti-Replay' },
+      { id: 'revoke-restore', label: 'Revoke / Restore' },
     ]
   },
   { id: 'errors', label: 'Errors' },
@@ -150,7 +170,7 @@ function renderOverview(): string {
   return `
     <section id="overview" aria-label="Overview">
       <h2>Overview</h2>
-      <p>ASG Card exposes a REST API with three classes of endpoints:</p>
+      <p>ASG Card exposes a REST API with five classes of endpoints:</p>
       <div class="docs-table-wrap">
         <table class="docs-table">
           <thead>
@@ -164,7 +184,7 @@ function renderOverview(): string {
             </tr>
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-post">Paid (x402)</span></td>
-              <td data-label="Auth">USDC payment on Stellar (PayAI facilitator-ready)</td>
+              <td data-label="Auth">USDC payment on Stellar via x402</td>
               <td data-label="Description">Create/fund cards</td>
             </tr>
             <tr>
@@ -186,7 +206,7 @@ function renderSDK(): string {
       <p>The official client SDK wraps the raw x402 flow (402 → parse challenge → pay USDC → retry with proof) into one-liner methods. No need to handle the payment handshake yourself.</p>
 
       <h3 id="sdk-install">Install</h3>
-      ${codeBlock('npm install @asgcard/sdk stellar-sdk', 'bash')}
+      ${codeBlock('npm install @asgcard/sdk', 'bash')}
 
       <hr class="docs-divider" />
 
@@ -196,7 +216,7 @@ function renderSDK(): string {
 const client = new ASGCardClient({
   privateKey: '<stellar_secret_seed>',
   baseUrl: 'https://api.asgcard.dev',
-  rpcUrl: 'https://horizon.stellar.org',
+  rpcUrl: 'https://mainnet.sorobanrpc.com',
 });
 
 // One line — SDK handles payment automatically
@@ -352,7 +372,10 @@ try {
       <p>For full control over the payment flow:</p>
       ${codeBlock(`import {
   parseChallenge,
+  checkBalance,
+  executePayment,
   buildPaymentPayload,
+  buildPaymentTransaction,
   handleX402Payment,
 } from '@asgcard/sdk';`, 'typescript')}
 
@@ -368,14 +391,29 @@ try {
               <td data-label="Description">Parse 402 challenge, returns first accepted method</td>
             </tr>
             <tr>
+              <td data-label="Function"><code>checkBalance</code></td>
+              <td data-label="Signature"><code>(params) → Promise&lt;void&gt;</code></td>
+              <td data-label="Description">Throws <code>InsufficientBalanceError</code> if USDC &lt; required</td>
+            </tr>
+            <tr>
+              <td data-label="Function"><code>executePayment</code></td>
+              <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
+              <td data-label="Description">Sends USDC on Stellar, returns txHash</td>
+            </tr>
+            <tr>
               <td data-label="Function"><code>buildPaymentPayload</code></td>
-              <td data-label="Signature"><code>(input) → string</code></td>
-              <td data-label="Description">Builds base64-encoded X-PAYMENT header value (x402 v2)</td>
+              <td data-label="Signature"><code>(accepted, signedXDR) → string</code></td>
+              <td data-label="Description">Builds base64-encoded X-PAYMENT header value</td>
+            </tr>
+            <tr>
+              <td data-label="Function"><code>buildPaymentTransaction</code></td>
+              <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
+              <td data-label="Description">Build + sign a Soroban SAC USDC transfer</td>
             </tr>
             <tr>
               <td data-label="Function"><code>handleX402Payment</code></td>
               <td data-label="Signature"><code>(params) → Promise&lt;string&gt;</code></td>
-              <td data-label="Description">Full cycle: parse → pay → build payload</td>
+              <td data-label="Description">Full cycle: parse → pay → build proof</td>
             </tr>
           </tbody>
         </table>
@@ -436,6 +474,120 @@ try {
   `;
 }
 
+function renderMCPServer(): string {
+  return `
+    <section id="mcp-server" aria-label="MCP Server">
+      <h2>MCP Server</h2>
+      <p>The <code>@asgcard/mcp-server</code> package exposes 8 tools via the <strong>Model Context Protocol</strong>, enabling AI agents in Claude Code, Claude Desktop, Cursor, and other MCP-compatible clients to manage ASG Card programmatically.</p>
+
+      <div class="docs-callout docs-callout-info">
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a>
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="mcp-install">Setup</h3>
+
+      <p><strong>Claude Code:</strong></p>
+      ${codeBlock(`claude mcp add asgcard -- npx -y @asgcard/mcp-server`, 'bash')}
+
+      <p><strong>Claude Desktop / Cursor — MCP config:</strong></p>
+      ${codeBlock(`{
+  "mcpServers": {
+    "asgcard": {
+      "command": "npx",
+      "args": ["-y", "@asgcard/mcp-server"],
+      "env": {
+        "STELLAR_PRIVATE_KEY": "S..."
+      }
+    }
+  }
+}`, 'json')}
+
+      <hr class="docs-divider" />
+
+      <h3 id="mcp-tools">Tools</h3>
+      <p>All 8 tools exposed by the MCP server:</p>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead>
+            <tr><th>Tool</th><th>Description</th><th>Auth</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Tool"><code>create_card</code></td><td data-label="Description">Create a virtual MasterCard with a specified tier (10–500 USD)</td><td data-label="Auth">x402</td></tr>
+            <tr><td data-label="Tool"><code>fund_card</code></td><td data-label="Description">Add funds to an existing card</td><td data-label="Auth">x402</td></tr>
+            <tr><td data-label="Tool"><code>list_cards</code></td><td data-label="Description">List all cards owned by the wallet</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_card</code></td><td data-label="Description">Get card summary (balance, status)</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_card_details</code></td><td data-label="Description">Retrieve PAN, CVV, expiry</td><td data-label="Auth">Wallet + Nonce</td></tr>
+            <tr><td data-label="Tool"><code>freeze_card</code></td><td data-label="Description">Temporarily block all transactions</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>unfreeze_card</code></td><td data-label="Description">Re-enable a frozen card</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_pricing</code></td><td data-label="Description">View pricing tiers and fees</td><td data-label="Auth">None</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Example — create a card via Claude:</strong></p>
+      <div class="docs-callout docs-callout-tip">
+        Just ask your AI agent: <em>"Create a $25 ASG Card for agent ALPHA with email agent@example.com"</em> — the MCP server handles x402 payment, wallet signing, and card creation automatically.
+      </div>
+
+    </section>
+  `;
+}
+
+function renderCLI(): string {
+  return `
+    <section id="cli" aria-label="CLI">
+      <h2>CLI</h2>
+      <p>The <code>@asgcard/cli</code> package provides a terminal interface for managing ASG Card — create, fund, freeze, and inspect virtual cards from your command line.</p>
+
+      <div class="docs-callout docs-callout-info">
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a>
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="cli-install">Install</h3>
+      ${codeBlock(`npm install -g @asgcard/cli`, 'bash')}
+
+      <p><strong>Quick start:</strong></p>
+      ${codeBlock(`# 1. Configure your Stellar key
+asgcard login
+
+# 2. Verify
+asgcard whoami
+
+# 3. Create a $10 card
+asgcard card:create --tier 10 --name "AGENT ALPHA" --email agent@example.com`, 'bash')}
+
+      <hr class="docs-divider" />
+
+      <h3 id="cli-commands">Commands</h3>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead>
+            <tr><th>Command</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Command"><code>asgcard login</code></td><td data-label="Description">Configure Stellar private key (stored at <code>~/.asgcard/config.json</code>)</td></tr>
+            <tr><td data-label="Command"><code>asgcard whoami</code></td><td data-label="Description">Display wallet public key</td></tr>
+            <tr><td data-label="Command"><code>asgcard cards</code></td><td data-label="Description">List all cards for the wallet</td></tr>
+            <tr><td data-label="Command"><code>asgcard card &lt;id&gt;</code></td><td data-label="Description">Show card summary (balance, status)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:details &lt;id&gt;</code></td><td data-label="Description">Retrieve PAN, CVV, expiry (nonce-protected)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:create</code></td><td data-label="Description">Create a new card (x402 payment)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:fund &lt;id&gt;</code></td><td data-label="Description">Top up an existing card</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:freeze &lt;id&gt;</code></td><td data-label="Description">Freeze a card</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:unfreeze &lt;id&gt;</code></td><td data-label="Description">Unfreeze a card</td></tr>
+            <tr><td data-label="Command"><code>asgcard pricing</code></td><td data-label="Description">View pricing and fee tiers</td></tr>
+            <tr><td data-label="Command"><code>asgcard health</code></td><td data-label="Description">Check API health status</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+  `;
+}
+
 function renderAuthentication(): string {
   return `
     <section id="authentication" aria-label="Authentication">
@@ -443,7 +595,7 @@ function renderAuthentication(): string {
       <p>ASG Card uses two authentication modes depending on the endpoint.</p>
 
       <h3 id="x402-payment-flow">x402 Payment Flow</h3>
-      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol with a facilitator-ready path aligned with PayAI. The flow has 4 steps:</p>
+      <p>Paid endpoints (<code>POST /cards/create/tier/:amount</code>, <code>POST /cards/fund/tier/:amount</code>) use the x402 protocol on Stellar. The flow has 4 steps:</p>
 
       <h4>Step 1 — Request without payment</h4>
       ${codeBlock(`curl -X POST https://api.asgcard.dev/cards/create/tier/10 \\
@@ -462,9 +614,9 @@ function renderAuthentication(): string {
   "accepts": [{
     "scheme": "exact",
     "network": "stellar:pubnet",
-    "asset": "USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-    "amount": "17200000",
-    "payTo": "GBQL4G3MUIQTNSSC7X3FR534RUOKPV4NBZOBPP43SLWU7BXYD6VAW5BZ",
+    "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+    "amount": "172000000",
+    "payTo": "GAHYHA55RTD2J4LAVJILTNHWMF2H2YVK5QXLQT3CHCJSVET3VRWPOCW6",
     "maxTimeoutSeconds": 300,
     "extra": { "areFeesSponsored": true }
   }]
@@ -479,7 +631,7 @@ function renderAuthentication(): string {
             <tr><td data-label="Field"><code>scheme</code></td><td data-label="Description">Always <code>"exact"</code></td></tr>
             <tr><td data-label="Field"><code>network</code></td><td data-label="Description"><code>"stellar:pubnet"</code></td></tr>
             <tr><td data-label="Field"><code>asset</code></td><td data-label="Description">USDC SAC on Stellar mainnet</td></tr>
-            <tr><td data-label="Field"><code>amount</code></td><td data-label="Description">Amount in atomic USDC (6 decimals)</td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Description">Amount in atomic USDC (7 decimals). 1 USDC = 10,000,000</td></tr>
             <tr><td data-label="Field"><code>payTo</code></td><td data-label="Description">ASG Treasury public key</td></tr>
             <tr><td data-label="Field"><code>maxTimeoutSeconds</code></td><td data-label="Description">Payment window (300s)</td></tr>
           </tbody>
@@ -490,7 +642,7 @@ function renderAuthentication(): string {
       <p>Parse the <code>accepts</code> array and send the specified USDC amount to the <code>payTo</code> address on Stellar, then proceed with facilitator verification if enabled.</p>
 
       <h4>Step 4 — Retry with X-PAYMENT header</h4>
-      <p>Re-send the original request with an <code>X-PAYMENT</code> header containing base64-encoded JSON (x402 v2 PaymentPayload):</p>
+      <p>Re-send the original request with an <code>X-PAYMENT</code> header containing base64-encoded JSON (x402 PaymentPayload):</p>
       ${codeBlock(`{
   "x402Version": 2,
   "accepted": {
@@ -588,7 +740,7 @@ function renderPricing(): string {
       <div class="docs-callout docs-callout-tip" id="pricing-source-note">
         Pricing is served by <code>GET /pricing</code> and reflected in the tables below.
       </div>
-      <p>All amounts are in USD. 1 USDC = 1,000,000 atomic units.</p>
+      <p>All amounts are in USD. 1 USDC = 10,000,000 atomic units (Stellar uses 7 decimal places).</p>
 
       <h3 id="card-creation">Card Creation</h3>
       <p>Creating a new virtual card includes the card load amount plus fees.</p>
@@ -739,8 +891,8 @@ function renderEndpoints(): string {
     "txHash": "<stellar_tx_hash>",
     "network": "stellar"
   },
-  "details": {
-    "cardNumber": "4111111111111111",
+  "detailsEnvelope": {
+    "cardNumber": "5395000000007890",
     "expiryMonth": 12,
     "expiryYear": 2028,
     "cvv": "123",
@@ -750,7 +902,10 @@ function renderEndpoints(): string {
       "state": "CA",
       "zip": "94105",
       "country": "US"
-    }
+    },
+    "oneTimeAccess": true,
+    "expiresInSeconds": 300,
+    "note": "Store securely. Use GET /cards/:id/details with X-AGENT-NONCE for subsequent access."
   }
 }`, 'json')}
       </div>
@@ -800,7 +955,7 @@ function renderEndpoints(): string {
   "cards": [{
     "cardId": "550e8400-e29b-41d4-a716-446655440000",
     "nameOnCard": "AGENT ALPHA",
-    "lastFour": "1111",
+    "lastFour": "7890",
     "balance": 10.0,
     "status": "active",
     "createdAt": "2026-02-11T14:00:00.000Z"
@@ -834,14 +989,26 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/:cardId/details</code>
         </div>
-        <p>Retrieve sensitive card details — full card number, CVV, expiry, and billing address.</p>
+        <p>Retrieve sensitive card details — full card number, CVV, expiry, and billing address. See <a href="#agent-first">Agent-First Details</a> for the full protocol.</p>
         <div class="docs-callout docs-callout-warn">
-          Rate limited to <strong>3 requests per card per hour</strong>.
+          Requires <code>X-AGENT-NONCE</code> header (UUID v4). Rate limited to <strong>5 unique nonces per card per hour</strong>. Returns <code>409</code> on replay, <code>403</code> if owner revoked access.
+        </div>
+        <strong>Required Headers:</strong>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Header</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Header"><code>X-WALLET-ADDRESS</code></td><td data-label="Description">Stellar public key</td></tr>
+              <tr><td data-label="Header"><code>X-WALLET-SIGNATURE</code></td><td data-label="Description">Ed25519 detached signature</td></tr>
+              <tr><td data-label="Header"><code>X-WALLET-TIMESTAMP</code></td><td data-label="Description">Unix timestamp (seconds)</td></tr>
+              <tr><td data-label="Header"><code>X-AGENT-NONCE</code></td><td data-label="Description">UUID v4 — unique per request, anti-replay</td></tr>
+            </tbody>
+          </table>
         </div>
         <strong>Response 200:</strong>
         ${codeBlock(`{
   "details": {
-    "cardNumber": "4111111111111111",
+    "cardNumber": "5395000000007890",
     "expiryMonth": 12,
     "expiryYear": 2028,
     "cvv": "123",
@@ -854,6 +1021,17 @@ function renderEndpoints(): string {
     }
   }
 }`, 'json')}
+        <strong>Error Responses:</strong>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Code</th><th>When</th><th>Body</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Code"><code>403</code></td><td data-label="When">Owner revoked details access</td><td data-label="Body"><code>{"error":"Details access revoked by card owner"}</code></td></tr>
+              <tr><td data-label="Code"><code>409</code></td><td data-label="When">Nonce already used (replay)</td><td data-label="Body"><code>{"error":"Nonce already used (replay detected)","code":"REPLAY_REJECTED"}</code></td></tr>
+              <tr><td data-label="Code"><code>429</code></td><td data-label="When">Rate limit exceeded</td><td data-label="Body"><code>{"error":"Card details rate limit exceeded (5 requests / hour)"}</code></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
@@ -887,6 +1065,120 @@ function renderEndpoints(): string {
   `;
 }
 
+function renderAgentFirst(): string {
+  return `
+    <section id="agent-first" aria-label="Agent-First Details">
+      <h2>Agent-First Details Access</h2>
+      <p>ASG Card uses an <strong>agent-first model</strong> for sensitive card data. Card details (number, CVV, expiry) are delivered via two mechanisms designed for autonomous agents.</p>
+
+      <h3 id="details-envelope">Details Envelope</h3>
+      <p>When a card is created via <code>POST /cards/create/tier/:amount</code>, the <code>201</code> response includes a <code>detailsEnvelope</code> field with full card details:</p>
+      ${codeBlock(`{
+  "success": true,
+  "card": { "cardId": "...", "status": "active" },
+  "payment": { "txHash": "...", "network": "stellar" },
+  "detailsEnvelope": {
+    "cardNumber": "5395000000007890",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "123",
+    "billingAddress": {
+      "street": "123 Main St",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94105",
+      "country": "US"
+    },
+    "oneTimeAccess": true,
+    "expiresInSeconds": 300
+  }
+}`, 'json')}
+      <div class="docs-callout docs-callout-info">
+        <strong>One-time access:</strong> The <code>detailsEnvelope</code> is returned only in the initial <code>201</code> response. It is not stored server-side. Agents should persist card details securely on their side.
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="get-card-details">GET /cards/:cardId/details</h3>
+      <p>If the agent loses the initial envelope, card details can be retrieved via <code>GET /cards/:cardId/details</code> using wallet signature authentication plus a unique nonce.</p>
+
+      <h4>Required Headers</h4>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead><tr><th>Header</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Header"><code>X-WALLET-ADDRESS</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Stellar public key (G...)</td></tr>
+            <tr><td data-label="Header"><code>X-WALLET-SIGNATURE</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Ed25519 detached signature (base64)</td></tr>
+            <tr><td data-label="Header"><code>X-WALLET-TIMESTAMP</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">Unix timestamp (seconds)</td></tr>
+            <tr><td data-label="Header"><code>X-AGENT-NONCE</code></td><td data-label="Type"><code>string</code></td><td data-label="Description">UUID v4 — must be unique per request</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      ${codeBlock(`import { v4 as uuid } from 'uuid';
+
+const nonce = uuid();
+const timestamp = Math.floor(Date.now() / 1000);
+const message = \`asgcard-auth:\${timestamp}\`;
+const signature = await wallet.signMessage(new TextEncoder().encode(message));
+
+const res = await fetch('https://api.asgcard.dev/cards/<cardId>/details', {
+  headers: {
+    'X-WALLET-ADDRESS': wallet.publicKey,
+    'X-WALLET-SIGNATURE': Buffer.from(signature).toString('base64'),
+    'X-WALLET-TIMESTAMP': String(timestamp),
+    'X-AGENT-NONCE': nonce,
+  },
+});
+
+if (res.status === 409) {
+  // Nonce replay detected — generate a new UUID and retry
+}
+if (res.status === 403) {
+  // Card owner has revoked details access
+}`, 'typescript')}
+
+      <hr class="docs-divider" />
+
+      <h3 id="nonce-replay">Nonce & Anti-Replay (409)</h3>
+      <p>Every call to <code>GET /cards/:cardId/details</code> requires a fresh <code>X-AGENT-NONCE</code> (UUID v4). If a nonce has already been used for the same card, the server returns:</p>
+      ${codeBlock(`HTTP/1.1 409 Conflict
+{
+  "error": "Nonce already used (replay detected)",
+  "code": "REPLAY_REJECTED"
+}`, 'json')}
+      <p>This prevents replay attacks and ensures each details retrieval is intentional. Combined with the 5-request-per-hour rate limit per card, this protects cardholder data.</p>
+
+      <hr class="docs-divider" />
+
+      <h3 id="revoke-restore">Revoke / Restore</h3>
+      <p>Card owners can control whether agents (or themselves, via the portal) can retrieve card details:</p>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead><tr><th>Action</th><th>Endpoint</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr>
+              <td data-label="Action">Revoke</td>
+              <td data-label="Endpoint"><code>POST /cards/:cardId/revoke-details</code></td>
+              <td data-label="Effect">Blocks all future <code>GET /details</code> → returns <code>403</code></td>
+            </tr>
+            <tr>
+              <td data-label="Action">Restore</td>
+              <td data-label="Endpoint"><code>POST /cards/:cardId/restore-details</code></td>
+              <td data-label="Effect">Re-enables <code>GET /details</code> access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Both endpoints require wallet signature authentication (same headers as card management). Revoked status returns:</p>
+      ${codeBlock(`HTTP/1.1 403 Forbidden
+{
+  "error": "Details access revoked by card owner"
+}`, 'json')}
+    </section>
+  `;
+}
+
 function renderErrors(): string {
   return `
     <section id="errors" aria-label="Errors">
@@ -916,14 +1208,24 @@ function renderErrors(): string {
               <td data-label="Example">Challenge JSON (see <a href="#x402-payment-flow">x402 Flow</a>)</td>
             </tr>
             <tr>
+              <td data-label="Code"><code>403</code></td>
+              <td data-label="When">Details access revoked by card owner</td>
+              <td data-label="Example"><code>{"error":"Details access revoked by card owner"}</code></td>
+            </tr>
+            <tr>
               <td data-label="Code"><code>404</code></td>
               <td data-label="When">Card not found</td>
               <td data-label="Example"><code>{"error":"Card not found"}</code></td>
             </tr>
             <tr>
+              <td data-label="Code"><code>409</code></td>
+              <td data-label="When">Nonce replay detected</td>
+              <td data-label="Example"><code>{"error":"Nonce already used (replay detected)","code":"REPLAY_REJECTED"}</code></td>
+            </tr>
+            <tr>
               <td data-label="Code"><code>429</code></td>
               <td data-label="When">Details endpoint rate limit</td>
-              <td data-label="Example"><code>{"error":"Card details rate limit exceeded (3 requests / hour)"}</code></td>
+              <td data-label="Example"><code>{"error":"Card details rate limit exceeded (5 requests / hour)"}</code></td>
             </tr>
             <tr>
               <td data-label="Code"><code>500</code></td>
@@ -947,7 +1249,7 @@ function renderRateLimits(): string {
             <tr><th>Endpoint</th><th>Limit</th><th>Window</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Endpoint"><code>GET /cards/:cardId/details</code></td><td data-label="Limit">3 requests per card</td><td data-label="Window">1 hour</td></tr>
+            <tr><td data-label="Endpoint"><code>GET /cards/:cardId/details</code></td><td data-label="Limit">5 requests per card</td><td data-label="Window">1 hour</td></tr>
             <tr><td data-label="Endpoint">All other endpoints</td><td data-label="Limit">Standard per-IP limits apply</td><td data-label="Window">—</td></tr>
           </tbody>
         </table>
@@ -1080,9 +1382,12 @@ document.querySelector<HTMLDivElement>('#docs-app')!.innerHTML = `
           ${renderIntroduction()}
           ${renderOverview()}
           ${renderSDK()}
+          ${renderMCPServer()}
+          ${renderCLI()}
           ${renderAuthentication()}
           ${renderPricing()}
           ${renderEndpoints()}
+          ${renderAgentFirst()}
           ${renderErrors()}
           ${renderRateLimits()}
           ${renderArchitecture()}

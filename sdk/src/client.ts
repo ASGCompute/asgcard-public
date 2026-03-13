@@ -1,3 +1,10 @@
+/**
+ * @asgcard/sdk — ASGCardClient
+ *
+ * Main client for the ASG Card API.
+ * Handles x402 payment flow on Stellar automatically.
+ */
+import { Keypair, rpc as StellarRpc } from "@stellar/stellar-sdk";
 import { ApiError, TimeoutError } from "./errors";
 import type {
   ASGCardClientConfig,
@@ -6,31 +13,55 @@ import type {
   FundCardParams,
   FundResult,
   HealthResponse,
-  TierResponse
+  TierResponse,
+  WalletAdapter,
 } from "./types";
 import { handleX402Payment } from "./utils/x402";
 
 const DEFAULT_BASE_URL = "https://api.asgcard.dev";
-const DEFAULT_HORIZON_URL = "https://horizon.stellar.org";
+const DEFAULT_RPC_URL = "https://mainnet.sorobanrpc.com";
 const DEFAULT_TIMEOUT = 60_000;
 
 export class ASGCardClient {
   private readonly baseUrl: string;
+
   private readonly timeout: number;
-  private readonly horizonUrl: string;
-  private readonly secretKey?: string;
+
+  private readonly rpcServer: StellarRpc.Server;
+
+  private readonly keypair?: Keypair;
+
+  private readonly walletAdapter?: WalletAdapter;
 
   constructor(config: ASGCardClientConfig) {
-    if (!config.secretKey) {
-      throw new Error("Provide a Stellar secret key (S...)");
+    if (!config.privateKey && !config.walletAdapter) {
+      throw new Error("Provide either privateKey or walletAdapter");
     }
 
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
-    this.horizonUrl = config.horizonUrl ?? DEFAULT_HORIZON_URL;
-    this.secretKey = config.secretKey;
+    this.rpcServer = new StellarRpc.Server(config.rpcUrl ?? DEFAULT_RPC_URL);
+
+    if (config.privateKey) {
+      this.keypair = Keypair.fromSecret(config.privateKey);
+    }
+
+    this.walletAdapter = config.walletAdapter;
   }
 
+  /** Stellar public key (G...) */
+  get address(): string {
+    if (this.keypair) {
+      return this.keypair.publicKey();
+    }
+
+    return this.walletAdapter!.publicKey;
+  }
+
+  /**
+   * Create a virtual card for a supported tier amount.
+   * Handles 402 → x402 payment → 201 automatically.
+   */
   async createCard(params: CreateCardParams): Promise<CardResult> {
     return this.requestWithX402<CardResult>(`/cards/create/tier/${params.amount}`, {
       method: "POST",
@@ -41,6 +72,10 @@ export class ASGCardClient {
     });
   }
 
+  /**
+   * Fund an existing card by tier amount.
+   * Handles 402 → x402 payment → 200 automatically.
+   */
   async fundCard(params: FundCardParams): Promise<FundResult> {
     return this.requestWithX402<FundResult>(`/cards/fund/tier/${params.amount}`, {
       method: "POST",
@@ -48,13 +83,17 @@ export class ASGCardClient {
     });
   }
 
+  /** Get available create/fund tier amounts and pricing */
   async getTiers(): Promise<TierResponse> {
     return this.request<TierResponse>("/cards/tiers", { method: "GET" });
   }
 
+  /** Health check */
   async health(): Promise<HealthResponse> {
     return this.request<HealthResponse>("/health", { method: "GET" });
   }
+
+  // ── x402 payment flow ────────────────────────────────
 
   private async requestWithX402<T>(path: string, init: RequestInit): Promise<T> {
     const first = await this.rawFetch(path, init);
@@ -66,9 +105,10 @@ export class ASGCardClient {
     const challengePayload = await first.json();
 
     const paymentHeader = await handleX402Payment({
+      rpcServer: this.rpcServer,
       challengePayload,
-      secretKey: this.secretKey!,
-      horizonUrl: this.horizonUrl
+      keypair: this.keypair,
+      walletAdapter: this.walletAdapter
     });
 
     const retry = await this.rawFetch(path, {
@@ -82,6 +122,8 @@ export class ASGCardClient {
 
     return this.parseResponse<T>(retry);
   }
+
+  // ── HTTP primitives ──────────────────────────────────
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const response = await this.rawFetch(path, init);

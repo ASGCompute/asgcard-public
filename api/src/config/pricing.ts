@@ -98,8 +98,13 @@ export const FUNDING_TIERS: FundingTier[] = [
   }
 ];
 
+/**
+ * Convert USD to Stellar USDC atomic units (7 decimal places).
+ * Stellar uses 7 decimals for all assets (including USDC).
+ * $1.00 = 10_000_000 atomic | $17.20 = 172_000_000 atomic
+ */
 export const toAtomicUsdc = (usd: number): string =>
-  Math.round(usd * 1_000_000).toString();
+  Math.round(usd * 10_000_000).toString();
 
 export const findCreationTier = (amount: number): CreationTier | undefined =>
   CREATION_TIERS.find((tier) => tier.loadAmount === amount);

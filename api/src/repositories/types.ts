@@ -10,6 +10,7 @@ export interface CreateCardInput {
     tierAmount: TierAmount;
     txHash: string;
     details: CardDetails;
+    fourPaymentsId?: string;
 }
 
 export interface CardRepository {
@@ -17,9 +18,16 @@ export interface CardRepository {
     findById(cardId: string): Promise<StoredCard | undefined>;
     findByWallet(walletAddress: string): Promise<StoredCard[]>;
     updateStatus(cardId: string, status: "active" | "frozen"): Promise<boolean>;
-    addBalance(cardId: string, amount: number): Promise<boolean>;
-}
+    addBalance(cardId: string, usdAmount: number): Promise<boolean>;
+    setDetailsRevoked(cardId: string, revoked: boolean): Promise<boolean>;
 
+    // REALIGN-003: Atomic Nonce & Rate Limit check
+    recordNonceAndCheckRateLimit(walletAddress: string, cardId: string, nonce: string, limitPerHour: number): Promise<{
+        allowed: boolean;
+        reason?: 'replay' | 'rate_limit';
+        retryAfterSeconds?: number;
+    }>;
+}
 // ── Payment Repository ─────────────────────────────────────
 
 export type PaymentStatus =

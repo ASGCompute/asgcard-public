@@ -1,11 +1,13 @@
 {
   "name": "asg-card",
-  "version": "0.3.0",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
     "api",
     "sdk",
-    "web"
+    "web",
+    "cli",
+    "mcp-server"
   ],
   "scripts": {
     "build": "npm run -ws build",
@@ -13,8 +15,5 @@
     "dev:api": "npm run -w @asgcard/api dev",
     "start": "npm run -w @asgcard/api start",
     "typecheck": "npm run -ws typecheck"
-  },
-  "dependencies": {
-    "@heroicons/react": "^2.2.0"
   }
 }

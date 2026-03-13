@@ -9,7 +9,7 @@ const createCardSchema = z.object({
 });
 
 const fundCardSchema = z.object({
-  cardId: z.string().uuid()
+  cardId: z.string().min(1)
 });
 
 export const paidRouter = Router();
@@ -37,7 +37,26 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req
       txHash: req.paymentContext.txHash
     });
 
-    res.status(201).json(result);
+    // REALIGN-001/002: Agent-first — unified contract (detailsEnvelope only, no flat details leak)
+    const response: Record<string, unknown> = {
+      success: result.success,
+      card: result.card,
+      payment: result.payment,
+    };
+    if (result.details) {
+      response.detailsEnvelope = {
+        cardNumber: result.details.cardNumber,
+        cvv: result.details.cvv,
+        expiryMonth: result.details.expiryMonth,
+        expiryYear: result.details.expiryYear,
+        billingAddress: result.details.billingAddress,
+        oneTimeAccess: true,
+        expiresInSeconds: 300,
+        note: "Store securely. Use GET /cards/:id/details with X-AGENT-NONCE for subsequent access."
+      };
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     if (error instanceof HttpError) {
       res.status(error.status).json({ error: error.message });

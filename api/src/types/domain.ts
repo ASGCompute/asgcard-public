@@ -30,6 +30,7 @@ export interface CardDetails {
   expiryMonth: number;
   expiryYear: number;
   cvv: string;
+  maskedCardNumber?: string;
   billingAddress: CardBillingAddress;
 }
 
@@ -44,4 +45,5 @@ export interface StoredCard {
   createdAt: string;
   updatedAt: string;
   details: CardDetails;
+  fourPaymentsId?: string;
 }

@@ -1,5 +1,6 @@
 export class ApiError extends Error {
   readonly status: number;
+
   readonly body: unknown;
 
   constructor(status: number, body: unknown) {
@@ -26,6 +27,7 @@ export class PaymentError extends Error {
 
 export class InsufficientBalanceError extends Error {
   readonly required: string;
+
   readonly available: string;
 
   constructor(required: string, available: string) {

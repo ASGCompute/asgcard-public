@@ -1,18 +1,36 @@
-export interface StellarKeypair {
-  publicKey(): string;
-  sign(data: Buffer): Buffer;
+/**
+ * @asgcard/sdk — type definitions
+ * x402 payment protocol on Stellar (Soroban SAC USDC)
+ */
+
+// ── Wallet Adapter ───────────────────────────────────────
+
+/** Adapter for external wallet signing (e.g. browser extension) */
+export interface WalletAdapter {
+  /** Stellar public key (G...) */
+  publicKey: string;
+  /** Sign a Stellar XDR transaction envelope, return signed XDR */
+  signTransaction(transactionXDR: string, networkPassphrase: string): Promise<string>;
 }
 
+// ── Client Config ────────────────────────────────────────
+
 export interface ASGCardClientConfig {
-  /** Stellar secret key (S...) */
-  secretKey?: string;
-  /** Base URL for the ASG Card API */
+  /** Stellar secret key (S...) — provide either this or walletAdapter */
+  privateKey?: string;
+  /** External wallet adapter — provide either this or privateKey */
+  walletAdapter?: WalletAdapter;
+  /** API base URL (default: https://api.asgcard.dev) */
   baseUrl?: string;
-  /** Stellar Horizon URL */
+  /** Soroban RPC URL (default: https://mainnet.sorobanrpc.com) */
+  rpcUrl?: string;
+  /** Horizon URL (default: https://horizon.stellar.org) */
   horizonUrl?: string;
-  /** Request timeout in ms */
+  /** Request timeout in ms (default: 60000) */
   timeout?: number;
 }
+
+// ── Card Operations ──────────────────────────────────────
 
 export interface CreateCardParams {
   amount: 10 | 25 | 50 | 100 | 200 | 500;
@@ -25,6 +43,8 @@ export interface FundCardParams {
   cardId: string;
 }
 
+// ── Tier Catalog ─────────────────────────────────────────
+
 export interface TierEntry {
   loadAmount?: number;
   fundAmount?: number;
@@ -36,6 +56,24 @@ export interface TierEntry {
 export interface TierResponse {
   creation: TierEntry[];
   funding: TierEntry[];
+}
+
+// ── Card Result ──────────────────────────────────────────
+
+export interface BillingAddress {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+export interface SensitiveCardDetails {
+  cardNumber: string;
+  expiryMonth: number;
+  expiryYear: number;
+  cvv: string;
+  billingAddress: BillingAddress;
 }
 
 export interface CardResult {
@@ -52,18 +90,15 @@ export interface CardResult {
     txHash: string;
     network: string;
   };
-  details: {
+  /** Sensitive card details (agent-first model, one-time access on create) */
+  detailsEnvelope?: {
     cardNumber: string;
     expiryMonth: number;
     expiryYear: number;
     cvv: string;
-    billingAddress: {
-      street: string;
-      city: string;
-      state: string;
-      zip: string;
-      country: string;
-    };
+    billingAddress: BillingAddress;
+    oneTimeAccess: boolean;
+    expiresInSeconds: number;
   };
 }
 
@@ -85,34 +120,35 @@ export interface HealthResponse {
   version: string;
 }
 
-/** x402 v2 accept entry (Stellar) */
+// ── x402 Types ───────────────────────────────────────────
+
 export interface X402Accept {
   scheme: "exact";
-  network: "stellar:pubnet";
+  network: string;
   asset: string;
   amount: string;
   payTo: string;
   maxTimeoutSeconds: number;
-  resource: string;
-  description: string;
+  extra?: {
+    areFeesSponsored?: boolean;
+    [key: string]: unknown;
+  };
 }
 
-/** x402 v2 challenge (Stellar) */
 export interface X402Challenge {
   x402Version: 2;
   accepts: X402Accept[];
+  resource?: {
+    url: string;
+    description: string;
+    mimeType: string;
+  };
 }
 
-/** x402 v2 payment payload (Stellar) */
-export interface PaymentPayload {
-  scheme: "exact";
-  network: "stellar:pubnet";
+export interface X402PaymentPayload {
+  x402Version: 2;
+  accepted: X402Accept;
   payload: {
-    authorization: {
-      from: string;
-      to: string;
-      value: string;
-    };
-    signature: string;
+    transaction: string;
   };
 }

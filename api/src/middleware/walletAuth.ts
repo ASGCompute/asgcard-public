@@ -1,6 +1,19 @@
 import type { RequestHandler } from "express";
 import { StrKey } from "@stellar/stellar-sdk";
 import nacl from "tweetnacl";
+import { query } from "../db/db";
+
+/** Lightweight DAA tracking — upsert one row per wallet per day */
+async function trackApiActivity(walletAddress: string): Promise<void> {
+    await query(
+        `INSERT INTO api_activity (wallet_address, request_date, request_count)
+         VALUES ($1, CURRENT_DATE, 1)
+         ON CONFLICT (wallet_address, request_date)
+         DO UPDATE SET request_count = api_activity.request_count + 1,
+                       last_seen_at = NOW()`,
+        [walletAddress]
+    );
+}
 
 const MAX_CLOCK_DRIFT_SECONDS = 300;
 
@@ -73,6 +86,9 @@ export const requireWalletAuth: RequestHandler = (req, res, next) => {
       address,
       timestamp
     };
+
+    // Track DAA (Daily Active Agents) — fire-and-forget
+    trackApiActivity(address).catch(() => {});
 
     next();
   } catch {

@@ -94,16 +94,16 @@ No API keys stored on remote servers. No OAuth tokens to rotate. Just cryptograp
 
 ## Comparison with Alternatives
 
-| Feature | ASG Card MCP | AgentCard MCP |
-|---------|-------------|---------------|
-| Tools | **8** | 7 |
-| Card creation | ✅ Autonomous (x402) | ❌ Requires Stripe Checkout |
+| Feature | ASG Card MCP | Traditional Agent Cards |
+|---------|-------------|------------------------|
+| Tools | **8** | Varies (typically fewer) |
+| Card creation | ✅ Autonomous (x402) | ❌ Requires manual checkout |
 | Card funding | ✅ Autonomous (x402) | ❌ Requires human |
-| Freeze/Unfreeze | ✅ Yes | ❌ No |
+| Freeze/Unfreeze | ✅ Yes | ❌ Often missing |
 | Auth | Stellar wallet (ed25519) | API key |
-| Payment | USDC on-chain | USD via Stripe |
+| Payment | USDC on-chain | USD via traditional rails |
 
-The key difference: **ASG Card is truly autonomous**. No human needs to fund the wallet or approve a Stripe checkout. The agent pays directly from its Stellar wallet.
+The key difference: **ASG Card is truly autonomous**. No human needs to fund the wallet or approve a checkout. The agent pays directly from its Stellar wallet.
 
 ## CLI Alternative
 

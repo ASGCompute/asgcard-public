@@ -294,8 +294,6 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
     const chatId = cbq.message?.chat.id;
     if (!chatId) return;
 
-    const messageId = cbq.message?.message_id;
-
     // Noop callback (pagination counter button)
     if (cbq.data === "noop") return;
 
@@ -306,11 +304,11 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
         return;
     }
 
-    // Route pagination callbacks — edit the current message in place
+    // Route pagination callbacks — delete old messages and show new page
     if (cbq.data.startsWith("cards_page:")) {
         const page = parseInt(parts[1], 10);
         if (!isNaN(page) && page > 0) {
-            await handleMyCardsCommand(client, chatId, cbq.from.id, page, messageId);
+            await handleMyCardsCommand(client, chatId, cbq.from.id, page, true);
         }
         return;
     }

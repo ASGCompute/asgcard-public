@@ -15,7 +15,7 @@ graph LR
     MCP -->|x402 SDK| API[api.asgcard.dev]
     MCP -->|wallet-auth HTTP| API
     API -->|USDC| Stellar[Stellar Network]
-    API -->|REST| FP[4payments<br>Card Issuer]
+    API -->|REST| FP[Card Issuer<br>MasterCard BIN]
 ```
 
 ## MCP Tools (8)
@@ -31,7 +31,7 @@ graph LR
 | `unfreeze_card` | cardId | wallet-auth | Разморозить |
 | `get_pricing` | — | public API | Тарифы и цены |
 
-> vs AgentCard.sh: у них 7 tools, нет freeze/unfreeze, нет автономного funding (Stripe = human)
+
 
 ## Архитектура
 

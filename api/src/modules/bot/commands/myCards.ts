@@ -1,8 +1,8 @@
 /**
- * My Cards command handler — read-only card list + card actions.
+ * My Cards command handler — card list + card actions.
  *
- * Uses existing cardService API to read cards.
- * All actions verified via requireOwnerBinding + audit log.
+ * CypherHQ-style layout: header message + individual card messages
+ * with action buttons. Pagination deletes old messages.
  *
  * @module modules/bot/commands/myCards
  */
@@ -20,9 +20,13 @@ import {
     cardActionsKeyboard,
     persistentMenu,
 } from "../keyboards";
+import { escapeHtml } from "../../../utils/html";
 
 // ── Constants ──────────────────────────────────────────────
 const CARDS_PER_PAGE = 3;
+
+// Track sent message IDs per chat for delete-on-pagination
+const chatMessageIds = new Map<number, number[]>();
 
 // ── My Cards ───────────────────────────────────────────────
 
@@ -31,8 +35,17 @@ export async function handleMyCardsCommand(
     chatId: number,
     userId: number,
     page: number = 1,
-    editMessageId?: number
+    deleteOld: boolean = false
 ): Promise<void> {
+    // If navigating, delete previous card messages
+    if (deleteOld) {
+        const oldMsgIds = chatMessageIds.get(chatId) || [];
+        for (const msgId of oldMsgIds) {
+            await client.deleteMessage(chatId, msgId).catch(() => {});
+        }
+        chatMessageIds.delete(chatId);
+    }
+
     // 1. Verify binding
     const owner = await requireOwnerBinding(userId, "my_cards");
     if (!owner) {
@@ -49,15 +62,14 @@ export async function handleMyCardsCommand(
     const allCards = await cardService.listCards(owner.ownerWallet);
 
     if (allCards.length === 0) {
-        const text =
-            `<b>💳 My Cards</b>\n\n` +
-            `You don't have any cards yet.\n` +
-            `Create one at <a href="https://asgcard.dev">asgcard.dev</a> or via the API.`;
-        if (editMessageId) {
-            await client.editMessageText({ chat_id: chatId, message_id: editMessageId, text, parse_mode: "HTML" });
-        } else {
-            await client.sendMessage({ chat_id: chatId, text, parse_mode: "HTML" });
-        }
+        await client.sendMessage({
+            chat_id: chatId,
+            text:
+                `<b>💳 My Cards</b>\n\n` +
+                `You don't have any cards yet.\n` +
+                `Create one at <a href="https://asgcard.dev">asgcard.dev</a> or via the API.`,
+            parse_mode: "HTML",
+        });
         return;
     }
 
@@ -70,66 +82,54 @@ export async function handleMyCardsCommand(
     // 4. Total balance (across ALL cards)
     const totalBalance = allCards.reduce((sum, c) => sum + c.balance, 0);
 
-    // 5. Build single combined message with header + all cards for this page
-    let text = `💳 <b>Account Balance</b> (USD): <b>$${totalBalance.toFixed(2)}</b>\n`;
-    if (totalPages > 1) {
-        text += `<i>Page ${safePage}/${totalPages} · ${allCards.length} cards</i>\n`;
-    }
-    text += `\n`;
+    // Track all message IDs we send for later deletion
+    const sentMsgIds: number[] = [];
 
+    // 5. Header message — "ASG Card Account\nBalance: $XX.XX\nPlease select a card"
+    const pageInfo = totalPages > 1 ? `\n<i>Page ${safePage}/${totalPages} · ${allCards.length} cards</i>` : "";
+    const headerText =
+        `<b>ASG Card Account</b>\n\n` +
+        `<b>ASG Card</b> Account Balance (USD): <b>$${totalBalance.toFixed(2)}</b>\n\n` +
+        `Please select a card` + pageInfo;
+
+    const headerMsgId = await client.sendMessage({
+        chat_id: chatId,
+        text: headerText,
+        parse_mode: "HTML",
+    });
+    if (headerMsgId) sentMsgIds.push(headerMsgId);
+
+    // 6. Individual card messages with action buttons (like CypherHQ)
     for (const card of pageCards) {
         const statusIcon = card.status === "frozen" ? "❄️" : "💳";
-        text += `${statusIcon} <b>ASG Virtual Card</b> · xxxx <code>${card.lastFour}</code>\n`;
-        text += `   Balance: <b>$${card.balance.toFixed(2)}</b> · ${card.status === "frozen" ? "❄️ Frozen" : "✅ Active"}\n\n`;
+        const cardMsgId = await client.sendMessage({
+            chat_id: chatId,
+            text: `${statusIcon} ASG Virtual Card - xxxx ${card.lastFour}`,
+            reply_markup: cardActionsKeyboard(card.cardId, card.status as "active" | "frozen"),
+        });
+        if (cardMsgId) sentMsgIds.push(cardMsgId);
     }
 
-    // 6. Build inline keyboard: card action buttons + navigation
-    const keyboard: { text: string; callback_data: string }[][] = [];
-
-    for (const card of pageCards) {
-        const row: { text: string; callback_data: string }[] = [];
-        if (card.status === "active") {
-            row.push({ text: "❄️ Freeze", callback_data: `card_freeze:${card.cardId}` });
-        } else {
-            row.push({ text: "🔓 Unfreeze", callback_data: `card_unfreeze:${card.cardId}` });
-        }
-        row.push({ text: "👁 Reveal", callback_data: `card_reveal:${card.cardId}` });
-        row.push({ text: "📊 Statement", callback_data: `card_statement:${card.cardId}` });
-        keyboard.push(row);
-    }
-
-    // Navigation row
+    // 7. Pagination buttons (if more than one page)
     if (totalPages > 1) {
-        const navRow: { text: string; callback_data: string }[] = [];
+        const navButtons: { text: string; callback_data: string }[] = [];
         if (safePage > 1) {
-            navRow.push({ text: "◀️ Prev", callback_data: `cards_page:${safePage - 1}` });
+            navButtons.push({ text: "◀️ Prev", callback_data: `cards_page:${safePage - 1}` });
         }
-        navRow.push({ text: `${safePage}/${totalPages}`, callback_data: "noop" });
+        navButtons.push({ text: `📄 ${safePage}/${totalPages}`, callback_data: "noop" });
         if (safePage < totalPages) {
-            navRow.push({ text: "▶️ Next", callback_data: `cards_page:${safePage + 1}` });
+            navButtons.push({ text: "▶️ Next", callback_data: `cards_page:${safePage + 1}` });
         }
-        keyboard.push(navRow);
+        const navMsgId = await client.sendMessage({
+            chat_id: chatId,
+            text: `📄 Page ${safePage} of ${totalPages}`,
+            reply_markup: { inline_keyboard: [navButtons] },
+        });
+        if (navMsgId) sentMsgIds.push(navMsgId);
     }
 
-    const reply_markup = { inline_keyboard: keyboard };
-
-    // 7. Edit existing message or send new one
-    if (editMessageId) {
-        await client.editMessageText({
-            chat_id: chatId,
-            message_id: editMessageId,
-            text,
-            parse_mode: "HTML",
-            reply_markup,
-        });
-    } else {
-        await client.sendMessage({
-            chat_id: chatId,
-            text,
-            parse_mode: "HTML",
-            reply_markup,
-        });
-    }
+    // Save message IDs for cleanup on next pagination
+    chatMessageIds.set(chatId, sentMsgIds);
 }
 
 // ── Card Callback Router ───────────────────────────────────
@@ -319,8 +319,9 @@ async function handleCardReveal(
             decision: "allow",
         });
 
-        // Format card number with spaces
-        const formatted = sensitive.number.replace(/(.{4})/g, "$1 ").trim();
+        // Format card number with spaces (handle number-as-integer from API)
+        const cardNum = String(sensitive.number);
+        const formatted = cardNum.replace(/(.{4})/g, "$1 ").trim();
 
         const text =
             `🔐 <b>Card Details</b> (auto-deletes in 30s)\n\n` +
@@ -391,8 +392,6 @@ async function handleCardStatement(
 }
 
 // ── Error helper ───────────────────────────────────────────
-
-import { escapeHtml } from "../../../utils/html";
 
 async function sendCardError(
     client: TelegramClient,

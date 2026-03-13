@@ -34,8 +34,8 @@ Giving an AI agent your company card number opens massive fraud risk. There's no
 ### Manual approval flows
 Some platforms let agents request purchases that humans approve. But this defeats the purpose of autonomous operation. Your agent is blocked until Karen from finance checks her email.
 
-### Existing "agent card" platforms
-Services like AgentCard.sh claim to solve this, but they still require **human-in-the-loop** funding via Stripe Checkout. The agent can't autonomously load the card — it has to wait for a human to add funds. That's not autonomy, that's a credit card with extra steps.
+### Existing agent card platforms
+Some platforms claim to solve this, but they still require **human-in-the-loop** funding via traditional payment rails. The agent can't autonomously load the card — it has to wait for a human to add funds. That's not autonomy, that's a credit card with extra steps.
 
 ## The Agent-First Approach
 

@@ -297,6 +297,15 @@ async function handleCallback(client: TelegramClient, cbq: TgCallbackQuery): Pro
     // Noop callback (pagination counter button)
     if (cbq.data === "noop") return;
 
+    // Delete reveal message
+    if (cbq.data.startsWith("card_delete_msg:")) {
+        const msgIdToDelete = parseInt(cbq.data.split(":")[1], 10);
+        if (!isNaN(msgIdToDelete) && msgIdToDelete > 0) {
+            await client.deleteMessage(chatId, msgIdToDelete).catch(() => {});
+        }
+        return;
+    }
+
     // Validate callback data format (action:cardId[:extra...]) — skip for pagination
     const parts = cbq.data.split(":");
     if (parts.length >= 2 && !cbq.data.startsWith("cards_page:") && !isValidCardId(parts[1])) {

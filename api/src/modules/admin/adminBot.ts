@@ -27,9 +27,9 @@ function getAdminClient(): TelegramClient | null {
     return adminClient;
 }
 
-function getAdminChatId(): number | null {
-    if (!env.ADMIN_CHAT_ID) return null;
-    return Number(env.ADMIN_CHAT_ID);
+function getAdminChatIds(): number[] {
+    if (!env.ADMIN_CHAT_ID) return [];
+    return env.ADMIN_CHAT_ID.split(",").map((id) => Number(id.trim())).filter((id) => !isNaN(id) && id !== 0);
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -41,17 +41,19 @@ export const AdminBot = {
      */
     async send(text: string, parseMode: "HTML" | "Markdown" = "HTML"): Promise<void> {
         const client = getAdminClient();
-        const chatId = getAdminChatId();
-        if (!client || !chatId) return;
+        const chatIds = getAdminChatIds();
+        if (!client || chatIds.length === 0) return;
 
-        try {
-            await client.sendMessage({
-                chat_id: chatId,
-                text,
-                parse_mode: parseMode,
-            });
-        } catch (err) {
-            appLogger.error({ err }, "[AdminBot] Failed to send message");
+        for (const chatId of chatIds) {
+            try {
+                await client.sendMessage({
+                    chat_id: chatId,
+                    text,
+                    parse_mode: parseMode,
+                });
+            } catch (err) {
+                appLogger.error({ err, chatId }, "[AdminBot] Failed to send message");
+            }
         }
     },
 
@@ -213,7 +215,7 @@ export const AdminBot = {
 
     /** Expose the underlying TelegramClient for advanced usage (e.g. admin webhook) */
     getClient: getAdminClient,
-    getChatId: getAdminChatId,
+    getChatIds: getAdminChatIds,
 };
 
 // ── Helpers ────────────────────────────────────────────────

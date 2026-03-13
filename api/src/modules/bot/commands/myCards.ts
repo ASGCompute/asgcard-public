@@ -316,23 +316,36 @@ async function handleCardReveal(
         const formatted = cardNum.replace(/(.{4})/g, "$1 ").trim();
 
         const text =
-            `🔐 <b>Card Details</b> (auto-deletes in 30s)\n\n` +
-            `💳 <code>${formatted}</code>\n` +
-            `📅 Exp: <code>${sensitive.expire}</code>\n` +
-            `🔑 CVV: <code>${sensitive.cvc}</code>\n\n` +
-            `<i>⚠️ This message will be deleted automatically.</i>`;
+            `🔐 <b>Card Details</b>\n\n` +
+            `💳 <tg-spoiler>${formatted}</tg-spoiler>\n` +
+            `📅 Exp: <tg-spoiler>${sensitive.expire}</tg-spoiler>\n` +
+            `🔑 CVV: <tg-spoiler>${sensitive.cvc}</tg-spoiler>\n\n` +
+            `<i>Tap to reveal · Press delete when done</i>`;
 
         const msgId = await client.sendMessage({
             chat_id: chatId,
             text,
             parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "🗑 Delete", callback_data: `card_delete_msg:${0}` }],
+                ],
+            },
         });
 
-        // Auto-delete after 30 seconds for security
+        // Update the delete button callback_data with actual message ID
         if (msgId) {
-            setTimeout(() => {
-                client.deleteMessage(chatId, msgId).catch(() => {});
-            }, 30_000);
+            await client.editMessageText({
+                chat_id: chatId,
+                message_id: msgId,
+                text,
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "🗑 Delete", callback_data: `card_delete_msg:${msgId}` }],
+                    ],
+                },
+            });
         }
     } catch (error) {
         await sendCardError(client, chatId, error);

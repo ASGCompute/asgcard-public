@@ -55,6 +55,25 @@ class CardService {
     const firstName = nameParts[0] || "Card";
     const lastName = nameParts.slice(1).join(" ") || "Holder";
 
+    // Sync: look up profile email/phone from owner_telegram_links
+    let profileEmail = input.email;
+    let profilePhone = "+14155551234"; // default placeholder
+
+    try {
+      const { query: dbQuery } = await import("../db/db");
+      const rows = await dbQuery<{ email: string | null; phone: string | null }>(
+        `SELECT email, phone FROM owner_telegram_links
+         WHERE owner_wallet = $1 AND status = 'active' LIMIT 1`,
+        [input.walletAddress]
+      );
+      if (rows.length > 0) {
+        if (rows[0].email) profileEmail = rows[0].email;
+        if (rows[0].phone) profilePhone = rows[0].phone;
+      }
+    } catch (err) {
+      console.error("[cardService] Profile lookup failed, using request values:", err);
+    }
+
     // Step 1: Issue card via 4payments
     let fpCard: FPCardIssued;
     try {
@@ -62,8 +81,8 @@ class CardService {
         externalId,
         firstName,
         lastName,
-        email: input.email,
-        phone: "+14155551234", // 4payments requires valid phone; using placeholder for virtual cards
+        email: profileEmail,
+        phone: profilePhone,
         label: `ASG ${input.nameOnCard}`.slice(0, 50),
         initialBalance: input.initialAmountUsd,
       });

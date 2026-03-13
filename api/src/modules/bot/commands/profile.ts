@@ -154,12 +154,31 @@ export async function handleProfileInput(
         }
     }
 
-    // Update in DB
+    // Update profile in DB
     const column = field === "email" ? "email" : "phone";
     await query(
         `UPDATE owner_telegram_links SET ${column} = $1 WHERE telegram_user_id = $2 AND status = 'active'`,
         [value, userId]
     );
+
+    // Reverse sync: if email changed, update all cards for this wallet
+    if (field === "email") {
+        try {
+            const walletRows = await query<{ owner_wallet: string }>(
+                `SELECT owner_wallet FROM owner_telegram_links WHERE telegram_user_id = $1 AND status = 'active' LIMIT 1`,
+                [userId]
+            );
+            if (walletRows.length > 0) {
+                await query(
+                    `UPDATE cards SET email = $1 WHERE wallet_address = $2`,
+                    [value, walletRows[0].owner_wallet]
+                );
+            }
+        } catch (err) {
+            // Non-fatal — profile is updated, card sync is best-effort
+            console.error("[profile] Cards email sync failed:", err);
+        }
+    }
 
     const icon = field === "email" ? "📧" : "📱";
     await client.sendMessage({

@@ -47,6 +47,7 @@ graph TB
 |-----------|-------------|
 | `/api` | ASG Card API (Express + x402 + wallet auth) |
 | `/sdk` | `@asgcard/sdk` TypeScript client |
+| `/mcp-server` | `@asgcard/mcp-server` MCP server for Claude, Cursor |
 | `/web` | Marketing website (asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
 
@@ -93,6 +94,43 @@ const card = await client.createCard({
 | `fundCard({amount, cardId})` | Top up an existing card |
 | `getTiers()` | Get current pricing tiers |
 | `health()` | API health check |
+
+## MCP Server (AI Agent Integration)
+
+`@asgcard/mcp-server` exposes 8 tools for Claude Code, Claude Desktop, and Cursor:
+
+| Tool | Description |
+|------|-------------|
+| `create_card` | Create a virtual card (x402 on-chain payment) |
+| `fund_card` | Fund an existing card |
+| `list_cards` | List all wallet cards |
+| `get_card` | Get card summary |
+| `get_card_details` | Get PAN, CVV, expiry |
+| `freeze_card` | Temporarily freeze a card |
+| `unfreeze_card` | Re-enable a frozen card |
+| `get_pricing` | View tier pricing |
+
+### Setup with Claude Code
+
+```bash
+claude mcp add asgcard -- npx -y @asgcard/mcp-server -e STELLAR_PRIVATE_KEY=S...
+```
+
+### Setup with Claude Desktop / Cursor
+
+```json
+{
+  "mcpServers": {
+    "asgcard": {
+      "command": "npx",
+      "args": ["-y", "@asgcard/mcp-server"],
+      "env": {
+        "STELLAR_PRIVATE_KEY": "YOUR_STELLAR_SECRET_KEY"
+      }
+    }
+  }
+}
+```
 
 ## Pricing
 

@@ -159,6 +159,34 @@ const card = await client.createCard({
 
 ---
 
+## 5.1. MCP Server (`@asgcard/mcp-server`)
+
+MCP сервер для Claude Code, Claude Desktop, Cursor, и других MCP-совместимых AI клиентов.
+
+```mermaid
+graph LR
+    AI[AI Agent] -->|stdio MCP| MCP["@asgcard/mcp-server"]
+    MCP -->|x402 SDK| API[api.asgcard.dev]
+    MCP -->|wallet-auth| API
+```
+
+**8 MCP Tools:**
+| Tool | Транспорт | Описание |
+|------|-----------|----------|
+| `create_card` | x402 SDK | Создать карту + on-chain оплата |
+| `fund_card` | x402 SDK | Пополнить карту |
+| `list_cards` | wallet-auth | Список карт кошелька |
+| `get_card` | wallet-auth | Сводка по карте |
+| `get_card_details` | wallet-auth | PAN, CVV, expiry |
+| `freeze_card` | wallet-auth | Заморозить |
+| `unfreeze_card` | wallet-auth | Разморозить |
+| `get_pricing` | public | Тарифы |
+
+**Repo:** `mcp-server/` | **npm:** `@asgcard/mcp-server`  
+**Полная документация:** `docs/MCP_SERVER.md`
+
+---
+
 ## 6. 4payments Integration (CONFIDENTIAL)
 
 - **Provider:** 4payments.io (Card-as-a-Service)

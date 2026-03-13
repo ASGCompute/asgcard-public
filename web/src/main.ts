@@ -294,7 +294,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                           <div class="font-mono text-xs text-asg-green/70 font-semibold">$50.00</div>
                         </div>
                         <div class="text-right">
-                          <span class="text-white/15 font-bold text-base italic tracking-tight">MC</span>
+                          <svg width="36" height="24" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="14" cy="12" r="10" fill="#EB001B" opacity="0.25"/>
+                            <circle cx="22" cy="12" r="10" fill="#F79E1B" opacity="0.25"/>
+                            <path d="M18 4.58a10 10 0 0 1 0 14.84 10 10 0 0 1 0-14.84z" fill="#FF5F00" opacity="0.3"/>
+                          </svg>
                         </div>
                       </div>
                     </div>

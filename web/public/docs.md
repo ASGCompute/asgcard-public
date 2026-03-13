@@ -69,7 +69,7 @@ The `@asgcard/mcp-server` provides 8 tools for AI agents via Model Context Proto
 | `get_pricing` | View pricing tiers |
 
 Setup: `claude mcp add asgcard -- npx -y @asgcard/mcp-server`
-Requires: `STELLAR_PRIVATE_KEY` environment variable.
+Requires: `STELLAR_PRIVATE_KEY` — your agent's own Stellar wallet key (never leaves your machine).
 
 ## CLI
 

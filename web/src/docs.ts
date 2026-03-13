@@ -506,7 +506,7 @@ function renderMCPServer(): string {
 }`, 'json')}
 
       <div class="docs-callout docs-callout-warn">
-        <code>STELLAR_PRIVATE_KEY</code> must be set as an environment variable. This is the Stellar secret key that signs x402 payments and wallet-auth requests.
+        <code>STELLAR_PRIVATE_KEY</code> is <strong>your agent's own</strong> Stellar wallet key. It never leaves your machine — used locally to sign x402 USDC payments and wallet-auth requests. ASG Card never sees or stores your private key.
       </div>
 
       <hr class="docs-divider" />

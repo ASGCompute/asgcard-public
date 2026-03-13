@@ -99,6 +99,16 @@ const card = await client.createCard({
 
 `@asgcard/mcp-server` exposes 8 tools for Claude Code, Claude Desktop, and Cursor:
 
+- `create_card` (x402 payment flow)
+- `fund_card` (x402 payment flow)
+- `list_cards`, `get_card`, `get_card_details`
+- `freeze_card`, `unfreeze_card`
+- `get_pricing`
+
+## Agent Skill (x402 Payments)
+
+For custom autonomous agents like **Open Claw**, Codex, or raw LLM pipelines, teach them how to pay via x402 natively on Stellar using the open-source [x402-payments-skill](https://github.com/ASGCompute/x402-payments-skill).
+
 | Tool | Description |
 |------|-------------|
 | `create_card` | Create a virtual card (x402 on-chain payment) |

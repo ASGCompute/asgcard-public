@@ -175,6 +175,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
         await client.setMyCommands([
             { command: "start", description: "Start / Link account" },
             { command: "mycards", description: "💳 My Cards" },
+            { command: "profile", description: "👤 Profile" },
             { command: "fund", description: "💰 Fund a Card" },
             { command: "faq", description: "❓ FAQ's" },
             { command: "support", description: "🧑‍💻 Support" },
@@ -189,7 +190,7 @@ botRouter.post("/telegram/setup", async (req, res) => {
         res.json({
             status: "ok",
             webhook: webhookUrl,
-            commands: ["start", "mycards", "fund", "faq", "support"],
+            commands: ["start", "mycards", "profile", "fund", "faq", "support"],
         });
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });

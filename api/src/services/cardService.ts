@@ -57,7 +57,7 @@ class CardService {
 
     // Sync: look up profile email/phone from owner_telegram_links
     let profileEmail = input.email;
-    let profilePhone = "+14155551234"; // default placeholder
+    let profilePhone = "+17073164477"; // default for new clients
 
     try {
       const { query: dbQuery } = await import("../db/db");

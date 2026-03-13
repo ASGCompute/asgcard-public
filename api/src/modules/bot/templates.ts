@@ -70,9 +70,8 @@ export function accountBalanceMessage(
         return `You have no cards associated with your account.`;
     }
 
-    let msg = `<b>ASG Card Account</b>\n\n`;
-    msg += `<b>ASG Card</b> Account Balance (USD): <b>$${totalBalance.toFixed(2)}</b>\n\n`;
-    msg += `Please select a card`;
+    let msg = `💳 <b>Account Balance</b> (USD): <b>$${totalBalance.toFixed(2)}</b>\n\n`;
+    msg += `Please select a card:`;
 
     return msg;
 }

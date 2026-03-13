@@ -30,6 +30,7 @@ export interface CardDetails {
   expiryMonth: number;
   expiryYear: number;
   cvv: string;
+  maskedCardNumber?: string;
   billingAddress: CardBillingAddress;
 }
 

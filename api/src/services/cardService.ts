@@ -216,7 +216,7 @@ class CardService {
     return cards.map((card) => ({
       cardId: card.cardId,
       nameOnCard: card.nameOnCard,
-      lastFour: card.details?.cardNumber?.slice(-4) ?? "XXXX",
+      lastFour: this.extractLast4(card),
       balance: card.balance,
       status: card.status,
       createdAt: card.createdAt,
@@ -237,7 +237,7 @@ class CardService {
         balance: card.balance,
         initialAmountUsd: card.initialAmountUsd,
         status: card.status,
-        lastFour: card.details?.cardNumber?.slice(-4) ?? "XXXX",
+        lastFour: this.extractLast4(card),
         createdAt: card.createdAt,
         updatedAt: card.updatedAt,
       },
@@ -348,8 +348,23 @@ class CardService {
       expiryMonth,
       expiryYear,
       cvv: fpCard.cardCVC,
+      maskedCardNumber: fpCard.maskedCardNumber,
       billingAddress: ASG_DEFAULT_BILLING_ADDRESS,
     };
+  }
+
+  /** Extract last 4 digits from card — tries full number, then masked number */
+  private extractLast4(card: { details?: CardDetails | null }): string {
+    if (card.details?.cardNumber) {
+      return card.details.cardNumber.slice(-4);
+    }
+    // maskedCardNumber is like "4485 XXXX XXXX 1234" — extract trailing digits
+    if (card.details?.maskedCardNumber) {
+      const masked = card.details.maskedCardNumber.replace(/\s/g, "");
+      const trailing = masked.match(/\d{4}$/);
+      if (trailing) return trailing[0];
+    }
+    return "????";
   }
 
   private parseSensitiveInfo(sensitive: FPSensitiveInfo): CardDetails {

@@ -167,7 +167,7 @@ function adminActionsKeyboard(): { inline_keyboard: { text: string; callback_dat
     };
 }
 
-async function sendHelpMessage(client: ReturnType<typeof getClient>, chatId: number): Promise<void> {
+async function sendHelpMessage(client: TelegramClient, chatId: number): Promise<void> {
     await client.sendMessage({
         chat_id: chatId,
         text:

@@ -65,6 +65,9 @@ const NAV: NavItem[] = [
     ]
   },
   {
+    id: 'agent-skill', label: 'Agent Skill (x402)'
+  },
+  {
     id: 'cli', label: 'CLI', children: [
       { id: 'cli-install', label: 'Install' },
       { id: 'cli-commands', label: 'Commands' },
@@ -532,6 +535,33 @@ function renderMCPServer(): string {
         Just ask your AI agent: <em>"Create a $25 ASG Card for agent ALPHA with email agent@example.com"</em> — the MCP server handles x402 payment, wallet signing, and card creation automatically.
       </div>
 
+    </section>
+  `;
+}
+
+function renderAgentSkill(): string {
+  return `
+    <section id="agent-skill" aria-label="Agent Skill">
+      <h2>Agent Skill (x402)</h2>
+      <p>For custom autonomous agents like <strong>Open Claw</strong>, Codex, or raw LLM pipelines, teach them how to pay our APIs natively using the open-source x402 payments skill.</p>
+
+      <div class="docs-callout docs-callout-info">
+        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/x402-payments-skill" target="_blank" rel="noopener">x402-payments-skill</a>
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="skill-what-it-does">What the skill does</h3>
+      <p>The skill gives your agent a complete decision tree for Stellar x402 payments:</p>
+      <ul>
+        <li>Listening for <code>402 Payment Required</code> challenges</li>
+        <li>Building Soroban SAC USDC <code>transfer</code> invocations</li>
+        <li>Signing Stellar <strong>auth entries</strong> (lighter than full transaction signing)</li>
+        <li>Sending the signed XDR via the <code>X-PAYMENT</code> header</li>
+        <li>Covering the full testnet-to-mainnet lifecycle (with OZ Channels facilitator)</li>
+      </ul>
+
+      <p><strong>Installation:</strong> Clone the repo and drop the <code>x402-payments</code> folder into your agent's skills directory.</p>
     </section>
   `;
 }
@@ -1385,6 +1415,7 @@ document.querySelector<HTMLDivElement>('#docs-app')!.innerHTML = `
           ${renderOverview()}
           ${renderSDK()}
           ${renderMCPServer()}
+          ${renderAgentSkill()}
           ${renderCLI()}
           ${renderAuthentication()}
           ${renderPricing()}

@@ -59,6 +59,18 @@ const NAV: NavItem[] = [
     ]
   },
   {
+    id: 'mcp-server', label: 'MCP Server', children: [
+      { id: 'mcp-install', label: 'Setup' },
+      { id: 'mcp-tools', label: 'Tools' },
+    ]
+  },
+  {
+    id: 'cli', label: 'CLI', children: [
+      { id: 'cli-install', label: 'Install' },
+      { id: 'cli-commands', label: 'Commands' },
+    ]
+  },
+  {
     id: 'authentication', label: 'Authentication', children: [
       { id: 'x402-payment-flow', label: 'x402 Payment Flow' },
       { id: 'wallet-signature', label: 'Wallet Signature' },
@@ -458,6 +470,126 @@ try {
         </svg>
         <p class="docs-diagram-caption">SDK handles the 402 → pay → retry cycle automatically.</p>
       </div>
+    </section>
+  `;
+}
+
+function renderMCPServer(): string {
+  return `
+    <section id="mcp-server" aria-label="MCP Server">
+      <h2>MCP Server</h2>
+      <p>The <code>@asgcard/mcp-server</code> package exposes 8 tools via the <strong>Model Context Protocol</strong>, enabling AI agents in Claude Code, Claude Desktop, Cursor, and other MCP-compatible clients to manage ASG Card programmatically.</p>
+
+      <div class="docs-callout docs-callout-info">
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a> &nbsp;|&nbsp;
+        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard/tree/main/mcp-server" target="_blank" rel="noopener">mcp-server/</a>
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="mcp-install">Setup</h3>
+
+      <p><strong>Claude Code:</strong></p>
+      ${codeBlock(`claude mcp add asgcard -- npx -y @asgcard/mcp-server`, 'bash')}
+
+      <p><strong>Claude Desktop / Cursor — MCP config:</strong></p>
+      ${codeBlock(`{
+  "mcpServers": {
+    "asgcard": {
+      "command": "npx",
+      "args": ["-y", "@asgcard/mcp-server"],
+      "env": {
+        "STELLAR_PRIVATE_KEY": "S..."
+      }
+    }
+  }
+}`, 'json')}
+
+      <div class="docs-callout docs-callout-warn">
+        <code>STELLAR_PRIVATE_KEY</code> must be set as an environment variable. This is the Stellar secret key that signs x402 payments and wallet-auth requests.
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="mcp-tools">Tools</h3>
+      <p>All 8 tools exposed by the MCP server:</p>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead>
+            <tr><th>Tool</th><th>Description</th><th>Auth</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Tool"><code>create_card</code></td><td data-label="Description">Create a virtual MasterCard with a specified tier (10–500 USD)</td><td data-label="Auth">x402</td></tr>
+            <tr><td data-label="Tool"><code>fund_card</code></td><td data-label="Description">Add funds to an existing card</td><td data-label="Auth">x402</td></tr>
+            <tr><td data-label="Tool"><code>list_cards</code></td><td data-label="Description">List all cards owned by the wallet</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_card</code></td><td data-label="Description">Get card summary (balance, status)</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_card_details</code></td><td data-label="Description">Retrieve PAN, CVV, expiry</td><td data-label="Auth">Wallet + Nonce</td></tr>
+            <tr><td data-label="Tool"><code>freeze_card</code></td><td data-label="Description">Temporarily block all transactions</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>unfreeze_card</code></td><td data-label="Description">Re-enable a frozen card</td><td data-label="Auth">Wallet</td></tr>
+            <tr><td data-label="Tool"><code>get_pricing</code></td><td data-label="Description">View pricing tiers and fees</td><td data-label="Auth">None</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Example — create a card via Claude:</strong></p>
+      <div class="docs-callout docs-callout-tip">
+        Just ask your AI agent: <em>"Create a $25 ASG Card for agent ALPHA with email agent@example.com"</em> — the MCP server handles x402 payment, wallet signing, and card creation automatically.
+      </div>
+
+    </section>
+  `;
+}
+
+function renderCLI(): string {
+  return `
+    <section id="cli" aria-label="CLI">
+      <h2>CLI</h2>
+      <p>The <code>@asgcard/cli</code> package provides a terminal interface for managing ASG Card — create, fund, freeze, and inspect virtual cards from your command line.</p>
+
+      <div class="docs-callout docs-callout-info">
+        <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a> &nbsp;|&nbsp;
+        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard/tree/main/cli" target="_blank" rel="noopener">cli/</a>
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="cli-install">Install</h3>
+      ${codeBlock(`npm install -g @asgcard/cli`, 'bash')}
+
+      <p><strong>Quick start:</strong></p>
+      ${codeBlock(`# 1. Configure your Stellar key
+asgcard login
+
+# 2. Verify
+asgcard whoami
+
+# 3. Create a $10 card
+asgcard card:create --tier 10 --name "AGENT ALPHA" --email agent@example.com`, 'bash')}
+
+      <hr class="docs-divider" />
+
+      <h3 id="cli-commands">Commands</h3>
+      <div class="docs-table-wrap">
+        <table class="docs-table">
+          <thead>
+            <tr><th>Command</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Command"><code>asgcard login</code></td><td data-label="Description">Configure Stellar private key (stored at <code>~/.asgcard/config.json</code>)</td></tr>
+            <tr><td data-label="Command"><code>asgcard whoami</code></td><td data-label="Description">Display wallet public key</td></tr>
+            <tr><td data-label="Command"><code>asgcard cards</code></td><td data-label="Description">List all cards for the wallet</td></tr>
+            <tr><td data-label="Command"><code>asgcard card &lt;id&gt;</code></td><td data-label="Description">Show card summary (balance, status)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:details &lt;id&gt;</code></td><td data-label="Description">Retrieve PAN, CVV, expiry (nonce-protected)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:create</code></td><td data-label="Description">Create a new card (x402 payment)</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:fund &lt;id&gt;</code></td><td data-label="Description">Top up an existing card</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:freeze &lt;id&gt;</code></td><td data-label="Description">Freeze a card</td></tr>
+            <tr><td data-label="Command"><code>asgcard card:unfreeze &lt;id&gt;</code></td><td data-label="Description">Unfreeze a card</td></tr>
+            <tr><td data-label="Command"><code>asgcard pricing</code></td><td data-label="Description">View pricing and fee tiers</td></tr>
+            <tr><td data-label="Command"><code>asgcard health</code></td><td data-label="Description">Check API health status</td></tr>
+          </tbody>
+        </table>
+      </div>
+
     </section>
   `;
 }
@@ -1253,6 +1385,8 @@ document.querySelector<HTMLDivElement>('#docs-app')!.innerHTML = `
           ${renderIntroduction()}
           ${renderOverview()}
           ${renderSDK()}
+          ${renderMCPServer()}
+          ${renderCLI()}
           ${renderAuthentication()}
           ${renderPricing()}
           ${renderEndpoints()}

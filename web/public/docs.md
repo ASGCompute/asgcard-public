@@ -1,6 +1,6 @@
 # ASG Card Docs (LLM-Friendly)
 
-ASG Card is an API for issuing and managing virtual Visa cards for AI agents.
+ASG Card is an API for issuing and managing virtual MasterCard cards for AI agents.
 
 - Payments use **USDC on Stellar**
 - Paid endpoints use **x402 v2**
@@ -13,12 +13,35 @@ ASG Card is an API for issuing and managing virtual Visa cards for AI agents.
 - Website: <https://asgcard.dev/>
 - HTML docs: <https://asgcard.dev/docs>
 - OpenAPI: <https://asgcard.dev/openapi.json>
+- GitHub: <https://github.com/ASGCompute/asgcard>
+- Agent discovery: <https://asgcard.dev/agent.txt>
+
+## npm Packages
+
+| Package | Description |
+|---------|-------------|
+| `@asgcard/sdk` | TypeScript SDK — wraps x402 payment flow into one-liner methods |
+| `@asgcard/mcp-server` | MCP Server — 8 tools for Claude Code/Desktop/Cursor |
+| `@asgcard/cli` | CLI — 11 commands for terminal card management |
+
+## Install
+
+```bash
+# SDK
+npm install @asgcard/sdk
+
+# MCP Server (for Claude/Cursor)
+npx @asgcard/mcp-server
+# or: claude mcp add asgcard -- npx -y @asgcard/mcp-server
+
+# CLI
+npm install -g @asgcard/cli
+asgcard login
+```
 
 ## Base URL
 
 `https://api.asgcard.dev`
-
-**API version**: `0.3.1`
 
 ## Overview
 
@@ -30,10 +53,40 @@ ASG Card exposes five endpoint classes:
 4. **Portal** (owner actions): revoke/restore agent access to card details
 5. **Ops** (admin): metrics, rollout, nonce cleanup — secured by OPS_API_KEY
 
-## Install (SDK)
+## MCP Server
 
-```bash
-npm install @asgcard/sdk stellar-sdk
+The `@asgcard/mcp-server` provides 8 tools for AI agents via Model Context Protocol:
+
+| Tool | Description |
+|------|-------------|
+| `create_card` | Create virtual MasterCard (pays USDC on-chain) |
+| `fund_card` | Top up an existing card |
+| `list_cards` | List all wallet's cards |
+| `get_card` | Get card summary |
+| `get_card_details` | Get PAN, CVV, expiry |
+| `freeze_card` | Temporarily freeze card |
+| `unfreeze_card` | Re-enable frozen card |
+| `get_pricing` | View pricing tiers |
+
+Setup: `claude mcp add asgcard -- npx -y @asgcard/mcp-server`
+Requires: `STELLAR_PRIVATE_KEY` environment variable.
+
+## CLI
+
+The `@asgcard/cli` provides 11 terminal commands:
+
+```
+asgcard login          — Configure Stellar key
+asgcard whoami         — Show wallet address
+asgcard cards          — List all cards
+asgcard card <id>      — Card summary
+asgcard card:details   — PAN, CVV, expiry
+asgcard card:create    — Create card (x402)
+asgcard card:fund      — Fund card (x402)
+asgcard card:freeze    — Freeze card
+asgcard card:unfreeze  — Unfreeze card
+asgcard pricing        — View tiers
+asgcard health         — API health check
 ```
 
 ## Authentication
@@ -57,16 +110,6 @@ Wallet-signed endpoints require a valid Stellar wallet signature (Ed25519).
 ### `GET /health`
 
 Health check endpoint.
-
-Example response:
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-03-04T14:00:00.000Z",
-  "version": "0.3.1"
-}
-```
 
 ### `GET /pricing`
 
@@ -97,10 +140,7 @@ Returns (201):
 
 - `card` — card summary (`cardId`, status, balance)
 - `payment` — payment info (`amountCharged`, `txHash`, `network`)
-- `details` — **agent-first**: full PAN, CVV, expiry, billing address (only when `AGENT_DETAILS_ENABLED=true`)
-
-> **Security note**: PAN/CVV are returned only in the HTTP response to the creating agent.
-> They are **never** logged, stored in metrics, or shown in Telegram bot messages.
+- `details` — **agent-first**: full PAN, CVV, expiry, billing address
 
 ### `POST /cards/fund/tier/:amount`
 
@@ -137,15 +177,6 @@ Get sensitive card details (PAN, CVV, expiry).
 | `X-WALLET-TIMESTAMP` | Unix timestamp |
 | `X-AGENT-NONCE` | UUID v4, unique per request (anti-replay) |
 
-**Response codes:**
-
-| Code | Meaning |
-|------|---------|
-| `200` | Success — returns `{ details: { cardNumber, cvv, expiryMonth, expiryYear, billingAddress } }` |
-| `403` | Card details access revoked by owner |
-| `409` | Nonce already used (replay detected) — `{ error, code: "REPLAY_REJECTED" }` |
-| `429` | Rate limit exceeded (max 3 unique nonces per card per hour) |
-
 ### `POST /cards/:cardId/freeze`
 
 Freeze a card.
@@ -158,47 +189,25 @@ Unfreeze a card.
 
 ### `POST /portal/cards/:cardId/revoke-details`
 
-Owner revokes agent access to card details. After revoking, `GET /cards/:cardId/details` returns `403`.
+Owner revokes agent access to card details.
 
 ### `POST /portal/cards/:cardId/restore-details`
 
-Owner restores agent access to card details. After restoring, `GET /cards/:cardId/details` returns `200` again.
+Owner restores agent access to card details.
 
 ## Errors
 
-Non-2xx responses return:
+Non-2xx responses return: `{ "error": "Human-readable error message" }`
 
-```json
-{ "error": "Human-readable error message" }
-```
-
-Common statuses:
-
-- `400` invalid body / unsupported tier
-- `401` invalid wallet auth or payment proof
-- `402` x402 payment challenge
-- `403` details access revoked by owner
-- `404` card not found
-- `409` nonce replay detected
-- `429` rate limit exceeded
-- `500` internal error
+Common statuses: 400, 401, 402, 403, 404, 409, 429, 500
 
 ## Rate Limits
 
 - `GET /cards/:cardId/details`: **3 unique nonces per card per hour**
-
-## Notes for Agents / Integrators
-
-- Prefer `GET /pricing` or `GET /cards/tiers` before selecting tier amounts.
-- Treat `402` as an expected step for paid endpoints (x402 flow), not a terminal error.
-- Generate a new UUID v4 for each `GET /details` request and pass it as `X-AGENT-NONCE`.
-- If you receive `409`, you accidentally reused a nonce — generate a new one and retry.
-- The Telegram bot does **not** display PAN/CVV. Only the API response contains them.
-- Sensitive card details should be requested only when strictly required.
 
 ## Canonical Source
 
 For the latest UI docs and examples, use:
 <https://asgcard.dev/docs>
 
-Last updated: 2026-03-04 | Version: 0.3.1
+Last updated: 2026-03-12

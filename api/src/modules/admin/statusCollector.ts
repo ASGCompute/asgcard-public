@@ -28,6 +28,8 @@ export interface AdminStatus {
     clients: {
         total: number | null;
         linked: number | null;
+        daaToday: number | null;
+        daa7d: number | null;
     };
     cards: {
         total: number | null;
@@ -211,6 +213,27 @@ async function getWebhookStats(): Promise<{
     }
 }
 
+/**
+ * Daily Active Agents — unique wallets active today and in last 7 days.
+ */
+async function getDailyActiveAgents(): Promise<{ today: number | null; last7d: number | null }> {
+    try {
+        const rows = await query<{ daa_today: string; daa_7d: string }>(`
+            SELECT
+                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date = CURRENT_DATE) as daa_today,
+                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date >= CURRENT_DATE - INTERVAL '7 days') as daa_7d
+            FROM api_activity
+        `);
+        return {
+            today: parseInt(rows[0].daa_today, 10),
+            last7d: parseInt(rows[0].daa_7d, 10),
+        };
+    } catch (err) {
+        appLogger.error({ err }, "[StatusCollector] DAA query failed");
+        return { today: null, last7d: null };
+    }
+}
+
 // ── Main Collector ─────────────────────────────────────────
 
 /**
@@ -224,12 +247,14 @@ export async function collectStatus(): Promise<AdminStatus> {
         cardStats,
         linkedAccounts,
         webhookStats,
+        daa,
     ] = await Promise.all([
         getTreasuryBalance(),
         get4PaymentsBalance(),
         getCardStats(),
         getLinkedAccounts(),
         getWebhookStats(),
+        getDailyActiveAgents(),
     ]);
 
     return {
@@ -242,6 +267,8 @@ export async function collectStatus(): Promise<AdminStatus> {
         clients: {
             total: cardStats.uniqueWallets,
             linked: linkedAccounts,
+            daaToday: daa.today,
+            daa7d: daa.last7d,
         },
         cards: {
             total: cardStats.total,
@@ -292,6 +319,8 @@ export function formatStatusMessage(s: AdminStatus): string {
         `👥 <b>Clients & Cards</b>\n` +
         `├ Wallets: ${fmtNum(s.clients.total)}\n` +
         `├ TG Linked: ${fmtNum(s.clients.linked)}\n` +
+        `├ DAA (today): ${fmtNum(s.clients.daaToday)}\n` +
+        `├ DAA (7d): ${fmtNum(s.clients.daa7d)}\n` +
         `├ Cards total: ${fmtNum(s.cards.total)}\n` +
         `├ Active: ${fmtNum(s.cards.active)}\n` +
         `├ Frozen: ${fmtNum(s.cards.frozen)}\n` +

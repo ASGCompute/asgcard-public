@@ -1,72 +1,74 @@
-# Contributing to ASG Card
+# Contributing to Agent Card
 
-## Development Workflow
+Thank you for your interest in contributing to Agent Card! 🎉
 
-1. **All work is tracked in GitHub Issues.** Do not start work without an associated issue.
-2. **Branch from `main`** using the naming convention: `<type>/<issue-key>-<short-description>`
-   - Examples: `feat/PLAT-001-api-skeleton`, `fix/ISS-002-topup-mapping`, `docs/GH-004-issue-templates`
-3. **Open a PR** against `main` when ready for review.
-4. **PR must pass all required checks** (lint, typecheck, tests, security scan) before merge.
-5. **Minimum 1 approval** required (2 for security-labeled issues).
-6. **Squash merge** to keep `main` history clean.
+## Quick Links
 
-## Commit Convention
+- [Issues](https://github.com/ASGCompute/asgcard-public/issues) — Report bugs or request features
+- [Docs](https://asgcard.dev/docs) — API documentation
+- [Security Policy](SECURITY.md) — Report vulnerabilities responsibly
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+## How to Contribute
 
-```
-<type>(<scope>): <description>
+### Reporting Bugs
 
-[optional body]
+1. Search [existing issues](https://github.com/ASGCompute/asgcard-public/issues) first
+2. Open a new issue using the **Bug Report** template
+3. Include reproduction steps, expected vs. actual behavior, and environment details
 
-[optional footer: Closes #<issue-number>]
-```
+### Suggesting Features
 
-Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `security`
+1. Open an issue using the **Feature Request** template
+2. Describe the use case and expected behavior
+3. Tag with `enhancement`
 
-Scopes: `api`, `sdk`, `web`, `gateway`, `payments`, `issuer`, `webhooks`, `ledger`, `infra`
+### Code Contributions
 
-## Code Standards
+This is a **public mirror** of an internal monorepo. We accept PRs for:
 
-- TypeScript strict mode (`"strict": true`) everywhere.
-- Zod for all runtime validation (env, request bodies, external API responses).
-- No hardcoded secrets or PII in source code or logs.
-- PAN/CVV must never appear in log output.
+- Documentation improvements
+- Bug fixes with tests
+- New MCP tool implementations
+- SDK improvements
+- CLI enhancements
 
-## Review Policy
+#### Workflow
 
-- Every PR needs at least 1 reviewer approval.
-- Security-labeled PRs need 2 approvals + security owner sign-off.
-- Reviewers must verify:
-  - Tests cover new/changed behavior.
-  - Observability (logs/metrics) is added where applicable.
-  - Documentation is updated if API surface changes.
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes
+4. Run tests: `npm test`
+5. Commit with a clear message: `feat: add card spending limits`
+6. Push and open a PR
 
-## Local Development
+#### Commit Convention
 
-```bash
-npm install          # install all workspace dependencies
-npm run dev:api      # start API on port 3000
-npm run dev          # start web on port 3001
-npm run typecheck    # type-check all workspaces
-```
+We use [Conventional Commits](https://www.conventionalcommits.org/):
 
-### Environment Setup
+- `feat:` — New feature
+- `fix:` — Bug fix
+- `docs:` — Documentation only
+- `refactor:` — Code change that neither fixes a bug nor adds a feature
+- `test:` — Adding or updating tests
+- `chore:` — Maintenance tasks
 
-Copy `api/.env.example` to `api/.env` and fill in local values:
+### Good First Issues
 
-```bash
-cp api/.env.example api/.env
-```
+Look for issues labeled [`good first issue`](https://github.com/ASGCompute/asgcard-public/labels/good%20first%20issue) — these are curated for newcomers.
 
-Web dev server fetches pricing from the local API server by default. Override with:
+## Development Setup
 
 ```bash
-VITE_API_BASE_URL=https://api.asgcard.dev npm run dev
+git clone https://github.com/ASGCompute/asgcard-public.git
+cd asgcard-public
+npm install
+npm run build
 ```
 
-### Production
+## Code of Conduct
 
-- **API:** `https://api.asgcard.dev`
-- **Web:** `https://asgcard.dev`
-- Web pricing is served via same-origin `/api/pricing` (Vercel rewrite).
+Be respectful, constructive, and inclusive. We follow the [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.

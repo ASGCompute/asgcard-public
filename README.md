@@ -41,6 +41,12 @@ Agent Card is an **agent-first** virtual card platform. AI agents programmatical
 
 </div>
 
+## 🎬 Demo
+
+https://github.com/user-attachments/assets/demo.mp4
+
+<video src=".github/assets/demo.mp4" width="100%" controls autoplay muted loop></video>
+
 ## Agent Card is right for you if
 
 - ✅ Your AI agent needs to **pay for things** — hosting, domains, APIs, SaaS

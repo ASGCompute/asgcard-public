@@ -1,93 +1,95 @@
 # @asgcard/mcp-server
 
-MCP Server for [ASG Card](https://asgcard.dev) — give AI agents autonomous virtual card management via x402 protocol on Stellar.
+MCP (Model Context Protocol) server for [ASG Card](https://asgcard.dev) — gives AI agents the ability to create, fund, and manage virtual MasterCard cards.
 
-## What is this?
+## Quick Setup
 
-This MCP server allows AI agents (Claude, Cursor, etc.) to create, fund, and manage virtual debit cards **fully autonomously** — no human-in-the-loop. Cards are paid with USDC on-chain via the x402 protocol.
+```bash
+# One-line setup (creates wallet, configures MCP, installs skill)
+npx @asgcard/cli onboard -y --client codex
 
-## Tools
+# Or manual setup for a specific client:
+npx @asgcard/cli install --client codex    # Codex
+npx @asgcard/cli install --client claude   # Claude Code
+npx @asgcard/cli install --client cursor   # Cursor
+```
+
+## Tools (9)
 
 | Tool | Description |
-|---|---|
-| `create_card` | Create a new virtual card (pays on-chain via x402) |
-| `fund_card` | Fund an existing card with more USDC |
-| `list_cards` | List all cards for your wallet |
-| `get_card` | Get card summary (balance, status) |
-| `get_card_details` | Get card number, CVV, expiry (sensitive) |
+|------|-------------|
+| `get_wallet_status` | **Use FIRST** — check wallet address, USDC balance, readiness |
+| `create_card` | Create virtual MasterCard (pays USDC via x402 on Stellar) |
+| `fund_card` | Top up an existing card |
+| `list_cards` | List all cards for this wallet |
+| `get_card` | Get card summary by ID |
+| `get_card_details` | Get sensitive info: PAN, CVV, expiry (rate-limited 5/hr) |
 | `freeze_card` | Temporarily freeze a card |
 | `unfreeze_card` | Re-enable a frozen card |
 | `get_pricing` | View available tier pricing |
 
-## Setup
+## Recommended Agent Flow
 
-### Claude Code
-
-```bash
-claude mcp add asgcard -- node /path/to/mcp-server/dist/index.js \
-  --env STELLAR_PRIVATE_KEY=S...
+```
+get_wallet_status → get_pricing → create_card → list_cards → fund_card → manage
 ```
 
-### Claude Desktop / Cursor
+1. **Always start with `get_wallet_status`** to verify the wallet is funded
+2. Use `get_pricing` to see available card tiers and costs
+3. `create_card` to issue a virtual card (USDC payment via x402)
+4. `list_cards` / `get_card` / `get_card_details` for management
+5. `fund_card` to top up, `freeze_card` / `unfreeze_card` for control
 
-Add to your MCP config file (`~/.cursor/mcp.json` or Claude Desktop settings):
+## Manual MCP Configuration
 
+If you prefer manual setup, the MCP server reads your key from `~/.asgcard/wallet.json` automatically — no env vars needed:
+
+**Codex** (`~/.codex/config.toml`):
+```toml
+[mcp_servers.asgcard]
+command = "npx"
+args = ["-y", "@asgcard/mcp-server"]
+```
+
+**Claude Code**:
+```bash
+claude mcp add asgcard -- npx -y @asgcard/mcp-server
+```
+
+**Cursor** (`~/.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
     "asgcard": {
       "command": "npx",
-      "args": ["-y", "@asgcard/mcp-server"],
-      "env": {
-        "STELLAR_PRIVATE_KEY": "YOUR_STELLAR_SECRET_KEY"
-      }
+      "args": ["-y", "@asgcard/mcp-server"]
     }
   }
 }
 ```
 
-### Manual (from source)
-
-```bash
-cd mcp-server
-npm install
-npm run build
-
-STELLAR_PRIVATE_KEY=S... node dist/index.js
-```
-
 ## Environment Variables
 
 | Variable | Required | Default | Description |
-|---|---|---|---|
-| `STELLAR_PRIVATE_KEY` | ✅ | — | Stellar secret key (S...) for signing x402 payments and wallet auth |
-| `ASGCARD_API_URL` | ❌ | `https://api.asgcard.dev` | ASGCard API endpoint |
-| `STELLAR_RPC_URL` | ❌ | `https://mainnet.sorobanrpc.com` | Soroban RPC for transaction submission |
+|----------|:---:|---------|-------------|
+| `STELLAR_PRIVATE_KEY` | — | Auto from `~/.asgcard/wallet.json` | Override: explicit Stellar secret key |
+| `ASGCARD_API_URL` | — | `https://api.asgcard.dev` | API base URL |
+| `STELLAR_RPC_URL` | — | `https://mainnet.sorobanrpc.com` | Soroban RPC |
 
-## How it works
+## Error Handling
+
+All tool errors return structured remediation:
 
 ```
-AI Agent (Claude / Cursor)
-    ↕ stdio (MCP protocol)
-@asgcard/mcp-server
-    ↕ @asgcard/sdk (x402 create/fund)
-    ↕ wallet-auth HTTP (list/get/freeze/unfreeze)
-ASGCard API (api.asgcard.dev)
-    ↕ x402 on Stellar (USDC)
-4Payments → Visa/Mastercard Network
+ERROR: Insufficient USDC balance for card creation
+Why: Balance $5.00 is below minimum $17.20 for $10 tier
+Fix: Use get_wallet_status to check your balance. Send USDC on Stellar to your wallet address, then retry.
 ```
-
-The server uses your Stellar private key to:
-1. **Sign x402 payments** for card creation and funding (autonomous on-chain)
-2. **Sign wallet-auth requests** for card management operations
 
 ## Security
 
-- Your private key never leaves the local process
-- All x402 payments require on-chain USDC — no credit risk
-- Wallet-auth uses ed25519 signatures with 5-min timestamp windows
-- Card details are encrypted at rest on the server (AES-256)
-
-## License
-
-MIT
+- Private key stays in `~/.asgcard/wallet.json` — never sent to ASG Card API
+- MCP server reads key at startup from local state (no env copy needed)
+- Card management uses wallet signature authentication
+- x402 payments are signed locally, settled by facilitator
+- Card details encrypted at rest (AES-256-GCM)

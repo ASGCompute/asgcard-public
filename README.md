@@ -47,24 +47,29 @@ graph TB
 |-----------|-------------|
 | `/api` | ASG Card API (Express + x402 + wallet auth) |
 | `/sdk` | `@asgcard/sdk` TypeScript client |
-| `/mcp-server` | `@asgcard/mcp-server` MCP server for Claude, Cursor |
+| `/cli` | `@asgcard/cli` CLI with onboarding |
+| `/mcp-server` | `@asgcard/mcp-server` MCP server (9 tools) |
 | `/web` | Marketing website (asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
 
-## Quick Start
+## Quick Start — First Card
+
+```bash
+# One-step onboarding (creates wallet, configures MCP, installs skill)
+npx @asgcard/cli onboard -y --client codex
+
+# Fund your wallet with USDC on Stellar (address shown by onboard)
+# Then:
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+```
+
+### Development
 
 ```bash
 npm install
-
-# Terminal 1: API
-npm run dev:api
-
-# Terminal 2: Web
-npm run dev
+npm run dev:api   # API on localhost:3000
+npm run dev       # Web on localhost:3001
 ```
-
-- API: `http://localhost:3000`
-- Web: `http://localhost:3001`
 
 ## SDK Usage
 
@@ -97,50 +102,31 @@ const card = await client.createCard({
 
 ## MCP Server (AI Agent Integration)
 
-`@asgcard/mcp-server` exposes 8 tools for Claude Code, Claude Desktop, and Cursor:
-
-- `create_card` (x402 payment flow)
-- `fund_card` (x402 payment flow)
-- `list_cards`, `get_card`, `get_card_details`
-- `freeze_card`, `unfreeze_card`
-- `get_pricing`
-
-## Agent Skill (x402 Payments)
-
-For custom autonomous agents like **Open Claw**, Codex, or raw LLM pipelines, teach them how to pay via x402 natively on Stellar using the open-source [x402-payments-skill](https://github.com/ASGCompute/x402-payments-skill).
+`@asgcard/mcp-server` exposes **9 tools** for Codex, Claude Code, and Cursor:
 
 | Tool | Description |
 |------|-------------|
-| `create_card` | Create a virtual card (x402 on-chain payment) |
-| `fund_card` | Fund an existing card |
+| `get_wallet_status` | **Use FIRST** — wallet address, USDC balance, readiness |
+| `create_card` | Create virtual card (x402 payment) |
+| `fund_card` | Fund existing card (x402 payment) |
 | `list_cards` | List all wallet cards |
 | `get_card` | Get card summary |
 | `get_card_details` | Get PAN, CVV, expiry |
-| `freeze_card` | Temporarily freeze a card |
-| `unfreeze_card` | Re-enable a frozen card |
+| `freeze_card` | Freeze a card |
+| `unfreeze_card` | Unfreeze a card |
 | `get_pricing` | View tier pricing |
 
-### Setup with Claude Code
+### MCP Setup
 
 ```bash
-claude mcp add asgcard -- npx -y @asgcard/mcp-server -e STELLAR_PRIVATE_KEY=S...
+npx @asgcard/cli install --client codex    # or claude, cursor
 ```
 
-### Setup with Claude Desktop / Cursor
+## Agent Skill (x402 Payments)
 
-```json
-{
-  "mcpServers": {
-    "asgcard": {
-      "command": "npx",
-      "args": ["-y", "@asgcard/mcp-server"],
-      "env": {
-        "STELLAR_PRIVATE_KEY": "YOUR_STELLAR_SECRET_KEY"
-      }
-    }
-  }
-}
-```
+The CLI bundles a product-owned `asgcard` skill that is installed automatically during `asgcard onboard` to `~/.agents/skills/asgcard/`.
+
+For custom autonomous agents and raw LLM pipelines, the [x402-payments-skill](https://github.com/ASGCompute/x402-payments-skill) teaches agents how to pay via x402 natively on Stellar.
 
 ## Pricing
 

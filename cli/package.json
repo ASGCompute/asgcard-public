@@ -1,6 +1,6 @@
 {
   "name": "@asgcard/cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "CLI for ASG Card — manage virtual MasterCard cards for AI agents from the terminal",
   "type": "module",
   "main": "dist/index.js",
@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    "skill",
     "README.md",
     "LICENSE"
   ],

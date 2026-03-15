@@ -1,7 +1,8 @@
 /**
  * @asgcard/mcp-server — Core MCP Server
  *
- * Exposes 8 tools for AI agents to manage ASGCard virtual cards:
+ * Exposes 9 tools for AI agents to manage ASGCard virtual cards:
+ *   - get_wallet_status: Read-only wallet status (address, balance, readiness)
  *   - create_card:       Create a virtual card (x402 autonomous payment)
  *   - fund_card:         Fund an existing card (x402 autonomous payment)
  *   - list_cards:        List all cards for the wallet
@@ -14,8 +15,35 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { Keypair } from "@stellar/stellar-sdk";
 import { ASGCardClient } from "@asgcard/sdk";
 import { WalletClient } from "./wallet-client.js";
+
+const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+const HORIZON_URL = "https://horizon.stellar.org";
+const MIN_CARD_COST_USDC = 17.20;
+
+async function getUsdcBalance(publicKey: string): Promise<number> {
+  try {
+    const res = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
+    if (res.status === 404) return 0;
+    if (!res.ok) return -1;
+    const data = await res.json() as { balances: Array<{ asset_type: string; asset_code?: string; asset_issuer?: string; balance: string }> };
+    const usdcBalance = data.balances.find(
+      (b) => b.asset_code === "USDC" && b.asset_issuer === USDC_ISSUER
+    );
+    return usdcBalance ? parseFloat(usdcBalance.balance) : 0;
+  } catch {
+    return -1;
+  }
+}
+
+function remediationError(what: string, why: string, fix: string): { content: { type: "text"; text: string }[]; isError: true } {
+  return {
+    content: [{ type: "text" as const, text: `ERROR: ${what}\nWhy: ${why}\nFix: ${fix}` }],
+    isError: true,
+  };
+}
 
 export interface ServerConfig {
   /** Stellar secret key (S...) */
@@ -46,8 +74,57 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: "asgcard",
-    version: "0.1.0",
+    version: "0.2.0",
   });
+
+  // ── Tool 0: get_wallet_status ─────────────────────────────
+
+  server.tool(
+    "get_wallet_status",
+    "Check wallet readiness: returns public key, USDC balance on Stellar, whether balance is sufficient for card creation, and next-step guidance. Use this FIRST before any card operations to verify the wallet is funded.",
+    {},
+    async () => {
+      try {
+        const kp = Keypair.fromSecret(config.privateKey);
+        const publicKey = kp.publicKey();
+        const balance = await getUsdcBalance(publicKey);
+
+        const isReady = balance >= MIN_CARD_COST_USDC;
+
+        const status: Record<string, unknown> = {
+          publicKey,
+          network: "stellar:pubnet",
+          usdcBalance: balance === -1 ? "error_fetching" : balance.toFixed(2),
+          minimumRequired: MIN_CARD_COST_USDC,
+          readyForCardCreation: isReady,
+          depositAddress: publicKey,
+          usdcAsset: `USDC:${USDC_ISSUER}`,
+        };
+
+        if (!isReady) {
+          if (balance === -1) {
+            status.nextStep = "Could not fetch balance from Stellar Horizon. Check network connectivity and try again.";
+          } else if (balance === 0) {
+            status.nextStep = `Wallet has zero USDC. Send at least $${MIN_CARD_COST_USDC} USDC on Stellar to ${publicKey}. After funding, use create_card to issue your first virtual card.`;
+          } else {
+            status.nextStep = `Current balance $${balance.toFixed(2)} is below minimum $${MIN_CARD_COST_USDC} for the $10 card tier. Send more USDC to ${publicKey}.`;
+          }
+        } else {
+          status.nextStep = "Wallet is funded and ready. Use get_pricing to see available card tiers, then create_card to issue a virtual card.";
+        }
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(status, null, 2) }],
+        };
+      } catch (error) {
+        return remediationError(
+          "Failed to check wallet status",
+          error instanceof Error ? error.message : String(error),
+          "Verify STELLAR_PRIVATE_KEY is a valid Stellar secret key (starts with S, 56 characters). Run: asgcard doctor"
+        );
+      }
+    }
+  );
 
   // ── Tool 1: create_card ───────────────────────────────────
 
@@ -80,15 +157,15 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error creating card: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("Insufficient") || msg.includes("balance")) {
+          return remediationError(
+            "Insufficient USDC balance for card creation",
+            msg,
+            "Use get_wallet_status to check your balance. Send USDC on Stellar to your wallet address, then retry."
+          );
+        }
+        return remediationError("Card creation failed", msg, "Use get_wallet_status to verify wallet setup, then retry.");
       }
     }
   );
@@ -121,15 +198,15 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error funding card: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("Insufficient") || msg.includes("balance")) {
+          return remediationError(
+            "Insufficient USDC balance for funding",
+            msg,
+            "Use get_wallet_status to check your balance. Send more USDC to your wallet, then retry."
+          );
+        }
+        return remediationError("Card funding failed", msg, "Use get_wallet_status to verify wallet setup, then retry.");
       }
     }
   );
@@ -164,15 +241,11 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error listing cards: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("401") || msg.includes("403")) {
+          return remediationError("Authentication failed", msg, "Verify STELLAR_PRIVATE_KEY is correct. Run: asgcard doctor");
+        }
+        return remediationError("Failed to list cards", msg, "Check API connectivity. Run: asgcard health");
       }
     }
   );
@@ -198,15 +271,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error getting card: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        return remediationError("Failed to get card", error instanceof Error ? error.message : String(error), "Verify the card ID is correct. Use list_cards to see available cards.");
       }
     }
   );
@@ -232,15 +297,11 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error getting card details: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("429")) {
+          return remediationError("Rate limited", "Card details access is limited to 5 times per hour", "Wait and retry later. Use get_card for non-sensitive info.");
+        }
+        return remediationError("Failed to get card details", msg, "Verify card ID. Use list_cards to see available cards.");
       }
     }
   );
@@ -266,15 +327,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error freezing card: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        return remediationError("Failed to freeze card", error instanceof Error ? error.message : String(error), "Verify card ID and that the card is currently active.");
       }
     }
   );
@@ -300,15 +353,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error unfreezing card: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        return remediationError("Failed to unfreeze card", error instanceof Error ? error.message : String(error), "Verify card ID and that the card is currently frozen.");
       }
     }
   );
@@ -332,15 +377,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error getting pricing: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
+        return remediationError("Failed to get pricing", error instanceof Error ? error.message : String(error), "Check API connectivity. The pricing endpoint is public and requires no authentication.");
       }
     }
   );

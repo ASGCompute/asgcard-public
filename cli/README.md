@@ -1,101 +1,104 @@
 # @asgcard/cli
 
-Command-line interface for [ASG Card](https://asgcard.dev) — manage virtual MasterCard cards for AI agents from your terminal.
-
-## Install
-
-```bash
-npm install -g @asgcard/cli
-```
+Command-line interface for [ASG Card](https://asgcard.dev) — virtual MasterCard cards for AI agents, powered by x402 on Stellar.
 
 ## Quick Start
 
 ```bash
-# 1. Configure your Stellar wallet
-asgcard login
+# Full onboarding (wallet + MCP + skill)
+npx @asgcard/cli onboard -y --client codex
 
-# 2. View pricing
-asgcard pricing
-
-# 3. Create a $10 card
-asgcard card:create -a 10 -n "AI Agent" -e agent@example.com
-
-# 4. List your cards
-asgcard cards
+# Or step by step:
+npx @asgcard/cli wallet create          # Generate Stellar keypair
+npx @asgcard/cli wallet info            # Check balance
+npx @asgcard/cli install --client codex # Configure MCP
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 ```
 
 ## Commands
 
+### Onboarding
+
 | Command | Description |
 |---------|-------------|
-| `asgcard login [key]` | Save your Stellar secret key |
-| `asgcard whoami` | Show your wallet address |
-| `asgcard cards` | List all your cards |
+| `asgcard wallet create` | Generate a new Stellar keypair, save to `~/.asgcard/` |
+| `asgcard wallet import [key]` | Import an existing Stellar secret key |
+| `asgcard wallet info` | Show public key, USDC balance, deposit instructions |
+| `asgcard install --client <c>` | Configure MCP for codex, claude, or cursor |
+| `asgcard onboard [-y] [-c client]` | Full onboarding: wallet + MCP + skill + next step |
+| `asgcard doctor` | Diagnose setup (key, API, RPC, balance, MCP configs) |
+
+### Card Management
+
+| Command | Description |
+|---------|-------------|
+| `asgcard cards` | List all your virtual cards |
 | `asgcard card <id>` | Get card summary |
-| `asgcard card:details <id>` | Get PAN, CVV, expiry |
-| `asgcard card:create` | Create a card (x402 payment) |
-| `asgcard card:fund <id>` | Fund a card (x402 payment) |
+| `asgcard card:details <id>` | Get sensitive card info (PAN, CVV, expiry) |
+| `asgcard card:create -a <amt> -n <name> -e <email>` | Create a new card (x402 payment) |
+| `asgcard card:fund <id> -a <amt>` | Fund an existing card |
 | `asgcard card:freeze <id>` | Freeze a card |
 | `asgcard card:unfreeze <id>` | Unfreeze a card |
-| `asgcard pricing` | View pricing tiers |
-| `asgcard health` | Check API status |
+
+### Info
+
+| Command | Description |
+|---------|-------------|
+| `asgcard pricing` | View pricing tiers (no auth required) |
+| `asgcard health` | API health check (no auth required) |
+| `asgcard whoami` | Show your wallet address |
+| `asgcard login [key]` | Save Stellar key (legacy, use `wallet import`) |
 
 ## Authentication
 
-The CLI authenticates using your Stellar private key. Two options:
+The CLI uses Stellar wallet signature authentication — no API keys needed. Your Stellar secret key is stored in `~/.asgcard/wallet.json` (mode 0600).
 
-1. **Interactive login** (recommended):
-   ```bash
-   asgcard login
-   # Enter key when prompted → saved to ~/.asgcard/config.json (0600)
-   ```
-
-2. **Environment variable**:
-   ```bash
-   export STELLAR_PRIVATE_KEY=S...
-   asgcard cards
-   ```
+Key resolution priority (same as MCP server):
+1. `STELLAR_PRIVATE_KEY` environment variable
+2. `~/.asgcard/wallet.json` (from `asgcard wallet create/import`)
+3. `~/.asgcard/config.json` (from `asgcard login` — legacy)
 
 ## Card Creation
 
-```bash
-# Available amounts: 10, 25, 50, 100, 200, 500
-asgcard card:create --amount 50 --name "Shopping Agent" --email agent@co.com
+Card creation and funding use the **x402 protocol** — payments happen on-chain in USDC on Stellar. The transaction is built and signed locally, then sent via the x402 facilitator.
 
-# ✅ Card created!
-#   card_abc123
-#   Name:    Shopping Agent
-#   Balance: $50
-#   Status:  ● active
-#
-# 🔒 Card Details (one-time):
-#   Number: 5395 78** **** 1234
-#   CVV:    123
-#   Expiry: 12/2027
-#
-#   TX: abc123...def456
+```bash
+# View available tiers first
+asgcard pricing
+
+# Create a $25 card
+asgcard card:create -a 25 -n "My AI Agent" -e agent@example.com
+
+# Fund an existing card
+asgcard card:fund card_abc123 -a 50
 ```
+
+Available amounts: $10, $25, $50, $100, $200, $500.
 
 ## Configuration
 
-Config is stored in `~/.asgcard/config.json` with `0600` permissions.
-
-```bash
-# Custom API URL
-asgcard login --api-url https://custom-api.example.com
-
-# Custom Stellar RPC
-asgcard login --rpc-url https://custom-rpc.example.com
-```
+Config is stored in `~/.asgcard/`:
+- `config.json` — API URL, RPC URL, private key
+- `wallet.json` — Stellar keypair (from `wallet create/import`)
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `STELLAR_PRIVATE_KEY` | Stellar secret key (overrides config) |
-| `ASGCARD_API_URL` | Custom API URL |
-| `STELLAR_RPC_URL` | Custom Stellar RPC URL |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STELLAR_PRIVATE_KEY` | — | Stellar secret key (overrides config) |
+| `ASGCARD_API_URL` | `https://api.asgcard.dev` | API base URL |
+| `STELLAR_RPC_URL` | `https://mainnet.sorobanrpc.com` | Soroban RPC URL |
 
-## License
+## Error Handling
 
-MIT
+All errors show remediation guidance:
+
+```
+❌ No Stellar private key configured.
+
+To fix this, do one of:
+
+  asgcard wallet create    — generate a new Stellar keypair
+  asgcard wallet import    — import an existing key
+  asgcard login <key>      — save a key directly
+```

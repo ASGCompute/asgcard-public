@@ -1,212 +1,182 @@
-# ASG Card Docs (LLM-Friendly)
+# ASG Card — LLM-Friendly Documentation
 
-ASG Card is an API for issuing and managing virtual MasterCard cards for AI agents.
+> Virtual MasterCard cards for AI agents, powered by x402 on Stellar
 
-- Payments use **USDC on Stellar**
-- Paid endpoints use **x402 v2**
-- Card management endpoints use **wallet signature authentication**
-- **Agent-first model**: the creating agent receives full PAN/CVV immediately at creation time
-- **Owner controls**: card owner can revoke/restore agent access to card details via Telegram portal
+## Quick Links
 
-## Links
+- Site: [asgcard.dev](https://asgcard.dev)
+- API: [api.asgcard.dev](https://api.asgcard.dev)
+- npm SDK: `@asgcard/sdk`
+- npm CLI: `@asgcard/cli`
+- npm MCP: `@asgcard/mcp-server`
+- Agent config: [asgcard.dev/agent.txt](https://asgcard.dev/agent.txt)
 
-- Website: <https://asgcard.dev/>
-- HTML docs: <https://asgcard.dev/docs>
-- OpenAPI: <https://asgcard.dev/openapi.json>
-- GitHub: <https://github.com/ASGCompute/asgcard-public>
-- Agent discovery: <https://asgcard.dev/agent.txt>
+## Quickstart — First Card in < 3 Minutes
 
-## npm Packages
-
-| Package | Description |
-|---------|-------------|
-| `@asgcard/sdk` | TypeScript SDK — wraps x402 payment flow into one-liner methods |
-| `@asgcard/mcp-server` | MCP Server — 8 tools for Claude Code/Desktop/Cursor |
-| `@asgcard/cli` | CLI — 10 commands for terminal card management |
-
-## Install
+### 1. Install CLI and create wallet
 
 ```bash
-# SDK
-npm install @asgcard/sdk
-
-# MCP Server (for Claude/Cursor)
-npx @asgcard/mcp-server
-# or: claude mcp add asgcard -- npx -y @asgcard/mcp-server
-
-# CLI
-npm install -g @asgcard/cli
-asgcard login
+npx @asgcard/cli onboard -y
 ```
 
-## Base URL
+This creates a wallet (`~/.asgcard/wallet.json`), configures MCP, installs the agent skill, and prints the next step.
 
-`https://api.asgcard.dev`
+Then install for your client:
 
-## Overview
+```bash
+asgcard install --client codex      # OpenAI Codex
+asgcard install --client claude     # Claude Code
+asgcard install --client cursor     # Cursor
+```
 
-ASG Card exposes five endpoint classes:
+### 2. Fund your wallet
 
-1. **Public** (no auth): health, pricing, tiers
-2. **Paid (x402)**: create/fund cards after USDC payment on Stellar
-3. **Wallet-signed**: card listing, details access, freeze/unfreeze
-4. **Portal** (owner actions): revoke/restore agent access to card details
-5. **Ops** (admin): metrics, rollout, nonce cleanup — secured by OPS_API_KEY
+Send USDC on Stellar to the public key shown by `onboard`.
+Minimum: $17.20 USDC (for $10 card tier).
 
-## MCP Server
+### 3. Check wallet status
 
-The `@asgcard/mcp-server` provides 8 tools for AI agents via Model Context Protocol:
+```bash
+npx @asgcard/cli wallet info
+```
+
+### 4. Create your first card
+
+```bash
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+```
+
+## CLI Commands
+
+| Command | Auth Required | Description |
+| ------- | :-----------: | ----------- |
+| `wallet create` | No | Generate new Stellar keypair |
+| `wallet import [key]` | No | Import existing Stellar secret key |
+| `wallet info` | Yes | Show address, USDC balance, deposit info |
+| `install --client <c>` | No | Configure MCP for codex/claude/cursor |
+| `onboard [-y]` | No | Full onboarding: wallet + MCP + skill |
+| `doctor` | No | Diagnose setup (key, API, RPC, balance) |
+| `login [key]` | No | Save Stellar private key (legacy) |
+| `whoami` | Yes | Show configured wallet address |
+| `cards` | Yes | List all cards |
+| `card <id>` | Yes | Get card summary |
+| `card:details <id>` | Yes | Get sensitive card info (PAN, CVV) |
+| `card:create` | Yes | Create virtual card (x402 payment) |
+| `card:fund <id>` | Yes | Fund existing card (x402 payment) |
+| `card:freeze <id>` | Yes | Freeze a card |
+| `card:unfreeze <id>` | Yes | Unfreeze a card |
+| `pricing` | No | View pricing tiers |
+| `health` | No | API health check |
+
+## MCP Server Tools (9)
+
+The MCP server (`@asgcard/mcp-server`) reads your key from `~/.asgcard/wallet.json` automatically — no env vars needed in client configs.
 
 | Tool | Description |
-|------|-------------|
-| `create_card` | Create virtual MasterCard (pays USDC on-chain) |
-| `fund_card` | Top up an existing card |
-| `list_cards` | List all wallet's cards |
-| `get_card` | Get card summary |
-| `get_card_details` | Get PAN, CVV, expiry |
-| `freeze_card` | Temporarily freeze card |
+| ---- | ----------- |
+| `get_wallet_status` | Check wallet address, USDC balance, and readiness (use FIRST) |
+| `create_card` | Create virtual MasterCard (pays USDC via x402) |
+| `fund_card` | Top up existing card |
+| `list_cards` | List all wallet cards |
+| `get_card` | Get card summary by ID |
+| `get_card_details` | Get PAN, CVV, expiry (rate-limited 5/hour) |
+| `freeze_card` | Temporarily freeze a card |
 | `unfreeze_card` | Re-enable frozen card |
-| `get_pricing` | View pricing tiers |
+| `get_pricing` | View tier pricing |
 
-Setup: `claude mcp add asgcard -- npx -y @asgcard/mcp-server`
+### Recommended Agent Flow
 
-## CLI
+1. `get_wallet_status` → verify wallet is funded
+2. `get_pricing` → see available tiers and costs
+3. `create_card` → issue virtual card (USDC payment happens on-chain)
+4. `list_cards` / `get_card` / `get_card_details` → manage cards
+5. `fund_card` → top up when needed
+6. `freeze_card` / `unfreeze_card` → control
 
-The `@asgcard/cli` provides 11 terminal commands:
+### MCP Setup
 
+**First-class clients** (one-click installer):
+
+```bash
+asgcard install --client codex      # OpenAI Codex
+asgcard install --client claude     # Claude Code
+asgcard install --client cursor     # Cursor
 ```
-asgcard login          — Configure Stellar key
-asgcard whoami         — Show wallet address
-asgcard cards          — List all cards
-asgcard card <id>      — Card summary
-asgcard card:details   — PAN, CVV, expiry
-asgcard card:create    — Create card (x402)
-asgcard card:fund      — Fund card (x402)
-asgcard card:freeze    — Freeze card
-asgcard card:unfreeze  — Unfreeze card
-asgcard pricing        — View tiers
-asgcard health         — API health check
-```
+
+**Compatible runtimes** (OpenClaw, Manus, Perplexity Computer, custom agents): Use manual MCP config or `@asgcard/sdk` directly.
+
+No `STELLAR_PRIVATE_KEY` env var needed — MCP server reads from `~/.asgcard/wallet.json`.
 
 ## Authentication
 
-### x402 (Paid Endpoints)
+- **Wallet signature**: All card management uses Stellar Ed25519 signature auth
+- **x402 payments**: Card creation and funding pay USDC on Stellar via the x402 protocol
+- **No API keys**: Authentication is wallet-based, no separate API keys needed
 
-Paid endpoints return an x402 challenge when payment proof is missing.
-Client flow:
+## API Endpoints
 
-1. Call paid endpoint
-2. Receive `402` challenge
-3. Pay USDC on Stellar
-4. Retry request with payment proof header
+Base URL: `https://api.asgcard.dev`
 
-### Wallet Signature (Card Management)
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| GET | `/health` | None | Health check |
+| GET | `/pricing` | None | Full pricing breakdown |
+| GET | `/cards/tiers` | None | Tier details with endpoints |
+| GET | `/supported` | None | x402 capabilities |
+| POST | `/cards/create/tier/:amount` | x402 | Create card (10/25/50/100/200/500) |
+| POST | `/cards/fund/tier/:amount` | x402 | Fund card |
+| GET | `/cards` | Wallet sig | List cards |
+| GET | `/cards/:cardId` | Wallet sig | Get card |
+| GET | `/cards/:cardId/details` | Wallet sig | Get card details (PAN, CVV) |
+| POST | `/cards/:cardId/freeze` | Wallet sig | Freeze card |
+| POST | `/cards/:cardId/unfreeze` | Wallet sig | Unfreeze card |
 
-Wallet-signed endpoints require a valid Stellar wallet signature (Ed25519).
+## Pricing (from api/src/config/pricing.ts)
 
-## Public Endpoints
+### Card Creation
 
-### `GET /health`
+| Load | Total Cost (USDC) | Endpoint |
+| ---- | :---------------: | -------- |
+| $10 | $17.20 | `/cards/create/tier/10` |
+| $25 | $32.50 | `/cards/create/tier/25` |
+| $50 | $58.00 | `/cards/create/tier/50` |
+| $100 | $110.00 | `/cards/create/tier/100` |
+| $200 | $214.00 | `/cards/create/tier/200` |
+| $500 | $522.00 | `/cards/create/tier/500` |
 
-Health check endpoint.
+### Card Funding
 
-### `GET /pricing`
+| Fund | Total Cost (USDC) | Endpoint |
+| ---- | :---------------: | -------- |
+| $10 | $14.20 | `/cards/fund/tier/10` |
+| $25 | $29.50 | `/cards/fund/tier/25` |
+| $50 | $55.00 | `/cards/fund/tier/50` |
+| $100 | $107.00 | `/cards/fund/tier/100` |
+| $200 | $211.00 | `/cards/fund/tier/200` |
+| $500 | $519.00 | `/cards/fund/tier/500` |
 
-Returns pricing breakdown for card creation and funding tiers.
+Live pricing: `GET https://api.asgcard.dev/pricing`
 
-### `GET /cards/tiers`
+## Error Handling
 
-Returns available tier amounts and fee breakdowns.
+All CLI and MCP errors follow a remediation-first pattern:
 
-## Paid Endpoints (x402)
-
-### `POST /cards/create/tier/:amount`
-
-Create a new virtual card preloaded with a supported tier amount.
-
-Supported tiers: `10`, `25`, `50`, `100`, `200`, `500`
-
-Request body:
-
-```json
-{
-  "nameOnCard": "AGENT ALPHA",
-  "email": "agent@example.com"
-}
+```
+❌ [What happened]
+   Why: [Reason]
+   Fix: [Exact command to run]
 ```
 
-Returns (201):
+## Payment Protocol
 
-- `card` — card summary (`cardId`, status, balance)
-- `payment` — payment info (`amountCharged`, `txHash`, `network`)
-- `detailsEnvelope` — **agent-first**: full PAN, CVV, expiry, billing address (one-time access on create)
+- **Protocol**: x402 (HTTP 402-based machine payment)
+- **Network**: Stellar (mainnet)
+- **Currency**: USDC (Circle)
+- **Mechanism**: Soroban SAC transfer, signed auth entries
+- **Fees**: Sponsored by x402 facilitator (zero gas cost for user)
 
-### `POST /cards/fund/tier/:amount`
+## Support
 
-Add funds to an existing card by supported funding tier.
-
-Request body:
-
-```json
-{
-  "cardId": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-## Wallet-Signed Endpoints
-
-### `GET /cards`
-
-List cards owned by the authenticated wallet.
-
-### `GET /cards/:cardId`
-
-Get card metadata and balances.
-
-### `GET /cards/:cardId/details`
-
-Get sensitive card details (PAN, CVV, expiry).
-
-**Required headers:**
-
-| Header | Description |
-|--------|-------------|
-| `X-WALLET-ADDRESS` | Stellar public key |
-| `X-WALLET-SIGNATURE` | Ed25519 signature |
-| `X-WALLET-TIMESTAMP` | Unix timestamp |
-| `X-AGENT-NONCE` | UUID v4, unique per request (anti-replay) |
-
-### `POST /cards/:cardId/freeze`
-
-Freeze a card.
-
-### `POST /cards/:cardId/unfreeze`
-
-Unfreeze a card.
-
-## Portal Endpoints (Owner Actions)
-
-### `POST /portal/cards/:cardId/revoke-details`
-
-Owner revokes agent access to card details.
-
-### `POST /portal/cards/:cardId/restore-details`
-
-Owner restores agent access to card details.
-
-## Errors
-
-Non-2xx responses return: `{ "error": "Human-readable error message" }`
-
-Common statuses: 400, 401, 402, 403, 404, 409, 429, 500
-
-## Rate Limits
-
-- `GET /cards/:cardId/details`: **5 unique nonces per card per hour**
-
-## Canonical Source
-
-For the latest UI docs and examples, use:
-<https://asgcard.dev/docs>
-
-Last updated: 2026-03-12
+- Discord: [discord.gg/asgcompute](https://discord.gg/asgcompute)
+- GitHub: [github.com/asgcompute/asgcard](https://github.com/asgcompute/asgcard)
+- Email: support@asgcompute.dev

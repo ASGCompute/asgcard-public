@@ -187,7 +187,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <path d="M18.901 1.153h3.68l-8.042 9.19L24 22.847h-7.406l-5.8-7.584-6.633 7.584H.48l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.933Zm-1.29 19.494h2.039L6.486 3.24H4.298l13.313 17.407Z" />
             </svg>
           </a>
-          <a href="/docs#sdk-quick-start" class="liquid-btn hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg">
+          <a href="/docs#cli" class="liquid-btn hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg">
             <span>Get Started</span>
           </a>
           <!-- Mobile hamburger -->
@@ -206,7 +206,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <a href="#how-it-works" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">How it Works</a>
           <a href="#pricing" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Pricing</a>
           <a href="/docs" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Docs</a>
-          <a href="/docs#sdk-quick-start" class="btn-primary liquid-btn text-center text-sm mt-2">Get Started</a>
+          <a href="/docs#cli" class="btn-primary liquid-btn text-center text-sm mt-2">Get Started</a>
         </nav>
       </div>
     </header>
@@ -249,9 +249,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
             <!-- Easy Install -->
             <div class="hero-install">
-              <span class="hero-install-label">Easy Install</span>
+              <span class="hero-install-label">Quick Start</span>
               <div class="hero-install-cmd">
-                <code id="install-cmd">npm install @asgcard/sdk</code>
+                <code id="install-cmd">npx @asgcard/cli</code>
                 <button class="hero-copy-btn liquid-btn liquid-btn-icon" id="copy-install-btn" aria-label="Copy install command" type="button">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 </button>
@@ -441,7 +441,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <h2 class="text-3xl sm:text-4xl font-bold tracking-tight leading-tight mb-5">Ready to give your<br>agent a card?</h2>
           <p class="text-white/40 text-base mb-10 max-w-lg mx-auto">Join developers using ASG Card to pay for SaaS, infrastructure, and services autonomously on-chain.</p>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="/docs#sdk-quick-start" class="btn-primary liquid-btn text-base px-8 py-3.5 w-full sm:w-auto">Get Started</a>
+            <a href="/docs#cli" class="btn-primary liquid-btn text-base px-8 py-3.5 w-full sm:w-auto">Get Started</a>
             <a href="/docs" class="peek-eyes-btn w-full sm:w-auto">
               <span class="peek-eyes-btn__eyes" aria-hidden="true">
                 <span class="peek-eyes-btn__eye"><span class="peek-eyes-btn__pupil"></span></span>
@@ -467,7 +467,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             <div class="flex flex-col gap-2.5">
               <a href="/docs" class="text-sm text-white/50 hover:text-white transition-colors">Docs</a>
               <a href="/docs#pricing" class="text-sm text-white/50 hover:text-white transition-colors">Pricing</a>
-              <a href="/docs#sdk-quick-start" class="text-sm text-white/50 hover:text-white transition-colors">SDK</a>
+              <a href="/docs#cli" class="text-sm text-white/50 hover:text-white transition-colors">CLI</a>
             </div>
           </div>
           <!-- Tools -->

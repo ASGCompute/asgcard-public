@@ -481,43 +481,50 @@ function renderMCPServer(): string {
   return `
     <section id="mcp-server" aria-label="MCP Server">
       <h2>MCP Server</h2>
-      <p>The <code>@asgcard/mcp-server</code> package exposes 8 tools via the <strong>Model Context Protocol</strong>, enabling AI agents in Claude Code, Claude Desktop, Cursor, and other MCP-compatible clients to manage ASG Card programmatically.</p>
+      <p>The <code>@asgcard/mcp-server</code> package exposes <strong>9 tools</strong> via the <strong>Model Context Protocol</strong>, enabling AI agents to manage ASG Card programmatically.</p>
 
       <div class="docs-callout docs-callout-info">
         <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/mcp-server" target="_blank" rel="noopener">@asgcard/mcp-server</a> &nbsp;|&nbsp;
         <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/asgcard-public/tree/main/mcp-server" target="_blank" rel="noopener">mcp-server/</a>
       </div>
 
+      <div class="docs-callout docs-callout-tip">
+        <strong>No env vars needed:</strong> The MCP server reads your Stellar key from <code>~/.asgcard/wallet.json</code> automatically. Run <code>asgcard wallet create</code> once, and all MCP clients pick it up.
+      </div>
+
       <hr class="docs-divider" />
 
-      <h3 id="mcp-install">Setup</h3>
+      <h3 id="mcp-install">Agent Quick Start</h3>
 
-      <p><strong>Claude Code:</strong></p>
-      ${codeBlock(`claude mcp add asgcard -- npx -y @asgcard/mcp-server`, 'bash')}
+      <p><strong>One command — creates wallet, configures MCP, installs skill:</strong></p>
+      ${codeBlock('npx @asgcard/cli onboard -y', 'bash')}
 
-      <p><strong>Claude Desktop / Cursor — MCP config:</strong></p>
-      ${codeBlock(`{
-  "mcpServers": {
-    "asgcard": {
-      "command": "npx",
-      "args": ["-y", "@asgcard/mcp-server"],
-      "env": {
-        "STELLAR_PRIVATE_KEY": "S..."
-      }
-    }
-  }
-}`, 'json')}
+      <h4>First-Class Clients</h4>
+      <p>One-click installer included:</p>
+      ${codeBlock('asgcard install --client codex      # OpenAI Codex\nasgcard install --client claude     # Claude Code\nasgcard install --client cursor     # Cursor', 'bash')}
+
+      <h4>Compatible Agent Runtimes</h4>
+      <p>OpenClaw, Manus, Perplexity Computer, and other MCP-compatible agents work via manual config or the bundled SDK:</p>
+
+      <p><strong>Codex</strong> (<code>~/.codex/config.toml</code>):</p>
+      ${codeBlock('[mcp_servers.asgcard]\ncommand = "npx"\nargs = ["-y", "@asgcard/mcp-server"]', 'toml')}
+
+      <p><strong>Cursor / generic MCP</strong> (<code>mcp.json</code>):</p>
+      ${codeBlock('{\n  "mcpServers": {\n    "asgcard": {\n      "command": "npx",\n      "args": ["-y", "@asgcard/mcp-server"]\n    }\n  }\n}', 'json')}
+
+      <p><strong>SDK / direct API:</strong> Use <code>@asgcard/sdk</code> for agents without MCP support.</p>
 
       <hr class="docs-divider" />
 
       <h3 id="mcp-tools">Tools</h3>
-      <p>All 8 tools exposed by the MCP server:</p>
+      <p>All 9 tools exposed by the MCP server:</p>
       <div class="docs-table-wrap">
         <table class="docs-table">
           <thead>
             <tr><th>Tool</th><th>Description</th><th>Auth</th></tr>
           </thead>
           <tbody>
+            <tr><td data-label="Tool"><code>get_wallet_status</code></td><td data-label="Description"><strong>Use FIRST</strong> — wallet address, USDC balance, readiness</td><td data-label="Auth">None</td></tr>
             <tr><td data-label="Tool"><code>create_card</code></td><td data-label="Description">Create a virtual MasterCard with a specified tier (10–500 USD)</td><td data-label="Auth">x402</td></tr>
             <tr><td data-label="Tool"><code>fund_card</code></td><td data-label="Description">Add funds to an existing card</td><td data-label="Auth">x402</td></tr>
             <tr><td data-label="Tool"><code>list_cards</code></td><td data-label="Description">List all cards owned by the wallet</td><td data-label="Auth">Wallet</td></tr>
@@ -530,7 +537,7 @@ function renderMCPServer(): string {
         </table>
       </div>
 
-      <p><strong>Example — create a card via Claude:</strong></p>
+      <p><strong>Example — create a card via your AI agent:</strong></p>
       <div class="docs-callout docs-callout-tip">
         Just ask your AI agent: <em>"Create a $25 ASG Card for agent ALPHA with email agent@example.com"</em> — the MCP server handles x402 payment, wallet signing, and card creation automatically.
       </div>
@@ -543,25 +550,12 @@ function renderAgentSkill(): string {
   return `
     <section id="agent-skill" aria-label="Agent Skill">
       <h2>Agent Skill (x402)</h2>
-      <p>For custom autonomous agents like <strong>Open Claw</strong>, Codex, or raw LLM pipelines, teach them how to pay our APIs natively using the open-source x402 payments skill.</p>
+      <p>The CLI bundles a product-owned <code>asgcard</code> skill that is automatically installed during <code>asgcard onboard</code>.</p>
 
       <div class="docs-callout docs-callout-info">
-        <strong>GitHub:</strong> <a href="https://github.com/ASGCompute/x402-payments-skill" target="_blank" rel="noopener">x402-payments-skill</a>
+        <strong>Bundled (first-class):</strong> <code>asgcard onboard</code> installs the skill to <code>~/.agents/skills/asgcard/</code><br/>
+        <strong>Compatible runtimes:</strong> For OpenClaw, Manus, custom LLM pipelines — use the <a href="https://github.com/ASGCompute/x402-payments-skill" target="_blank" rel="noopener">x402-payments-skill</a> or call the SDK/API directly.
       </div>
-
-      <hr class="docs-divider" />
-
-      <h3 id="skill-what-it-does">What the skill does</h3>
-      <p>The skill gives your agent a complete decision tree for Stellar x402 payments:</p>
-      <ul>
-        <li>Listening for <code>402 Payment Required</code> challenges</li>
-        <li>Building Soroban SAC USDC <code>transfer</code> invocations</li>
-        <li>Signing Stellar <strong>auth entries</strong> (lighter than full transaction signing)</li>
-        <li>Sending the signed XDR via the <code>X-PAYMENT</code> header</li>
-        <li>Covering the full testnet-to-mainnet lifecycle (with OZ Channels facilitator)</li>
-      </ul>
-
-      <p><strong>Installation:</strong> Clone the repo and drop the <code>x402-payments</code> folder into your agent's skills directory.</p>
     </section>
   `;
 }
@@ -570,7 +564,7 @@ function renderCLI(): string {
   return `
     <section id="cli" aria-label="CLI">
       <h2>CLI</h2>
-      <p>The <code>@asgcard/cli</code> package provides a terminal interface for managing ASG Card — create, fund, freeze, and inspect virtual cards from your command line.</p>
+      <p>The <code>@asgcard/cli</code> package provides a terminal interface for ASG Card — onboard, create, fund, freeze, and inspect virtual cards from your command line.</p>
 
       <div class="docs-callout docs-callout-info">
         <strong>npm:</strong> <a href="https://www.npmjs.com/package/@asgcard/cli" target="_blank" rel="noopener">@asgcard/cli</a> &nbsp;|&nbsp;
@@ -580,17 +574,19 @@ function renderCLI(): string {
       <hr class="docs-divider" />
 
       <h3 id="cli-install">Install</h3>
-      ${codeBlock(`npm install -g @asgcard/cli`, 'bash')}
+      ${codeBlock('npm install -g @asgcard/cli', 'bash')}
 
-      <p><strong>Quick start:</strong></p>
-      ${codeBlock(`# 1. Configure your Stellar key
-asgcard login
+      <p><strong>Agent Quick Start:</strong></p>
+      ${codeBlock(`# Full onboarding (wallet + MCP + skill)
+asgcard onboard -y
 
-# 2. Verify
-asgcard whoami
+# Then install for your client:
+asgcard install --client codex      # or claude, cursor
 
-# 3. Create a $10 card
-asgcard card:create --tier 10 --name "AGENT ALPHA" --email agent@example.com`, 'bash')}
+# Or step by step:
+asgcard wallet create
+asgcard wallet info
+asgcard card:create -a 10 -n "AGENT ALPHA" -e agent@example.com`, 'bash')}
 
       <hr class="docs-divider" />
 
@@ -601,7 +597,13 @@ asgcard card:create --tier 10 --name "AGENT ALPHA" --email agent@example.com`, '
             <tr><th>Command</th><th>Description</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Command"><code>asgcard login</code></td><td data-label="Description">Configure Stellar private key (stored at <code>~/.asgcard/config.json</code>)</td></tr>
+            <tr><td data-label="Command"><code>asgcard wallet create</code></td><td data-label="Description">Generate new Stellar keypair, save to <code>~/.asgcard/wallet.json</code></td></tr>
+            <tr><td data-label="Command"><code>asgcard wallet import</code></td><td data-label="Description">Import an existing Stellar secret key</td></tr>
+            <tr><td data-label="Command"><code>asgcard wallet info</code></td><td data-label="Description">Show public key, USDC balance, deposit instructions</td></tr>
+            <tr><td data-label="Command"><code>asgcard install --client &lt;c&gt;</code></td><td data-label="Description">Configure MCP for codex, claude, or cursor</td></tr>
+            <tr><td data-label="Command"><code>asgcard onboard [-y]</code></td><td data-label="Description">Full onboarding: wallet + MCP + skill + next step</td></tr>
+            <tr><td data-label="Command"><code>asgcard doctor</code></td><td data-label="Description">Diagnose setup (key, API, RPC, balance, MCP configs)</td></tr>
+            <tr><td data-label="Command"><code>asgcard login</code></td><td data-label="Description">Configure Stellar private key (legacy)</td></tr>
             <tr><td data-label="Command"><code>asgcard whoami</code></td><td data-label="Description">Display wallet public key</td></tr>
             <tr><td data-label="Command"><code>asgcard cards</code></td><td data-label="Description">List all cards for the wallet</td></tr>
             <tr><td data-label="Command"><code>asgcard card &lt;id&gt;</code></td><td data-label="Description">Show card summary (balance, status)</td></tr>

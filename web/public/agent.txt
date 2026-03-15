@@ -1,78 +1,91 @@
-# ASG Card — Agent Configuration File
-# https://asgcard.dev/.well-known/agent.txt
-#
-# This file tells AI agents how to use ASG Card
-# to create and manage virtual payment cards.
+# ASG Card — Agent Configuration
+# https://asgcard.dev/agent.txt
 
 name: ASG Card
-description: Agent-first virtual card platform. AI agents issue and manage MasterCard cards, paying in USDC via x402 on Stellar.
+description: Virtual MasterCard cards for AI agents, powered by x402 on Stellar
 url: https://asgcard.dev
 api: https://api.asgcard.dev
+docs: https://asgcard.dev/docs.md
 
 # Authentication
-auth:
-  type: stellar-wallet
-  method: ed25519-signature
-  note: No API keys needed. Sign with Stellar keypair.
+auth: stellar-wallet
+auth_method: Ed25519 signature (Stellar keypair)
+key_storage: ~/.asgcard/wallet.json (auto-resolved by MCP server)
+no_api_keys: true
 
-# SDK
-sdk:
-  npm: "@asgcard/sdk"
-  language: typescript
-  install: "npm install @asgcard/sdk"
+# Packages
+sdk: npm install @asgcard/sdk
+cli: npx @asgcard/cli
+mcp: npx @asgcard/mcp-server
 
-# MCP Server
-mcp:
-  npm: "@asgcard/mcp-server"
-  transport: stdio
-  tools: 8
-  install: "npx @asgcard/mcp-server"
-  setup_claude_code: "claude mcp add asgcard -- npx -y @asgcard/mcp-server"
+# Onboarding
+onboard_command: npx @asgcard/cli onboard -y
+install_codex: npx @asgcard/cli install --client codex
+install_claude: npx @asgcard/cli install --client claude
+install_cursor: npx @asgcard/cli install --client cursor
 
-# CLI
-cli:
-  npm: "@asgcard/cli"
-  install: "npm install -g @asgcard/cli"
-  login: "asgcard login"
+# MCP Tools (9 total)
+mcp_tools:
+  - get_wallet_status: Check wallet address, USDC balance, and readiness (use FIRST)
+  - create_card: Create virtual MasterCard ($10-$500, pays USDC via x402)
+  - fund_card: Top up existing card
+  - list_cards: List all wallet cards
+  - get_card: Get card summary
+  - get_card_details: Get PAN, CVV, expiry (rate-limited 5/hr)
+  - freeze_card: Temporarily freeze card
+  - unfreeze_card: Re-enable frozen card
+  - get_pricing: View tier pricing
 
-# Capabilities
-capabilities:
-  - create_card: "Create virtual MasterCard with USDC payment"
-  - fund_card: "Top up existing card"
-  - list_cards: "List all wallet's cards"
-  - get_card: "Get card summary"
-  - get_card_details: "Get PAN, CVV, expiry"
-  - freeze_card: "Temporarily freeze card"
-  - unfreeze_card: "Re-enable frozen card"
-  - get_pricing: "View pricing tiers"
+# Recommended Agent Flow
+agent_flow:
+  1. get_wallet_status → verify wallet is funded
+  2. get_pricing → see available tiers
+  3. create_card → issue virtual card
+  4. list_cards / get_card → manage cards
+  5. fund_card → top up when needed
 
-# Pricing (USDC)
-pricing:
-  card_creation:
-    - tier: 10
-      total: 17.20
-    - tier: 25
-      total: 32.50
-    - tier: 50
-      total: 58.00
-    - tier: 100
-      total: 110.00
-    - tier: 200
-      total: 214.00
-    - tier: 500
-      total: 522.00
+# API Endpoints (base: https://api.asgcard.dev)
+endpoints:
+  public:
+    - GET /health
+    - GET /pricing
+    - GET /cards/tiers
+    - GET /supported
+  paid_x402:
+    - POST /cards/create/tier/:amount (10, 25, 50, 100, 200, 500)
+    - POST /cards/fund/tier/:amount (10, 25, 50, 100, 200, 500)
+  wallet_signed:
+    - GET /cards
+    - GET /cards/:cardId
+    - GET /cards/:cardId/details
+    - POST /cards/:cardId/freeze
+    - POST /cards/:cardId/unfreeze
+
+# Card Creation Pricing (from api/src/config/pricing.ts)
+creation_tiers:
+  - $10 card → $17.20 USDC via /cards/create/tier/10
+  - $25 card → $32.50 USDC via /cards/create/tier/25
+  - $50 card → $58.00 USDC via /cards/create/tier/50
+  - $100 card → $110.00 USDC via /cards/create/tier/100
+  - $200 card → $214.00 USDC via /cards/create/tier/200
+  - $500 card → $522.00 USDC via /cards/create/tier/500
+
+# Card Funding Pricing
+funding_tiers:
+  - $10 fund → $14.20 USDC via /cards/fund/tier/10
+  - $25 fund → $29.50 USDC via /cards/fund/tier/25
+  - $50 fund → $55.00 USDC via /cards/fund/tier/50
+  - $100 fund → $107.00 USDC via /cards/fund/tier/100
+  - $200 fund → $211.00 USDC via /cards/fund/tier/200
+  - $500 fund → $519.00 USDC via /cards/fund/tier/500
 
 # Payment
-payment:
-  protocol: x402
-  version: 2
-  network: stellar:pubnet
-  asset: USDC
-  scheme: exact
-  fees_sponsored: true
+payment_protocol: x402
+payment_network: stellar:pubnet
+payment_currency: USDC
+payment_fees: sponsored (zero gas cost)
 
 # Support
-support:
-  telegram: "@ASGCardbot"
-  docs: "https://asgcard.dev/docs"
-  github: "https://github.com/ASGCompute/asgcard-public"
+discord: https://discord.gg/asgcompute
+github: https://github.com/asgcompute/asgcard
+email: support@asgcompute.dev

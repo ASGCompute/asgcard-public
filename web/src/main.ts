@@ -158,7 +158,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <nav class="hidden md:flex items-center gap-8" aria-label="Main navigation">
           <a href="#features" class="nav-link">Features</a>
           <a href="#how-it-works" class="nav-link">How it Works</a>
-          <a href="#pricing" class="nav-link">Pricing</a>
+          <a href="#use-cases" class="nav-link">Use Cases</a>
           <a href="/docs" class="nav-link">Docs</a>
         </nav>
 
@@ -204,7 +204,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <nav class="max-w-6xl mx-auto px-6 py-5 flex flex-col gap-3" aria-label="Mobile navigation">
           <a href="#features" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Features</a>
           <a href="#how-it-works" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">How it Works</a>
-          <a href="#pricing" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Pricing</a>
+          <a href="#use-cases" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Use Cases</a>
           <a href="/docs" class="mobile-nav-link text-[15px] py-2.5 text-white/50 hover:text-white transition-colors">Docs</a>
           <a href="/docs#cli" class="btn-primary liquid-btn text-center text-sm mt-2">Get Started</a>
         </nav>
@@ -373,65 +373,58 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
       </section>
 
-      <!-- ═══════════════ PRICING ═══════════════ -->
-      <section id="pricing" class="py-24 md:py-32 border-t border-white/[0.04]">
+      <!-- ═══════════════ USE CASES ═══════════════ -->
+      <section id="use-cases" class="py-24 md:py-32 border-t border-white/[0.04] bg-gradient-to-b from-transparent to-white/[0.01]">
         <div class="max-w-6xl mx-auto px-6">
-          <div class="text-center max-w-xl mx-auto mb-16">
-            <span class="section-label">Pricing</span>
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">Transparent, tier-based</h2>
-            <p class="text-white/40 text-base mt-4">Transparent, usage-based pricing. Pay only for the cards you create.</p>
+          <div class="text-center max-w-2xl mx-auto mb-16">
+            <span class="section-label">Use Cases</span>
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight mt-4">What will your agent buy first?</h2>
+            <p class="text-white/40 text-base md:text-lg mt-6">From cloud infrastructure to daily APIs. Give your AI the autonomy to pay for what it needs securely on-chain.</p>
           </div>
 
-          <div class="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${[
+              { name: 'Anthropic', icon: 'anthropic', amount: '$120.00', date: 'Just now', memo: 'API usage refill (Claude 3.5 Sonnet)', bg: 'rgba(217, 119, 87, 0.1)', border: 'rgba(217, 119, 87, 0.2)' },
+              { name: 'Google Cloud', icon: 'googlecloud', amount: '$45.50', date: '2 hours ago', memo: 'Compute instance running costs', bg: 'rgba(66, 133, 244, 0.08)', border: 'rgba(66, 133, 244, 0.2)' },
+              { name: 'Vercel', icon: 'vercel', amount: '$20.00', date: '5 hours ago', memo: 'Pro plan renewal', bg: 'rgba(255, 255, 255, 0.03)', border: 'rgba(255, 255, 255, 0.1)' },
+              { name: 'GitHub', icon: 'github', amount: '$10.00', date: 'Yesterday', memo: 'Copilot monthly subscription', bg: 'rgba(255, 255, 255, 0.03)', border: 'rgba(255, 255, 255, 0.1)' },
+              { name: 'DigitalOcean', icon: 'digitalocean', amount: '$12.00', date: 'Yesterday', memo: 'Droplet expansion', bg: 'rgba(0, 128, 255, 0.08)', border: 'rgba(0, 128, 255, 0.2)' },
+              { name: 'Stripe', icon: 'stripe', amount: '$500.00', date: '2 days ago', memo: 'Invoice #4092 payment', bg: 'rgba(99, 91, 255, 0.08)', border: 'rgba(99, 91, 255, 0.2)' },
+            ].map(uc => `
+              <div class="surface relative overflow-hidden rounded-2xl p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group border border-white/[0.04]">
+                <!-- Shine effect -->
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style="background: radial-gradient(800px circle at top left, ${uc.bg}, transparent 40%);"></div>
+                
+                <div class="p-6 relative z-10 flex flex-col h-full">
+                  <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-2.5 shadow-inner transition-colors duration-500 group-hover:bg-white/10" style="border-color: ${uc.border}">
+                        <img src="https://cdn.simpleicons.org/${uc.icon}/ffffff" alt="${uc.name}" class="w-full h-full object-contain drop-shadow-md" />
+                      </div>
+                      <div>
+                        <div class="text-sm font-semibold text-white/90 tracking-wide">${uc.name}</div>
+                        <div class="text-[10px] text-white/40 uppercase tracking-wider font-medium mt-0.5">Virtual Card</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-white font-mono text-lg font-medium">${uc.amount}</div>
+                      <div class="text-[10px] text-white/40 mt-0.5">${uc.date}</div>
+                    </div>
+                  </div>
 
-            <!-- Create Card -->
-            <div class="surface p-6 sm:p-8 overflow-x-auto">
-              <div class="flex items-center gap-3 mb-1">
-                <h3 class="text-lg font-semibold tracking-tight">Create Card</h3>
-                <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-asg-purple/10 text-asg-purple border border-asg-purple/20">One-time</span>
+                  <div class="bg-[#0a0a0a]/60 border border-white/[0.06] rounded-xl p-4 mt-auto backdrop-blur-sm relative transition-colors duration-500 group-hover:bg-[#0a0a0a]/80 group-hover:border-white/[0.1]">
+                    <!-- Decorator line -->
+                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-asg-green/80 rounded-r-full shadow-[0_0_8px_rgba(46,213,115,0.4)]"></div>
+                    
+                    <div class="flex items-center justify-between mb-2.5 pl-2">
+                      <span class="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Agent Memo</span>
+                    </div>
+                    <p class="text-[13px] text-white/80 leading-relaxed pl-2 font-medium">"${uc.memo}"</p>
+                  </div>
+                </div>
               </div>
-              <p class="text-white/30 text-sm mb-6">via <code class="text-asg-purple/60 font-mono text-xs">POST /cards/create/tier/:amount</code></p>
-              <table class="w-full text-left" id="creation-table">
-                <thead>
-                  <tr class="border-b border-white/[0.08] text-[11px] text-white/30 uppercase tracking-wider">
-                    <th class="pb-3 pl-4 pr-3 font-medium">Load</th>
-                    <th class="pb-3 px-3 font-medium">Issuance</th>
-                    <th class="pb-3 px-3 font-medium">Top-up</th>
-                    <th class="pb-3 px-3 font-medium">Service</th>
-                    <th class="pb-3 pl-3 pr-4 font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody id="creation-tbody">
-                  ${renderCreationRows()}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Fund Card -->
-            <div class="surface p-6 sm:p-8 overflow-x-auto">
-              <div class="flex items-center gap-3 mb-1">
-                <h3 class="text-lg font-semibold tracking-tight">Fund Card</h3>
-                <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-asg-green/10 text-asg-green border border-asg-green/20">Reload</span>
-              </div>
-              <p class="text-white/30 text-sm mb-6">via <code class="text-asg-green/60 font-mono text-xs">POST /cards/fund/tier/:amount</code></p>
-              <table class="w-full text-left" id="funding-table">
-                <thead>
-                  <tr class="border-b border-white/[0.08] text-[11px] text-white/30 uppercase tracking-wider">
-                    <th class="pb-3 pl-4 pr-3 font-medium">Amount</th>
-                    <th class="pb-3 px-3 font-medium">Top-up</th>
-                    <th class="pb-3 px-3 font-medium">Service</th>
-                    <th class="pb-3 pl-3 pr-4 font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody id="funding-tbody">
-                  ${renderFundingRows()}
-                </tbody>
-              </table>
-            </div>
-
+            `).join('')}
           </div>
-
-
         </div>
       </section>
 

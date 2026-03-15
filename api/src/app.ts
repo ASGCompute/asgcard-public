@@ -25,6 +25,10 @@ export const createApp = async () => {
   app.use("/cards", walletRouter);
   app.use("/ops", opsRouter);
 
+  // ── Mini App (Web App API) ─────────────────────────────────
+  const { miniappRouter } = await import("./modules/miniapp");
+  app.use("/api/miniapp", miniappRouter);
+
   // ── Telegram Bot (feature-flagged) ─────────────────────────
   if (env.TG_BOT_ENABLED === "true") {
     const { botRouter } = await import("./modules/bot");

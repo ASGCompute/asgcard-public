@@ -12,11 +12,13 @@ import type { TelegramClient } from "../telegramClient";
 import { LinkService } from "../../portal/linkService";
 import { AdminBot } from "../../admin/adminBot";
 import {
-    welcomeMessage,
     linkSuccessMessage,
     linkFailedMessage,
 } from "../templates";
 import { persistentMenu } from "../keyboards";
+import crypto from "node:crypto";
+import { env } from "../../../config/env";
+import { query } from "../../../db/db";
 
 export async function handleStartCommand(
     client: TelegramClient,
@@ -58,11 +60,36 @@ export async function handleStartCommand(
         return;
     }
 
-    // Plain /start — welcome
+    // Regular /start — check existing wallet and send welcome
+    const rows = await query<{ owner_wallet: string }>(
+        `SELECT owner_wallet FROM owner_telegram_links WHERE telegram_user_id = $1 AND status = 'active' LIMIT 1`,
+        [userId]
+    );
+
+    // Store chat_id for later notifications (e.g. payment confirmations)
+    if (rows.length > 0) {
+        await query(
+            `UPDATE owner_telegram_links SET chat_id = $1 WHERE telegram_user_id = $2 AND status = 'active'`,
+            [chatId, userId]
+        );
+    }
+
+    const hasWallet = rows.length > 0;
+    const miniappUrl = process.env.VITE_APP_URL ? `${process.env.VITE_APP_URL}/miniapp` : "https://asgcard.dev/miniapp";
+
+    const welcomeText = hasWallet
+        ? `<b>Welcome back to ASG Card 🚀</b>\n\nYour wallet is active. Open the app below to manage your cards, fund your account, or issue new cards.`
+        : `<b>Welcome to ASG Card 🚀</b>\n\n💳 Virtual debit cards for AI agents & humans\n⚡ Zero gas fees on all transactions\n🌍 Works in 195+ countries\n\nTap below to create your smart wallet and get started.`;
+
     await client.sendMessage({
         chat_id: chatId,
-        text: welcomeMessage(),
+        text: welcomeText,
         parse_mode: "HTML",
-        reply_markup: persistentMenu(),
+        reply_markup: {
+            inline_keyboard: [[{
+                text: hasWallet ? "💳 Open ASG Card" : "🚀 Create Smart Wallet",
+                web_app: { url: miniappUrl }
+            }]],
+        },
     });
 }

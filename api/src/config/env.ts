@@ -60,6 +60,9 @@ const envSchema = z.object({
   TG_BOT_TOKEN: z.string().optional(),
   TG_WEBHOOK_SECRET: z.string().optional(),
 
+  // ── CryptoBot Crypto Pay (@CryptoBot) ──────────────────
+  CRYPTO_BOT_TOKEN: z.string().optional(),
+
   // ── Owner Portal ───────────────────────────────────────
   OWNER_PORTAL_ENABLED: z.enum(["true", "false"]).default("false"),
 

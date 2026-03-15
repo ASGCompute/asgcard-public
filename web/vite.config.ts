@@ -23,6 +23,7 @@ export default defineConfig({
                 paypal: resolve(__dirname, 'paypal/index.html'),
                 wirex: resolve(__dirname, 'wirex/index.html'),
                 cypher: resolve(__dirname, 'cypher/index.html'),
+                miniapp: resolve(__dirname, 'miniapp/index.html'),
             },
         },
     },

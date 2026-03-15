@@ -20,6 +20,7 @@ import { handleMyCardsCommand, handleCardCallback } from "./commands/myCards";
 import { handleProfileCommand, handleProfileCallback, handleProfileInput } from "./commands/profile";
 import { handleFaqCommand } from "./commands/faq";
 import { handleSupportCommand } from "./commands/support";
+import { handleAgentCommand } from "./commands/agent";
 import { handleFundCommand, handleFundCallback } from "./commands/fund";
 import { AuditService } from "../authz/auditService";
 import { AdminBot } from "../admin/adminBot";
@@ -265,6 +266,11 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
         return;
     }
 
+    if (cmd === "/agent") {
+        await handleAgentCommand(client, chatId, userId);
+        return;
+    }
+
     if (cmd === "/help") {
         await client.sendMessage({
             chat_id: chatId,
@@ -275,6 +281,7 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
                 `/profile — 👤 Edit email & phone\n` +
                 `/faq — ❓ Frequently asked questions\n` +
                 `/support — 🧑‍💻 Contact support\n` +
+                `/agent — 🧠 Agent Handoff\n` +
                 `/help — 📋 Show this message\n\n` +
                 `<i>First time? Link your wallet at</i> <a href="https://asgcard.dev">asgcard.dev</a>`,
             parse_mode: "HTML",
@@ -360,3 +367,98 @@ function safeEqual(a: string, b: string): boolean {
     if (bufA.length !== bufB.length) return false;
     return crypto.timingSafeEqual(bufA, bufB);
 }
+
+// ── CryptoBot Payment Webhook ─────────────────────────────
+// @CryptoBot sends invoice_paid updates here
+
+import { CryptoBotClient } from "../payments/cryptoBot";
+import { query } from "../../db/db";
+
+botRouter.post("/crypto-webhook", async (req, res) => {
+    try {
+        const token = env.CRYPTO_BOT_TOKEN;
+        if (!token) {
+            appLogger.warn("[CryptoBot] Webhook received but CRYPTO_BOT_TOKEN not set");
+            res.status(200).json({ ok: true }); return;
+        }
+
+        // Verify signature
+        const signature = req.header("crypto-pay-api-signature") || "";
+        const bodyStr = JSON.stringify(req.body);
+        if (!CryptoBotClient.verifySignature(token, bodyStr, signature)) {
+            appLogger.warn("[CryptoBot] Invalid webhook signature");
+            res.status(401).json({ error: "Invalid signature" }); return;
+        }
+
+        const update = req.body;
+        if (update.update_type !== "invoice_paid") {
+            res.status(200).json({ ok: true }); return;
+        }
+
+        const invoice = update.payload;
+        const invoiceId = String(invoice?.invoice_id);
+        const payloadData = JSON.parse(invoice?.payload || "{}");
+        const intentId = payloadData.intentId;
+        const tier = payloadData.tier;
+        const userId = payloadData.userId;
+
+        appLogger.info({ invoiceId, intentId, tier, userId }, "[CryptoBot] Payment received");
+
+        // Update payment intent
+        let updated = false;
+        if (intentId) {
+            const rows = await query(
+                `UPDATE payment_intents SET status = 'paid', paid_at = NOW() WHERE id = $1 AND status = 'pending' RETURNING id`,
+                [intentId]
+            );
+            updated = rows.length > 0;
+        } else if (invoiceId) {
+            const rows = await query(
+                `UPDATE payment_intents SET status = 'paid', paid_at = NOW() WHERE crypto_bot_invoice_id = $1 AND status = 'pending' RETURNING id`,
+                [invoiceId]
+            );
+            updated = rows.length > 0;
+        }
+
+        if (updated) {
+            appLogger.info({ intentId, tier, userId }, "[CryptoBot] Card tier activated");
+
+            // Send Telegram notification to user
+            if (userId) {
+                try {
+                    const linkRows = await query<{ chat_id: number }>(
+                        `SELECT chat_id FROM owner_telegram_links WHERE telegram_user_id = $1 AND status = 'active' AND chat_id IS NOT NULL LIMIT 1`,
+                        [userId]
+                    );
+                    if (linkRows.length > 0 && linkRows[0].chat_id) {
+                        const client = getTelegramClient();
+                        const tierName = tier === 'virtual' ? 'Virtual Card' : tier === 'stellar' ? 'Stellar Platinum' : 'Special Card';
+                        await client.sendMessage({
+                            chat_id: linkRows[0].chat_id,
+                            text: `✅ <b>Payment confirmed!</b>\n\nYour <b>${tierName}</b> has been activated.\nOpen the app below to view your card.`,
+                            parse_mode: "HTML",
+                            reply_markup: {
+                                inline_keyboard: [[{
+                                    text: "💳 Open ASG Card",
+                                    web_app: { url: "https://asgcard.dev/miniapp" }
+                                }]]
+                            }
+                        });
+                    }
+                } catch (notifError) {
+                    appLogger.warn({ err: notifError }, "[CryptoBot] Failed to send payment notification");
+                }
+            }
+        }
+
+        await AuditService.log({
+            actorType: "system", actorId: "cryptobot",
+            action: "payment_confirmed", resourceId: intentId || invoiceId, decision: "allow",
+        });
+
+        res.status(200).json({ ok: true });
+    } catch (error) {
+        appLogger.error({ err: error }, "[CryptoBot] Webhook processing error");
+        res.status(200).json({ ok: true }); // Always 200 so CryptoBot doesn't retry
+    }
+});

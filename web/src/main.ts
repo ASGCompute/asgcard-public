@@ -384,42 +384,40 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             ${[
-              { name: 'Anthropic', icon: 'anthropic', amount: '$120.00', date: 'Just now', memo: 'API usage refill (Claude 3.5 Sonnet)', bg: 'rgba(217, 119, 87, 0.1)', border: 'rgba(217, 119, 87, 0.2)' },
-              { name: 'Google Cloud', icon: 'googlecloud', amount: '$45.50', date: '2 hours ago', memo: 'Compute instance running costs', bg: 'rgba(66, 133, 244, 0.08)', border: 'rgba(66, 133, 244, 0.2)' },
-              { name: 'Vercel', icon: 'vercel', amount: '$20.00', date: '5 hours ago', memo: 'Pro plan renewal', bg: 'rgba(255, 255, 255, 0.03)', border: 'rgba(255, 255, 255, 0.1)' },
-              { name: 'GitHub', icon: 'github', amount: '$10.00', date: 'Yesterday', memo: 'Copilot monthly subscription', bg: 'rgba(255, 255, 255, 0.03)', border: 'rgba(255, 255, 255, 0.1)' },
-              { name: 'DigitalOcean', icon: 'digitalocean', amount: '$12.00', date: 'Yesterday', memo: 'Droplet expansion', bg: 'rgba(0, 128, 255, 0.08)', border: 'rgba(0, 128, 255, 0.2)' },
-              { name: 'Stripe', icon: 'stripe', amount: '$500.00', date: '2 days ago', memo: 'Invoice #4092 payment', bg: 'rgba(99, 91, 255, 0.08)', border: 'rgba(99, 91, 255, 0.2)' },
+              { name: 'Anthropic', icon: 'anthropic', amount: '$120.00', memo: 'API usage refill (Claude 3.5 Sonnet)', bg: 'rgba(217, 119, 87, 0.08)' },
+              { name: 'Google Cloud', icon: 'googlecloud', amount: '$45.50', memo: 'Compute instance running costs', bg: 'rgba(66, 133, 244, 0.08)' },
+              { name: 'Vercel', icon: 'vercel', amount: '$20.00', memo: 'Pro plan renewal', bg: 'rgba(255, 255, 255, 0.05)' },
+              { name: 'GitHub', icon: 'github', amount: '$10.00', memo: 'Copilot monthly subscription', bg: 'rgba(255, 255, 255, 0.05)' },
+              { name: 'DigitalOcean', icon: 'digitalocean', amount: '$12.00', memo: 'Droplet expansion', bg: 'rgba(0, 128, 255, 0.08)' },
+              { name: 'Stripe', icon: 'stripe', amount: '$500.00', memo: 'Invoice #4092 payment', bg: 'rgba(99, 91, 255, 0.08)' },
             ].map(uc => `
-              <div class="surface relative overflow-hidden rounded-2xl p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group border border-white/[0.04]">
+              <div class="group relative overflow-hidden rounded-xl bg-black/40 border border-white/[0.08] p-6 transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.02]">
                 <!-- Shine effect -->
-                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style="background: radial-gradient(800px circle at top left, ${uc.bg}, transparent 40%);"></div>
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style="background: radial-gradient(600px circle at top left, ${uc.bg}, transparent 40%);"></div>
                 
-                <div class="p-6 relative z-10 flex flex-col h-full">
-                  <div class="flex items-center justify-between mb-8">
+                <div class="relative z-10 flex flex-col h-full">
+                  <div class="flex items-start justify-between mb-8">
                     <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center p-2.5 shadow-inner transition-colors duration-500 group-hover:bg-white/10" style="border-color: ${uc.border}">
-                        <img src="https://cdn.simpleicons.org/${uc.icon}/ffffff" alt="${uc.name}" class="w-full h-full object-contain drop-shadow-md" />
+                      <div class="w-10 h-10 rounded-lg bg-[#111] border border-white/10 flex items-center justify-center p-2 shadow-sm transition-colors duration-300 group-hover:border-white/20">
+                        <img src="https://cdn.simpleicons.org/${uc.icon}/ffffff" alt="${uc.name}" class="w-full h-full object-contain" />
                       </div>
                       <div>
-                        <div class="text-sm font-semibold text-white/90 tracking-wide">${uc.name}</div>
-                        <div class="text-[10px] text-white/40 uppercase tracking-wider font-medium mt-0.5">Virtual Card</div>
+                        <div class="text-[15px] font-medium text-white/90 leading-tight">${uc.name}</div>
+                        <div class="text-[13px] text-white/40 mt-0.5">Virtual Card</div>
                       </div>
                     </div>
                     <div class="text-right">
-                      <div class="text-white font-mono text-lg font-medium">${uc.amount}</div>
-                      <div class="text-[10px] text-white/40 mt-0.5">${uc.date}</div>
+                      <div class="text-white font-mono text-base font-medium">${uc.amount}</div>
                     </div>
                   </div>
 
-                  <div class="bg-[#0a0a0a]/60 border border-white/[0.06] rounded-xl p-4 mt-auto backdrop-blur-sm relative transition-colors duration-500 group-hover:bg-[#0a0a0a]/80 group-hover:border-white/[0.1]">
-                    <!-- Decorator line -->
-                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-asg-green/80 rounded-r-full shadow-[0_0_8px_rgba(46,213,115,0.4)]"></div>
-                    
-                    <div class="flex items-center justify-between mb-2.5 pl-2">
-                      <span class="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Agent Memo</span>
+                  <div class="mt-auto pt-5 border-t border-white/[0.06] group-hover:border-white/[0.1] transition-colors duration-300">
+                    <div class="flex items-start gap-2.5 text-[14px] text-white/70">
+                      <svg class="w-4 h-4 text-asg-green/60 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <p class="leading-relaxed font-medium">"${uc.memo}"</p>
                     </div>
-                    <p class="text-[13px] text-white/80 leading-relaxed pl-2 font-medium">"${uc.memo}"</p>
                   </div>
                 </div>
               </div>

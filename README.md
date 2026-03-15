@@ -92,6 +92,12 @@ npx @asgcard/cli onboard -y --client cursor
 npm install @asgcard/sdk
 ```
 
+### Via ClawHub
+
+```bash
+npx clawhub@latest install agentcard
+```
+
 The onboarding flow creates a Stellar wallet (`~/.asgcard/wallet.json`), configures MCP, installs the agent skill, and prints the next step.
 
 > **Note:** If you already have a wallet, run `npx @asgcard/cli doctor` to verify your setup.

@@ -384,12 +384,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             ${[
-              { name: 'Anthropic', icon: 'anthropic', amount: '$120.00', memo: 'API usage refill (Claude 3.5 Sonnet)', bg: 'rgba(217, 119, 87, 0.08)' },
-              { name: 'Google Cloud', icon: 'googlecloud', amount: '$45.50', memo: 'Compute instance running costs', bg: 'rgba(66, 133, 244, 0.08)' },
-              { name: 'Vercel', icon: 'vercel', amount: '$20.00', memo: 'Pro plan renewal', bg: 'rgba(255, 255, 255, 0.05)' },
-              { name: 'GitHub', icon: 'github', amount: '$10.00', memo: 'Copilot monthly subscription', bg: 'rgba(255, 255, 255, 0.05)' },
-              { name: 'DigitalOcean', icon: 'digitalocean', amount: '$12.00', memo: 'Droplet expansion', bg: 'rgba(0, 128, 255, 0.08)' },
-              { name: 'Stripe', icon: 'stripe', amount: '$500.00', memo: 'Invoice #4092 payment', bg: 'rgba(99, 91, 255, 0.08)' },
+              { name: 'Anthropic', icon: 'anthropic', color: 'D97757', amount: '$120.00', memo: 'API usage refill (Claude 3.5 Sonnet)', bg: 'rgba(217, 119, 87, 0.08)' },
+              { name: 'Google Cloud', icon: 'googlecloud', color: '4285F4', amount: '$45.50', memo: 'Compute instance running costs', bg: 'rgba(66, 133, 244, 0.08)' },
+              { name: 'Vercel', icon: 'vercel', color: 'ffffff', amount: '$20.00', memo: 'Pro plan renewal', bg: 'rgba(255, 255, 255, 0.05)' },
+              { name: 'GitHub', icon: 'github', color: 'ffffff', amount: '$10.00', memo: 'Copilot monthly subscription', bg: 'rgba(255, 255, 255, 0.05)' },
+              { name: 'DigitalOcean', icon: 'digitalocean', color: '0080FF', amount: '$12.00', memo: 'Droplet expansion', bg: 'rgba(0, 128, 255, 0.08)' },
+              { name: 'Stripe', icon: 'stripe', color: '635BFF', amount: '$500.00', memo: 'Invoice #4092 payment', bg: 'rgba(99, 91, 255, 0.08)' },
             ].map(uc => `
               <div class="group relative overflow-hidden rounded-xl bg-black/40 border border-white/[0.08] p-6 transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.02]">
                 <!-- Shine effect -->
@@ -399,7 +399,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                   <div class="flex items-start justify-between mb-8">
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 rounded-lg bg-[#111] border border-white/10 flex items-center justify-center p-2 shadow-sm transition-colors duration-300 group-hover:border-white/20">
-                        <img src="https://cdn.simpleicons.org/${uc.icon}/ffffff" alt="${uc.name}" class="w-full h-full object-contain" />
+                        <img src="https://cdn.simpleicons.org/${uc.icon}/${uc.color}" alt="${uc.name}" class="w-full h-full object-contain" />
                       </div>
                       <div>
                         <div class="text-[15px] font-medium text-white/90 leading-tight">${uc.name}</div>

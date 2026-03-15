@@ -43,9 +43,11 @@ Agent Card is an **agent-first** virtual card platform. AI agents programmatical
 
 ## 🎬 Demo
 
-https://github.com/user-attachments/assets/demo.mp4
+<p align="center">
+  <video src="https://github.com/ASGCompute/asgcard-public/raw/main/.github/assets/demo.mp4" width="600" controls></video>
+</p>
 
-<video src=".github/assets/demo.mp4" width="100%" controls autoplay muted loop></video>
+> 📹 Can't see the video? [Watch on GitHub](https://github.com/ASGCompute/asgcard-public/blob/main/.github/assets/demo.mp4)
 
 ## Agent Card is right for you if
 

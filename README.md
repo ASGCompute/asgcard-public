@@ -1,6 +1,3 @@
-<p align="center">
-  <img src=".github/assets/banner.png" alt="Agent Card — Virtual MasterCards for AI Agents" width="600">
-</p>
 
 <p align="center">
   <a href="https://npmjs.com/package/@asgcard/sdk"><img src="https://img.shields.io/npm/v/@asgcard/sdk?label=sdk" alt="npm"></a>

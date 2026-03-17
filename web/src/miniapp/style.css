@@ -1,0 +1,661 @@
+/* ── ASG Card Mini App — Premium Dark Theme ─────────────── */
+
+:root {
+  --bg: var(--tg-theme-bg-color, #0a0a0a);
+  --text: var(--tg-theme-text-color, #ffffff);
+  --hint: var(--tg-theme-hint-color, #8e8e93);
+  --accent: var(--tg-theme-button-color, #d4a843);
+  --accent-text: var(--tg-theme-button-text-color, #000);
+  --card-bg: var(--tg-theme-secondary-bg-color, #1c1c1e);
+  --surface: #2c2c2e;
+  --border: rgba(255,255,255,0.08);
+  --success: #30d158;
+  --danger: #ff453a;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* ── Shared ────────────────────────────────────────────── */
+
+.screen { padding: 20px 20px 32px; animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.screen-enter { animation: screenEnter .3s ease forwards; }
+@keyframes screenEnter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.btn {
+  display: block; width: 100%; padding: 16px;
+  border: none; border-radius: var(--radius);
+  font-size: 17px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  text-align: center; text-decoration: none;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); color: var(--accent-text); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-secondary { background: var(--surface); color: var(--text); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--hint); }
+.btn-danger { background: rgba(255,69,58,.15); color: var(--danger); }
+.btn-success { background: rgba(48,209,88,.15); color: var(--success); }
+
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { flex: 1; }
+
+.section-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--hint); margin: 24px 0 12px; padding: 0 4px;
+}
+
+.list-group {
+  background: var(--card-bg); border-radius: var(--radius);
+  overflow: hidden;
+}
+.list-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 15px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .15s;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item:active { background: var(--surface); }
+.list-item-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.list-item-body { flex: 1; min-width: 0; }
+.list-item-title { font-size: 16px; font-weight: 500; }
+.list-item-subtitle { font-size: 13px; color: var(--hint); margin-top: 2px; }
+.list-item-right { font-size: 14px; color: var(--hint); flex-shrink: 0; }
+.list-item-right.balance { color: var(--text); font-weight: 600; font-size: 16px; }
+
+.badge {
+  display: inline-block; padding: 3px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+}
+.badge-active { background: rgba(48,209,88,.15); color: var(--success); }
+.badge-frozen { background: rgba(100,210,255,.15); color: #64d2ff; }
+
+.empty-state { text-align: center; padding: 48px 20px; }
+.empty-state-icon { font-size: 56px; margin-bottom: 16px; }
+.empty-state-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.empty-state-desc { font-size: 15px; color: var(--hint); line-height: 1.4; margin-bottom: 24px; }
+
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,.2); border-top-color: #fff;
+  border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: var(--surface); padding: 12px 20px; border-radius: 12px;
+  font-size: 14px; animation: toastIn .3s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 999;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ── Card Visual ───────────────────────────────────────── */
+
+.card-visual {
+  position: relative; padding: 28px 24px;
+  border-radius: 18px; overflow: hidden;
+  background: linear-gradient(145deg, #2c2c2e 0%, #1a1a1a 50%, #0d0d0d 100%);
+  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 24px;
+}
+.card-visual::before {
+  content: ''; position: absolute; top: -40%; right: -20%;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,168,67,.12), transparent 70%);
+  pointer-events: none;
+}
+.card-chip {
+  width: 36px; height: 28px; border-radius: 5px;
+  background: linear-gradient(135deg, #d4a843 0%, #b8932e 100%);
+  margin-bottom: 28px; position: relative;
+}
+.card-chip::after {
+  content: ''; position: absolute; top: 6px; left: 7px; right: 7px; bottom: 6px;
+  border: 1.5px solid rgba(0,0,0,.2); border-radius: 2px;
+}
+.card-number { font-family: "SF Mono", "Fira Code", monospace; font-size: 20px; letter-spacing: 3px; margin-bottom: 24px; }
+.card-row { display: flex; justify-content: space-between; align-items: flex-end; }
+.card-label { font-size: 10px; text-transform: uppercase; color: var(--hint); letter-spacing: 1px; margin-bottom: 4px; }
+.card-value { font-size: 15px; font-weight: 500; }
+.card-brand { font-size: 22px; font-weight: 800; color: var(--accent); font-style: italic; }
+
+/* ── Onboarding (Screenshot UI) ────────────────────────── */
+
+.onboard-screen { padding: 0; display: flex; flex-direction: column; min-height: 100vh; background: #111113; }
+
+.wallet-illustration {
+  width: 260px; height: 180px; margin: 40px auto 30px; position: relative;
+  z-index: 1; margin-top: 10vh;
+}
+.card-inserted {
+  position: absolute; top: 10px; left: 15px; right: 15px; height: 150px;
+  background: linear-gradient(135deg, #333336 0%, #151518 100%);
+  border: 1px solid #444; border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.card-inserted::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 45%, transparent 60%);
+}
+.card-inserted .chip {
+  position: absolute; bottom: 40px; left: 24px;
+  width: 28px; height: 22px; border-radius: 4px;
+  background: #a3a3a3; border: 1px solid #777;
+  background-image: 
+    linear-gradient(90deg, transparent 40%, rgba(0,0,0,0.2) 50%, transparent 60%),
+    linear-gradient(0deg, transparent 45%, rgba(0,0,0,0.2) 50%, transparent 55%);
+}
+.card-inserted .logo {
+  position: absolute; bottom: 38px; right: 24px;
+  font-weight: 800; font-size: 20px; letter-spacing: 1px;
+  color: #fff; opacity: 0.8;
+}
+
+.wallet-pocket {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 110px;
+  background: #1c1c1e;
+  border-radius: 60px 20px 0 0 / 80px 20px 0 0;
+  box-shadow: 0 -5px 20px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.wallet-pocket::before {
+  content: ''; position: absolute; inset: 4px;
+  border-radius: 56px 16px 0 0 / 76px 16px 0 0;
+  border: 1px dashed rgba(255,255,255,0.15); border-bottom: none;
+  pointer-events: none;
+}
+
+.onboard-glass {
+  background: rgba(30, 30, 32, 0.6);
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 24px;
+  padding: 24px; margin: 0 16px 32px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  position: relative; z-index: 10;
+  margin-top: -60px; /* Pull it up over the wallet slightly */
+}
+
+.pill-badge {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 16px; border-radius: 6px;
+  margin: 0 auto 24px; display: table;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.pill-icon { opacity: 0.5; font-size: 12px; }
+
+.stepper { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; position: relative; }
+.stepper-item { display: flex; gap: 16px; position: relative; }
+.stepper-item:not(:last-child)::after {
+  content: ''; position: absolute;
+  top: 32px; left: 16px; bottom: -24px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.15);
+}
+.stepper-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 500; color: #fff; z-index: 2; flex-shrink: 0;
+}
+.stepper-content { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.stepper-content h4 { font-size: 14px; font-weight: 600; color: #fff; margin: 0; }
+.stepper-content p { font-size: 13px; color: rgba(255, 255, 255, 0.45); margin: 0; line-height: 1.4; }
+
+.btn-gold {
+  background: linear-gradient(180deg, #c29330 0%, #876214 100%);
+  color: #fff; border: 1px solid rgba(255, 200, 100, 0.4);
+  box-shadow: 0 4px 20px rgba(194,147,48,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Standalone Card (Details Screen) ──────────────────── */
+.card-standalone {
+  position: relative; height: 190px; padding: 24px;
+  background: linear-gradient(135deg, #333336 0%, #151518 100%);
+  border: 1px solid #444; border-radius: 16px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 12px 30px rgba(0,0,0,0.5);
+  overflow: hidden; margin-bottom: 24px;
+}
+.card-standalone::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.08) 45%, transparent 60%);
+  pointer-events: none;
+}
+.card-standalone .chip {
+  width: 32px; height: 26px; border-radius: 4px;
+  background: #a3a3a3; border: 1px solid #777;
+  background-image: 
+    linear-gradient(90deg, transparent 40%, rgba(0,0,0,0.2) 50%, transparent 60%),
+    linear-gradient(0deg, transparent 45%, rgba(0,0,0,0.2) 50%, transparent 55%);
+  margin-bottom: 40px; position: relative; z-index: 2;
+}
+.card-standalone .logo {
+  position: absolute; top: 22px; right: 24px;
+  font-weight: 800; font-size: 22px; letter-spacing: 1px;
+  color: #fff; opacity: 0.8; z-index: 2;
+}
+.card-standalone .number {
+  font-family: "SF Mono", "Fira Code", monospace; font-size: 22px; letter-spacing: 3px;
+  margin-bottom: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); position: relative; z-index: 2;
+}
+.card-standalone .details { display: flex; justify-content: space-between; position: relative; z-index: 2; }
+.card-standalone .label { font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.5); letter-spacing: 1px; margin-bottom: 4px; }
+.card-standalone .value { font-size: 15px; font-weight: 500; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+/* ── Card Details Actions ──────────────────────────────── */
+
+.detail-balance {
+  background: rgba(30, 30, 32, 0.6);
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px; padding: 24px;
+  text-align: center; margin-bottom: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.detail-balance .amount { font-size: 42px; font-weight: 700; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.detail-balance .label { font-size: 13px; color: var(--hint); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+.detail-action-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 10px; border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer; transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text); font-size: 13px; font-weight: 600;
+}
+.detail-action-btn:active { background: rgba(255, 255, 255, 0.08); transform: translateY(2px) scale(.96); }
+.detail-action-icon { font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+
+/* ── Fund Screen ───────────────────────────────────────── */
+
+.fund-tier {
+  background: var(--card-bg); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; border: 1px solid var(--border); transition: all .15s;
+}
+.fund-tier:active { background: var(--surface); transform: scale(.98); }
+.fund-tier-amount { font-size: 20px; font-weight: 700; }
+.fund-tier-cost { font-size: 14px; color: var(--hint); }
+
+/* ── Reveal ────────────────────────────────────────────── */
+
+.reveal-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+  margin-top: 16px;
+}
+.reveal-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.reveal-row:last-child { border-bottom: none; }
+.reveal-label { font-size: 14px; color: var(--hint); }
+.reveal-value { font-size: 16px; font-weight: 600; font-family: monospace; letter-spacing: 1px; }
+
+/* ── Nav Bar ───────────────────────────────────────────── */
+
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  background: rgba(28,28,30,.95); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 12px; cursor: pointer; color: var(--hint);
+  transition: color .15s; font-size: 10px; font-weight: 500;
+}
+.nav-item.active { color: var(--accent); }
+.nav-icon { font-size: 22px; }
+
+/* ── KYC Widget ── */
+.kyc-widget {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(234, 179, 8, 0.05));
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+.kyc-widget:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.1));
+}
+.kyc-widget-icon {
+    font-size: 28px;
+    background: rgba(234, 179, 8, 0.1);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+.kyc-widget-content {
+    flex: 1;
+}
+.kyc-widget-title {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+.kyc-widget-desc {
+    color: var(--hint);
+    font-size: 13px;
+    line-height: 1.4;
+}
+.kyc-widget-arrow {
+    color: var(--gold);
+    font-size: 20px;
+}
+
+/* ── Premium Inputs ── */
+.input-premium {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.2s;
+    outline: none;
+    box-sizing: border-box;
+}
+.input-premium:focus {
+    border-color: rgba(234, 179, 8, 0.4);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.1);
+}
+.input-premium::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Card Tier Selection ── */
+.card-tier-section-label {
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+.card-tier-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.card-tier-item:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.06);
+}
+.card-tier-mini {
+    width: 64px;
+    height: 42px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.card-tier-mini-label {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.card-tier-info {
+    flex: 1;
+}
+.card-tier-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 2px;
+}
+.card-tier-badge {
+    font-size: 12px;
+    color: var(--hint);
+}
+.card-tier-price {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--hint);
+    white-space: nowrap;
+}
+
+/* ── Card Visuals ── */
+.card-visual-gold {
+    background: linear-gradient(135deg, #eab308, #ca8a04, #d4a017);
+    box-shadow: 0 4px 12px rgba(234, 179, 8, 0.25);
+}
+.card-visual-stellar {
+    background: linear-gradient(135deg, #1a1a2e, #2d2d44, #0f0f23);
+    border: 1px solid rgba(138, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(138, 92, 246, 0.2);
+}
+.card-visual-locked {
+    background: linear-gradient(135deg, #2a2a2a, #3a3a3a, #1a1a1a);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Card Tier Hero (Detail) ── */
+.card-tier-hero {
+    width: 100%;
+    aspect-ratio: 1.6;
+    border-radius: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 24px;
+    position: relative;
+    margin-bottom: 16px;
+    margin-top: 16px;
+    box-sizing: border-box;
+}
+.card-tier-hero-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.card-tier-hero-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 64px;
+    opacity: 0.15;
+    color: #fff;
+}
+.card-tier-hero-visa {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-align: right;
+    line-height: 1.1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.card-tier-hero-visa small {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* ── Tier Dots ── */
+.tier-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.tier-dot {
+    width: 24px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    transition: background .2s, width .2s;
+}
+.tier-dot:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+.tier-dot.active {
+    background: var(--gold);
+    width: 32px;
+}
+
+/* ── Tier Feature List ── */
+.tier-features {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.tier-feature {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+.tier-feature-icon {
+    font-size: 24px;
+    width: 32px;
+    flex-shrink: 0;
+    text-align: center;
+}
+.tier-feature-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+.tier-feature-desc {
+    color: var(--hint);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ── Back Button ── */
+.btn-back {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    margin: 0;
+}
+
+/* ── Progress Bar ── */
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 20px;
+    padding: 12px 0;
+}
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 64px;
+}
+.progress-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--hint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all .3s;
+}
+.progress-step.active .progress-dot {
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 0 16px rgba(212, 168, 67, 0.4);
+}
+.progress-step.done .progress-dot {
+    background: var(--success);
+    color: #fff;
+}
+.progress-label {
+    font-size: 10px;
+    color: var(--hint);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.progress-step.active .progress-label { color: var(--accent); }
+.progress-step.done .progress-label { color: var(--success); }
+.progress-line {
+    width: 32px;
+    height: 2px;
+    background: var(--border);
+    margin: 0 4px;
+    margin-bottom: 20px;
+}
+
+/* ── Card Hero Number ── */
+.card-tier-hero-number {
+    position: absolute;
+    bottom: 52px;
+    left: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 3px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+}
+
+/* ── Input Focus Animation ── */
+.input-premium:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(212, 168, 67, 0.2);
+}

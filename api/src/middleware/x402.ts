@@ -8,6 +8,8 @@ import {
 } from "../config/pricing";
 import { paymentService } from "../services/paymentService";
 import { emitMetric, startTimer } from "../services/metrics";
+import { checkIssuerBalance } from "../services/fourPaymentsClient";
+import { trackActivity } from "../services/activity";
 import type {
   PaymentPayload,
   PaymentRequired,
@@ -122,7 +124,40 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
     // ── Check for payment header (canonical X-PAYMENT, legacy X-Payment) ──
     const paymentHeader = req.header("X-PAYMENT") ?? req.header("X-Payment");
 
+    // ── Issuer capacity precheck (before 402 challenge) ─────
     if (!paymentHeader) {
+      const requiredIssuerAmount = amount; // the load/fund amount the issuer must cover
+      const balanceResult = await checkIssuerBalance(requiredIssuerAmount);
+
+      if (!balanceResult.sufficient) {
+        const metricType = balanceResult.error
+          ? "issuer_balance_check_failed" as const
+          : "issuer_insufficient_funds" as const;
+
+        emitMetric({
+          eventType: metricType,
+          latencyMs: elapsed(),
+          metadata: {
+            purpose,
+            tierAmount: amount,
+            availableBalance: balanceResult.availableBalance ?? null,
+            requiredAmount: requiredIssuerAmount,
+            ...(balanceResult.error ? { error: balanceResult.error.substring(0, 200) } : {}),
+          },
+        });
+
+        res.status(503)
+          .set("Retry-After", "60")
+          .json({
+            error: "Service temporarily unavailable",
+            reason: "provider_capacity",
+            message: `The $${amount} tier is temporarily unavailable due to provider capacity. Please retry later.`,
+            retryAfter: 60,
+          });
+        return;
+      }
+
+      // Issuer has capacity — issue standard 402 challenge
       res.status(402).json(buildChallenge(req, amount, requiredAtomic, purpose));
       return;
     }
@@ -204,13 +239,20 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
       metadata: { status: 201 }
     });
 
+    const payer = result.settleResponse?.payer ?? "";
+
     req.paymentContext = {
-      payer: result.settleResponse?.payer ?? "",
+      payer,
       txHash: result.settleResponse?.transaction ?? "",
       atomicAmount: requiredAtomic,
       tierAmount: amount as 10 | 25 | 50 | 100 | 200 | 500,
       totalCostUsd: tier.totalCost
     };
+
+    // DAA tracking — fire-and-forget
+    if (payer) {
+      trackActivity(payer);
+    }
 
     next();
   };

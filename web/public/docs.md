@@ -1,6 +1,6 @@
 # ASG Card — LLM-Friendly Documentation
 
-> Virtual MasterCard cards for AI agents, powered by x402 on Stellar
+> USD MasterCard virtual cards for AI agents, powered by x402 on Stellar
 
 ## Quick Links
 
@@ -167,6 +167,17 @@ All CLI and MCP errors follow a remediation-first pattern:
    Fix: [Exact command to run]
 ```
 
+| Code | When |
+| ---- | ---- |
+| `400` | Unsupported tier, invalid body |
+| `401` | Invalid wallet auth or X-Payment proof |
+| `402` | x402 challenge (no X-Payment header) |
+| `403` | Details access revoked by card owner |
+| `404` | Card not found |
+| `409` | Nonce replay detected |
+| `429` | Rate limit exceeded |
+| `503` | Provider capacity unavailable — issuer cannot fund requested tier. Retry after the period specified in `retryAfter`. |
+
 ## Payment Protocol
 
 - **Protocol**: x402 (HTTP 402-based machine payment)
@@ -174,6 +185,12 @@ All CLI and MCP errors follow a remediation-first pattern:
 - **Currency**: USDC (Circle)
 - **Mechanism**: Soroban SAC transfer, signed auth entries
 - **Fees**: Sponsored by x402 facilitator (zero gas cost for user)
+
+## Refunds & Failures
+
+- **Merchant refunds**: Standard MasterCard merchant refunds to the card are supported. Refunds initiated by merchants are processed through the card network and credited to the card balance.
+- **Failed create/fund**: If a card creation or funding operation fails after payment acceptance, the case is handled operationally by ASG support. There is no self-serve refund mechanism. Contact support@asgcompute.dev with your transaction hash.
+- **Provider capacity (503)**: If the issuer cannot fund a requested tier, the API returns `503` before accepting any payment. No payment is taken and no refund is needed.
 
 ## Support
 

@@ -21,7 +21,9 @@ export type MetricEvent =
     | "request_create"
     | "request_fund"
     | "rollout_gated"
-    | "rollout_kill_switch";
+    | "rollout_kill_switch"
+    | "issuer_balance_check_failed"
+    | "issuer_insufficient_funds";
 
 export interface MetricEntry {
     eventType: MetricEvent;

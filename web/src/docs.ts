@@ -1262,6 +1262,11 @@ function renderErrors(): string {
               <td data-label="Example"><code>{"error":"Card details rate limit exceeded (5 requests / hour)"}</code></td>
             </tr>
             <tr>
+              <td data-label="Code"><code>503</code></td>
+              <td data-label="When">Provider capacity unavailable (issuer cannot fund requested tier)</td>
+              <td data-label="Example"><code>{"error":"Service temporarily unavailable","reason":"provider_capacity","retryAfter":60}</code></td>
+            </tr>
+            <tr>
               <td data-label="Code"><code>500</code></td>
               <td data-label="When">Unexpected internal error</td>
               <td data-label="Example"><code>{"error":"Internal server error"}</code></td>

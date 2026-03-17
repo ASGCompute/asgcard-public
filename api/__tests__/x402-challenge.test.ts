@@ -1,6 +1,18 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
+
+// Mock issuer balance check — always sufficient so existing 402 tests pass
+vi.mock("../src/services/fourPaymentsClient", () => ({
+  checkIssuerBalance: vi.fn().mockResolvedValue({
+    sufficient: true,
+    availableBalance: 999999,
+  }),
+  getFourPaymentsClient: () => {
+    throw new Error("getFourPaymentsClient not available in test");
+  },
+}));
+
 import { createApp } from "../src/app";
 
 let app: Express;

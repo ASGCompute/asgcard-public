@@ -324,4 +324,43 @@ export function getFourPaymentsClient(): FourPaymentsClient {
   return _client;
 }
 
+// ── Issuer balance precheck ────────────────────────────────
+
+export interface IssuerBalanceResult {
+  sufficient: boolean;
+  availableBalance?: number;
+  error?: string;
+}
+
+/**
+ * Check whether the issuer (4payments) has enough balance to fund
+ * the requested amount. Fail-closed: any error → { sufficient: false }.
+ * Timeout: 5 seconds.
+ */
+export async function checkIssuerBalance(requiredAmount: number): Promise<IssuerBalanceResult> {
+  try {
+    const client = getFourPaymentsClient();
+
+    // 5-second timeout
+    const timeoutMs = 5_000;
+    const result = await Promise.race([
+      client.getAccountBalance(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Issuer balance check timed out")), timeoutMs)
+      ),
+    ]);
+
+    const available = result.balance;
+    if (available >= requiredAmount) {
+      return { sufficient: true, availableBalance: available };
+    }
+    return { sufficient: false, availableBalance: available };
+  } catch (err) {
+    return {
+      sufficient: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export type { FPCardIssued, FPCardDetails, FPSensitiveInfo, FPTopUpResult, FPCardType, FPAccountBalance };

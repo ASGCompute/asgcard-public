@@ -50,10 +50,10 @@ class CardService {
     // Generate our own external ID for tracking
     const externalId = `asg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Parse name into first/last for 4payments
+    // Parse name into first/last for 4payments — no fake defaults
     const nameParts = input.nameOnCard.trim().split(/\s+/);
-    const firstName = nameParts[0] || "Card";
-    const lastName = nameParts.slice(1).join(" ") || "Holder";
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
     // Sync: look up profile email/phone from owner_telegram_links
     let profileEmail = input.email;

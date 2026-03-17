@@ -55,9 +55,9 @@ class CardService {
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-    // Sync: look up profile email/phone from owner_telegram_links
+    // Resolve real email/phone — no fake defaults
     let profileEmail = input.email;
-    let profilePhone = "+17073164477"; // default for new clients
+    let profilePhone = "";
 
     try {
       const { query: dbQuery } = await import("../db/db");
@@ -72,6 +72,11 @@ class CardService {
       }
     } catch (err) {
       console.error("[cardService] Profile lookup failed, using request values:", err);
+    }
+
+    // Validate: must have real email before sending to 4payments
+    if (!profileEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) {
+      throw new HttpError(400, "Valid email is required to create a card. Please provide your email address.");
     }
 
     // Step 1: Issue card via 4payments

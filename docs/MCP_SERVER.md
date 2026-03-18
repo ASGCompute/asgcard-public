@@ -4,9 +4,10 @@
 
 ## Обзор
 
-`@asgcard/mcp-server` — npm пакет, предоставляющий 8 MCP tools для:
+`@asgcard/mcp-server` — npm пакет, предоставляющий 11 MCP tools для:
 - Создания и пополнения карт (x402, автономно, без человека)
 - Управления картами (список, детали, freeze/unfreeze)
+- Просмотра истории транзакций и баланса (реальные данные 4payments)
 - Просмотра тарифов
 
 ```mermaid
@@ -18,10 +19,11 @@ graph LR
     API -->|REST| FP[Card Issuer<br>MasterCard BIN]
 ```
 
-## MCP Tools (8)
+## MCP Tools (11)
 
 | Tool | Params | Транспорт | Описание |
 |------|--------|-----------|----------|
+| `get_wallet_status` | — | public + Horizon | Статус кошелька, баланс USDC, готовность |
 | `create_card` | amount, nameOnCard, email | x402 SDK | Создать карту + оплата USDC on-chain |
 | `fund_card` | amount, cardId | x402 SDK | Пополнить карту |
 | `list_cards` | — | wallet-auth | Список всех карт кошелька |
@@ -30,22 +32,27 @@ graph LR
 | `freeze_card` | cardId | wallet-auth | Заморозить карту |
 | `unfreeze_card` | cardId | wallet-auth | Разморозить |
 | `get_pricing` | — | public API | Тарифы и цены |
+| `get_transactions` | cardId, page?, limit? | wallet-auth | История транзакций с 4payments |
+| `get_balance` | cardId | wallet-auth | Живой баланс карты из 4payments |
 
 
 
 ## Архитектура
 
-### Два типа вызовов:
+### Три типа вызовов:
 
 1. **x402 SDK** (`create_card`, `fund_card`):
    - Используют `ASGCardClient` из `@asgcard/sdk`
    - Автоматический flow: 402 → sign USDC TX → submit → card created
    - Stellar Keypair подписывает транзакцию
 
-2. **Wallet-auth** (`list_cards`, `get_card`, `get_card_details`, `freeze_card`, `unfreeze_card`):
+2. **Wallet-auth** (`list_cards`, `get_card`, `get_card_details`, `freeze_card`, `unfreeze_card`, `get_transactions`, `get_balance`):
    - Прямые HTTP вызовы к API
    - Auth headers: `X-WALLET-ADDRESS`, `X-WALLET-SIGNATURE`, `X-WALLET-TIMESTAMP`
    - Подпись: `ed25519(asgcard-auth:{timestamp})`, base64
+
+3. **Public** (`get_wallet_status`, `get_pricing`):
+   - Прямые HTTP вызовы без аутентификации
 
 ### Безопасность:
 - Stellar private key **не покидает** локальный процесс
@@ -104,7 +111,8 @@ mcp-server/
 ├── tsconfig.json       # ES2022 + Node16
 ├── src/
 │   ├── index.ts        # Entry point (stdio transport)
-│   ├── server.ts       # MCP server factory (8 tools)
+│   ├── server.ts       # MCP server factory (11 tools)
 │   └── wallet-client.ts # Wallet-auth HTTP client
 └── dist/               # Compiled output
 ```
+

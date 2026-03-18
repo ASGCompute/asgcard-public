@@ -1,4 +1,3 @@
-
 <p align="center">
   <a href="https://npmjs.com/package/@asgcard/sdk"><img src="https://img.shields.io/npm/v/@asgcard/sdk?label=sdk" alt="npm"></a>
   <a href="https://npmjs.com/package/@asgcard/cli"><img src="https://img.shields.io/npm/v/@asgcard/cli?label=cli" alt="cli"></a>
@@ -49,6 +48,8 @@ Agent Card is an **agent-first** virtual card platform. AI agents programmatical
 <em>If it speaks MCP, it can spend.</em>
 
 </div>
+
+[![ASG Card MCP server](https://glama.ai/mcp/servers/ASGCompute/asgcard-public/badges/card.svg)](https://glama.ai/mcp/servers/ASGCompute/asgcard-public)
 
 ## 🎬 Demo
 

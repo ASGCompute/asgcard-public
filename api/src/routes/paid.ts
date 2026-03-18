@@ -5,7 +5,8 @@ import { cardService, HttpError } from "../services/cardService";
 
 const createCardSchema = z.object({
   nameOnCard: z.string().min(1),
-  email: z.string().email()
+  email: z.string().email(),
+  phone: z.string().optional(),
 });
 
 const fundCardSchema = z.object({
@@ -31,6 +32,7 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req
       walletAddress: req.paymentContext.payer,
       nameOnCard: parsed.data.nameOnCard,
       email: parsed.data.email,
+      phone: parsed.data.phone,
       initialAmountUsd: req.paymentContext.tierAmount,
       tierAmount: req.paymentContext.tierAmount,
       chargedUsd: req.paymentContext.totalCostUsd,

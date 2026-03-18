@@ -138,14 +138,16 @@ export function createASGCardServer(config: ServerConfig): McpServer {
         .describe("Card tier amount in USD. Available tiers: 10, 25, 50, 100, 200, 500"),
       nameOnCard: z.string().min(1).describe("Name to print on the virtual card"),
       email: z.string().email().describe("Email address for card notifications"),
+      phone: z.string().min(1).describe("Phone number for cardholder registration, e.g. +1234567890"),
     },
-    async ({ amount, nameOnCard, email }) => {
+    async ({ amount, nameOnCard, email, phone }) => {
       try {
         const numericAmount = Number(amount) as (typeof VALID_AMOUNTS)[number];
         const result = await sdkClient.createCard({
           amount: numericAmount,
           nameOnCard,
           email,
+          phone,
         });
 
         return {

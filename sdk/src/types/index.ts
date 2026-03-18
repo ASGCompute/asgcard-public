@@ -36,6 +36,8 @@ export interface CreateCardParams {
   amount: 10 | 25 | 50 | 100 | 200 | 500;
   nameOnCard: string;
   email: string;
+  /** Phone number for cardholder registration (e.g. +1234567890). Required by card issuer. */
+  phone?: string;
 }
 
 export interface FundCardParams {

@@ -63,12 +63,15 @@ export class ASGCardClient {
    * Handles 402 → x402 payment → 201 automatically.
    */
   async createCard(params: CreateCardParams): Promise<CardResult> {
+    const body: Record<string, unknown> = {
+      nameOnCard: params.nameOnCard,
+      email: params.email,
+    };
+    if (params.phone) body.phone = params.phone;
+
     return this.requestWithX402<CardResult>(`/cards/create/tier/${params.amount}`, {
       method: "POST",
-      body: JSON.stringify({
-        nameOnCard: params.nameOnCard,
-        email: params.email
-      })
+      body: JSON.stringify(body)
     });
   }
 

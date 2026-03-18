@@ -753,6 +753,23 @@ If wallet has insufficient USDC:
       console.log(chalk.dim("     Run: ") + chalk.cyan("asgcard wallet create") + chalk.dim(" or ") + chalk.cyan("asgcard wallet import"));
     }
     console.log();
+
+    // ── Telemetry beacon (fire-and-forget) ──────────────
+    try {
+      const apiUrl = getApiUrl();
+      fetch(`${apiUrl}/telemetry/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client: clients[0] ?? "manual",
+          version: VERSION,
+          os: process.platform,
+        }),
+        signal: AbortSignal.timeout(3000),
+      }).catch(() => {}); // swallow — never block
+    } catch {
+      // fail-open
+    }
   });
 
 // ── doctor ──────────────────────────────────────────────────
@@ -1066,7 +1083,8 @@ program
   .requiredOption("-a, --amount <amount>", `Card load amount (${VALID_AMOUNTS.join(", ")})`)
   .requiredOption("-n, --name <name>", "Name on card")
   .requiredOption("-e, --email <email>", "Email for notifications")
-  .action(async (options: { amount: string; name: string; email: string }) => {
+  .requiredOption("-p, --phone <phone>", "Phone number (e.g. +1234567890)")
+  .action(async (options: { amount: string; name: string; email: string; phone: string }) => {
     if (!VALID_AMOUNTS.includes(options.amount)) {
       remediate(
         `Invalid amount: ${options.amount}`,
@@ -1108,6 +1126,7 @@ program
         amount: Number(options.amount) as 10 | 25 | 50 | 100 | 200 | 500,
         nameOnCard: options.name,
         email: options.email,
+        phone: options.phone,
       });
 
       spinner.succeed(chalk.green("Card created!"));

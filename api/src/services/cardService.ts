@@ -40,6 +40,7 @@ class CardService {
     walletAddress: string;
     nameOnCard: string;
     email: string;
+    phone?: string;
     initialAmountUsd: number;
     tierAmount: TierAmount;
     chargedUsd: number;
@@ -57,7 +58,7 @@ class CardService {
 
     // Resolve real email/phone — no fake defaults
     let profileEmail = input.email;
-    let profilePhone = "";
+    let profilePhone = input.phone || "";
 
     try {
       const { query: dbQuery } = await import("../db/db");
@@ -77,6 +78,11 @@ class CardService {
     // Validate: must have real email before sending to 4payments
     if (!profileEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) {
       throw new HttpError(400, "Valid email is required to create a card. Please provide your email address.");
+    }
+
+    // Validate: 4payments requires phone number
+    if (!profilePhone) {
+      throw new HttpError(400, "Phone number is required to create a card. Please provide your phone number (e.g. +1234567890).");
     }
 
     // Step 1: Issue card via 4payments

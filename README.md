@@ -48,7 +48,7 @@ graph TB
 | `/api` | ASG Card API (Express + x402 + wallet auth) |
 | `/sdk` | `@asgcard/sdk` TypeScript client |
 | `/cli` | `@asgcard/cli` CLI with onboarding |
-| `/mcp-server` | `@asgcard/mcp-server` MCP server (9 tools) |
+| `/mcp-server` | `@asgcard/mcp-server` MCP server (11 tools) |
 | `/web` | Marketing website (asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
 
@@ -95,14 +95,17 @@ const card = await client.createCard({
 
 | Method | Description |
 |--------|-------------|
-| `createCard({amount, nameOnCard, email})` | Issue a virtual card with x402 payment |
+| `createCard({amount, nameOnCard, email, phone?})` | Issue a virtual card with x402 payment |
 | `fundCard({amount, cardId})` | Top up an existing card |
+| `listCards()` | List all cards for this wallet |
+| `getTransactions(cardId, page?, limit?)` | Get card transaction history |
+| `getBalance(cardId)` | Get live card balance |
 | `getTiers()` | Get current pricing tiers |
 | `health()` | API health check |
 
 ## MCP Server (AI Agent Integration)
 
-`@asgcard/mcp-server` exposes **9 tools** for Codex, Claude Code, and Cursor:
+`@asgcard/mcp-server` exposes **11 tools** for Codex, Claude Code, and Cursor:
 
 | Tool | Description |
 |------|-------------|
@@ -115,6 +118,8 @@ const card = await client.createCard({
 | `freeze_card` | Freeze a card |
 | `unfreeze_card` | Unfreeze a card |
 | `get_pricing` | View tier pricing |
+| `get_transactions` | Card transaction history (real 4payments data) |
+| `get_balance` | Live card balance from 4payments |
 
 ### MCP Setup
 
@@ -179,6 +184,8 @@ Live pricing: `GET https://api.asgcard.dev/pricing`
 | `/cards/` | GET | List wallet's cards |
 | `/cards/:id` | GET | Card details |
 | `/cards/:id/details` | GET | Sensitive data (nonce required) |
+| `/cards/:id/transactions` | GET | Card transaction history |
+| `/cards/:id/balance` | GET | Live card balance |
 | `/cards/:id/freeze` | POST | Freeze card |
 | `/cards/:id/unfreeze` | POST | Unfreeze card |
 

@@ -14,7 +14,7 @@ npx @asgcard/cli install --client claude   # Claude Code
 npx @asgcard/cli install --client cursor   # Cursor
 ```
 
-## Tools (9)
+## Tools (11)
 
 | Tool | Description |
 |------|-------------|
@@ -27,6 +27,8 @@ npx @asgcard/cli install --client cursor   # Cursor
 | `freeze_card` | Temporarily freeze a card |
 | `unfreeze_card` | Re-enable a frozen card |
 | `get_pricing` | View available tier pricing |
+| `get_transactions` | Card transaction history (real 4payments data) |
+| `get_balance` | Live card balance from 4payments |
 
 ## Recommended Agent Flow
 

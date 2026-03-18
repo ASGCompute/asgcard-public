@@ -81,6 +81,27 @@ const health = await client.health();
 // { status: 'ok', version: '0.3.1' }
 ```
 
+### `client.listCards()`
+
+```typescript
+const { cards } = await client.listCards();
+// cards: [{ cardId, nameOnCard, lastFour, balance, status, createdAt }]
+```
+
+### `client.getTransactions(cardId, page?, limit?)`
+
+```typescript
+const result = await client.getTransactions('card_xxxx');
+// { cardId, transactions: [{ id, type, amount, status, merchantName, createdAt }], pagination }
+```
+
+### `client.getBalance(cardId)`
+
+```typescript
+const result = await client.getBalance('card_xxxx');
+// { cardId, balance: 25.00, currency: 'USD', status: 'active', source: '4payments' }
+```
+
 ## Low-Level Utilities
 
 For custom integrations:

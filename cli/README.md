@@ -49,6 +49,14 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `asgcard whoami` | Show your wallet address |
 | `asgcard login [key]` | Save Stellar key (legacy, use `wallet import`) |
 
+### Transaction History & Analytics
+
+| Command | Description |
+|---------|-------------|
+| `asgcard transactions <id>` | View card transaction history (real 4payments data) |
+| `asgcard balance <id>` | Get live card balance from 4payments |
+| `asgcard history` | Show all cards with live balances for your wallet |
+
 ## Authentication
 
 The CLI uses Stellar wallet signature authentication — no API keys needed. Your Stellar secret key is stored in `~/.asgcard/wallet.json` (mode 0600).

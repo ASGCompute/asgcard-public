@@ -246,7 +246,7 @@ walletCmd
     console.log(chalk.dim("   1. Fund your wallet with at least ") + chalk.green(`$${MIN_CARD_COST_USDC} USDC`) + chalk.dim(" on Stellar"));
     console.log(chalk.dim("      Send USDC to: ") + chalk.cyan(kp.publicKey()));
     console.log(chalk.dim("   2. Check your balance: ") + chalk.cyan("asgcard wallet info"));
-    console.log(chalk.dim("   3. Create your first card: ") + chalk.cyan("asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com"));
+    console.log(chalk.dim("   3. Create your first card: ") + chalk.cyan("asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890"));
     console.log();
     console.log(chalk.yellow("⚠ Back up your secret key! It cannot be recovered if lost."));
   });
@@ -360,7 +360,7 @@ walletCmd
         console.log(chalk.dim("\n   USDC on Stellar: ") + chalk.dim("asset code USDC, issuer " + USDC_ISSUER.slice(0, 8) + "..."));
       } else {
         console.log(chalk.green("✅ Wallet is ready for card creation!"));
-        console.log(chalk.dim("   Create a card: ") + chalk.cyan("asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com"));
+        console.log(chalk.dim("   Create a card: ") + chalk.cyan("asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890"));
       }
       console.log();
     } catch (error) {
@@ -740,7 +740,7 @@ If wallet has insufficient USDC:
       } else if (balance >= MIN_CARD_COST_USDC) {
         console.log(chalk.green("  ✅ Wallet funded!") + chalk.dim(` Balance: $${balance.toFixed(2)} USDC`));
         console.log(chalk.bold("\n  🎉 Ready! Create your first card:\n"));
-        console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com\n"));
+        console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890\n"));
       } else {
         console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CARD_COST_USDC} for $10 tier)`));
         console.log(chalk.bold("\n  📥 Next step: Fund your wallet\n"));
@@ -1149,7 +1149,7 @@ program
         remediate(
           "Insufficient USDC balance",
           msg,
-          `Deposit USDC to: ${kp.publicKey()}\n         Then retry: asgcard card:create -a ${options.amount} -n "${options.name}" -e ${options.email}`
+          `Deposit USDC to: ${kp.publicKey()}\n         Then retry: asgcard card:create -a ${options.amount} -n "${options.name}" -e ${options.email} -p ${options.phone}`
         );
       } else if (msg.includes("simulation")) {
         remediate("Transaction simulation failed", msg, "Check: asgcard doctor  (RPC connectivity + balance)");

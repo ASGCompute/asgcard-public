@@ -133,17 +133,36 @@ class CardService {
       }
     }
 
-    // Step 4: Store in our DB
+    // Step 4: Store in our DB (includes phone for profile tracking)
     const card = await this.repo.create({
       walletAddress: input.walletAddress,
       nameOnCard: input.nameOnCard,
-      email: input.email,
+      email: profileEmail,
+      phone: profilePhone,
       initialAmountUsd: input.initialAmountUsd,
       tierAmount: input.tierAmount,
       txHash: input.txHash,
       details: cardDetails,
       fourPaymentsId: fpCard.id,
     });
+
+    // Step 5: Upsert wallet profile — always save email+phone for all callers
+    // This ensures API/SDK/CLI/MCP users have profile data stored
+    // Uses telegram_user_id=0 as sentinel for non-Telegram callers
+    try {
+      const { query: dbQuery } = await import("../db/db");
+      await dbQuery(
+        `INSERT INTO owner_telegram_links (owner_wallet, telegram_user_id, email, phone, status)
+         VALUES ($1, 0, $2, $3, 'active')
+         ON CONFLICT (owner_wallet, telegram_user_id)
+         DO UPDATE SET email = COALESCE(EXCLUDED.email, owner_telegram_links.email),
+                       phone = COALESCE(EXCLUDED.phone, owner_telegram_links.phone)`,
+        [input.walletAddress, profileEmail, profilePhone]
+      );
+    } catch (err) {
+      // Non-blocking: profile save failure should not break card creation
+      console.error("[cardService] Profile upsert failed (non-blocking):", err);
+    }
 
     const result = {
       success: true as const,

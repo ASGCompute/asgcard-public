@@ -31,9 +31,9 @@ export class PostgresCardRepository implements CardRepository {
 
         const rows = await query<CardRow>(
             `INSERT INTO cards
-               (card_id, wallet_address, name_on_card, email, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four)
-             VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, false, $8, $9)
-             RETURNING card_id, wallet_address, name_on_card, email,
+               (card_id, wallet_address, name_on_card, email, phone, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, false, $9, $10)
+             RETURNING card_id, wallet_address, name_on_card, email, phone,
                        balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                        created_at, updated_at`,
             [
@@ -41,6 +41,7 @@ export class PostgresCardRepository implements CardRepository {
                 input.walletAddress,
                 input.nameOnCard,
                 input.email,
+                input.phone || null,
                 input.initialAmountUsd,
                 input.initialAmountUsd,
                 detailsEncrypted,
@@ -54,7 +55,7 @@ export class PostgresCardRepository implements CardRepository {
 
     async findById(cardId: string): Promise<StoredCard | undefined> {
         const rows = await query<CardRow>(
-            `SELECT card_id, wallet_address, name_on_card, email,
+            `SELECT card_id, wallet_address, name_on_card, email, phone,
                     balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                     created_at, updated_at
              FROM cards
@@ -67,7 +68,7 @@ export class PostgresCardRepository implements CardRepository {
 
     async findByWallet(walletAddress: string): Promise<StoredCard[]> {
         const rows = await query<CardRow>(
-            `SELECT card_id, wallet_address, name_on_card, email,
+            `SELECT card_id, wallet_address, name_on_card, email, phone,
                     balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
                     created_at, updated_at
              FROM cards
@@ -208,6 +209,7 @@ interface CardRow {
     wallet_address: string;
     name_on_card: string;
     email: string;
+    phone: string | null;
     balance: string;
     initial_amount: string;
     status: string;

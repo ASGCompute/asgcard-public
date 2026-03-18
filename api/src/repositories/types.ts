@@ -6,6 +6,7 @@ export interface CreateCardInput {
     walletAddress: string;
     nameOnCard: string;
     email: string;
+    phone?: string;
     initialAmountUsd: number;
     tierAmount: TierAmount;
     txHash: string;

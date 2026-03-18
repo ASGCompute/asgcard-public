@@ -1,6 +1,6 @@
 {
   "name": "@asgcard/sdk",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "SDK for ASG Card — virtual MasterCard cards for AI agents, paid via x402 on Stellar",
   "type": "commonjs",
   "main": "dist/index.js",

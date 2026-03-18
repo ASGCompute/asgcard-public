@@ -154,3 +154,46 @@ export interface X402PaymentPayload {
     transaction: string;
   };
 }
+
+// ── Transaction History & Balance ─────────────────────────
+
+export interface TransactionEntry {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  description?: string;
+  merchantName?: string;
+  createdAt: string;
+}
+
+export interface TransactionListResponse {
+  cardId: string;
+  lastFour?: string;
+  transactions: TransactionEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface CardBalanceResponse {
+  cardId: string;
+  lastFour?: string;
+  balance: number;
+  currency: string;
+  status?: string;
+  source: "4payments" | "local";
+}
+
+export interface CardListEntry {
+  cardId: string;
+  nameOnCard: string;
+  lastFour: string;
+  balance: number;
+  status: string;
+  createdAt: string;
+}

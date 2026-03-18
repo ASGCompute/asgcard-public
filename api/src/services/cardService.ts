@@ -384,6 +384,61 @@ class CardService {
     };
   }
 
+  // ── Transaction History & Balance ──────────────────────────
+
+  /**
+   * Get transaction history for a card from 4payments.
+   * Requires wallet ownership check.
+   */
+  async getTransactions(walletAddress: string, cardId: string, page = 1, limit = 20) {
+    const card = await this.repo.findById(cardId);
+    if (!card || card.walletAddress !== walletAddress) {
+      throw new HttpError(404, "Card not found");
+    }
+    if (!card.fourPaymentsId) {
+      throw new HttpError(400, "Card has no 4payments ID — cannot fetch transactions");
+    }
+
+    const fp = getFourPaymentsClient();
+    const txns = await fp.getTransactions(card.fourPaymentsId, page, limit);
+    return {
+      cardId: card.cardId,
+      lastFour: (card as any).lastFour || card.details?.cardNumber?.slice(-4) || "????",
+      transactions: txns.transactions,
+      pagination: txns.pagination,
+    };
+  }
+
+  /**
+   * Get live balance for a card from 4payments.
+   * Requires wallet ownership check.
+   */
+  async getBalance(walletAddress: string, cardId: string) {
+    const card = await this.repo.findById(cardId);
+    if (!card || card.walletAddress !== walletAddress) {
+      throw new HttpError(404, "Card not found");
+    }
+    if (!card.fourPaymentsId) {
+      return {
+        cardId: card.cardId,
+        balance: card.balance,
+        currency: "USD",
+        source: "local",
+      };
+    }
+
+    const fp = getFourPaymentsClient();
+    const details = await fp.getCardDetails(card.fourPaymentsId);
+    return {
+      cardId: card.cardId,
+      lastFour: (card as any).lastFour || details.maskedCardNumber?.replace(/[^0-9]/g, '').slice(-4) || "????",
+      balance: details.balance.value,
+      currency: details.balance.currency,
+      status: details.status,
+      source: "4payments",
+    };
+  }
+
   // ── Helpers ──────────────────────────────────────────────
 
   private parseCardDetails(fpCard: FPCardIssued): CardDetails {

@@ -1,7 +1,7 @@
 /**
  * @asgcard/mcp-server — Core MCP Server
  *
- * Exposes 9 tools for AI agents to manage ASGCard virtual cards:
+ * Exposes 11 tools for AI agents to manage ASGCard virtual cards:
  *   - get_wallet_status: Read-only wallet status (address, balance, readiness)
  *   - create_card:       Create a virtual card (x402 autonomous payment)
  *   - fund_card:         Fund an existing card (x402 autonomous payment)
@@ -11,6 +11,8 @@
  *   - freeze_card:       Freeze a card temporarily
  *   - unfreeze_card:     Unfreeze a frozen card
  *   - get_pricing:       Get available tier pricing
+ *   - get_transactions:  Get card transaction history from 4payments
+ *   - get_balance:       Get live card balance from 4payments
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -380,6 +382,60 @@ export function createASGCardServer(config: ServerConfig): McpServer {
         };
       } catch (error) {
         return remediationError("Failed to get pricing", error instanceof Error ? error.message : String(error), "Check API connectivity. The pricing endpoint is public and requires no authentication.");
+      }
+    }
+  );
+
+  // ── Tool 9: get_transactions ────────────────────────────────
+
+  server.tool(
+    "get_transactions",
+    "Get real transaction history for a card from 4payments. Shows all card activity including purchases, refunds, and top-ups. Requires card ID.",
+    {
+      cardId: z.string().describe("The card ID to get transactions for"),
+      page: z.number().optional().default(1).describe("Page number (default: 1)"),
+      limit: z.number().optional().default(20).describe("Results per page (max: 100, default: 20)"),
+    },
+    async ({ cardId, page, limit }) => {
+      try {
+        const result = await walletClient.getTransactions(cardId, page, Math.min(limit ?? 20, 100));
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return remediationError("Failed to get transactions", error instanceof Error ? error.message : String(error), "Verify the card ID. Use list_cards to see available cards.");
+      }
+    }
+  );
+
+  // ── Tool 10: get_balance ────────────────────────────────────
+
+  server.tool(
+    "get_balance",
+    "Get the live balance of a card directly from 4payments. Returns real-time balance, currency, and card status.",
+    {
+      cardId: z.string().describe("The card ID to get balance for"),
+    },
+    async ({ cardId }) => {
+      try {
+        const result = await walletClient.getBalance(cardId);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return remediationError("Failed to get balance", error instanceof Error ? error.message : String(error), "Verify the card ID. Use list_cards to see available cards.");
       }
     }
   );

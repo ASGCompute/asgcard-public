@@ -1248,6 +1248,119 @@ program
     }
   });
 
+// ── transactions ─────────────────────────────────────────────
+
+program
+  .command("transactions")
+  .description("View transaction history for a card (real 4payments data)")
+  .argument("<id>", "Card ID")
+  .option("--page <page>", "Page number", "1")
+  .option("--limit <limit>", "Results per page (max 100)", "20")
+  .action(async (id: string, opts: { page: string; limit: string }) => {
+    const key = requireKey();
+    const spinner = ora("Fetching transactions...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const result = await client.getTransactions(id, parseInt(opts.page), Math.min(parseInt(opts.limit), 100));
+      spinner.stop();
+
+      console.log(chalk.bold(`\n📜 Transactions for ${chalk.cyan(result.cardId)}${result.lastFour ? ` (**** ${result.lastFour})` : ""}:\n`));
+
+      if (result.transactions.length === 0) {
+        console.log(chalk.dim("  No transactions yet. Use the card to see activity here."));
+      } else {
+        console.log(chalk.dim("  Type          Amount      Status      Merchant / Description         Date"));
+        console.log(chalk.dim("  " + "─".repeat(85)));
+        for (const tx of result.transactions) {
+          const amount = tx.amount < 0 ? chalk.red(`-$${Math.abs(tx.amount).toFixed(2)}`) : chalk.green(`+$${tx.amount.toFixed(2)}`);
+          const desc = tx.merchantName || tx.description || "—";
+          const date = new Date(tx.createdAt).toLocaleDateString();
+          console.log(`  ${tx.type.padEnd(14)} ${amount.padEnd(20)} ${tx.status.padEnd(12)} ${desc.substring(0, 30).padEnd(30)} ${chalk.dim(date)}`);
+        }
+      }
+
+      if (result.pagination.pages > 1) {
+        console.log(chalk.dim(`\n  Page ${result.pagination.page}/${result.pagination.pages} (${result.pagination.total} total) — use --page N`));
+      }
+    } catch (error) {
+      spinner.fail();
+      remediate("Failed to fetch transactions", error instanceof Error ? error.message : String(error), "asgcard doctor");
+      process.exit(1);
+    }
+  });
+
+// ── balance ──────────────────────────────────────────────────
+
+program
+  .command("balance")
+  .description("Get live card balance from 4payments")
+  .argument("<id>", "Card ID")
+  .action(async (id: string) => {
+    const key = requireKey();
+    const spinner = ora("Fetching balance...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const result = await client.getBalance(id);
+      spinner.stop();
+
+      console.log(chalk.bold(`\n💳 Balance: ${chalk.green("$" + result.balance.toFixed(2))} ${result.currency}`));
+      console.log(chalk.dim(`   Card:   ${result.cardId}${result.lastFour ? ` (**** ${result.lastFour})` : ""}`));
+      if (result.status) console.log(chalk.dim(`   Status: ${result.status}`));
+      console.log(chalk.dim(`   Source: ${result.source}`));
+    } catch (error) {
+      spinner.fail();
+      remediate("Failed to fetch balance", error instanceof Error ? error.message : String(error), "asgcard doctor");
+      process.exit(1);
+    }
+  });
+
+// ── history ──────────────────────────────────────────────────
+
+program
+  .command("history")
+  .description("Show all cards with live balances for your wallet")
+  .action(async () => {
+    const key = requireKey();
+    const spinner = ora("Fetching wallet history...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const { cards } = await client.listCards();
+      spinner.stop();
+
+      if (!cards || cards.length === 0) {
+        console.log(chalk.dim("No cards found. Create one with: asgcard card:create"));
+        return;
+      }
+
+      console.log(chalk.bold(`\n📊 Wallet History — ${cards.length} card(s):\n`));
+      console.log(chalk.dim("  Card ID              Last 4    Balance     Status      Created"));
+      console.log(chalk.dim("  " + "─".repeat(75)));
+
+      let totalBalance = 0;
+      for (const card of cards) {
+        const c = card as unknown as Record<string, unknown>;
+        const balance = Number(c.balance || 0);
+        totalBalance += balance;
+        const lastFour = String(c.lastFour || "????");
+        const status = String(c.status || "unknown");
+        const created = c.createdAt ? new Date(String(c.createdAt)).toLocaleDateString() : "—";
+        const statusColor = status === "active" ? chalk.green(status) : chalk.red(status);
+        console.log(`  ${chalk.cyan(String(c.cardId).padEnd(22))} ${lastFour.padEnd(10)} ${chalk.green("$" + balance.toFixed(2)).padEnd(20)} ${statusColor.padEnd(20)} ${chalk.dim(created)}`);
+      }
+
+      console.log(chalk.dim("  " + "─".repeat(75)));
+      console.log(`  ${chalk.bold("Total:")} ${chalk.green("$" + totalBalance.toFixed(2))}`);
+      console.log();
+    } catch (error) {
+      spinner.fail();
+      remediate("Failed to fetch history", error instanceof Error ? error.message : String(error), "asgcard doctor");
+      process.exit(1);
+    }
+  });
+
 // ── pricing (FIXED: no private key required) ────────────────
 
 program

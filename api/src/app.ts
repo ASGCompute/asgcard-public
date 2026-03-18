@@ -5,6 +5,7 @@ import { publicRouter } from "./routes/public";
 import { walletRouter } from "./routes/wallet";
 import { webhookRouter } from "./routes/webhook";
 import { opsRouter } from "./routes/ops";
+import { analyticsRouter } from "./routes/analytics";
 import { env } from "./config/env";
 import { httpLogger, appLogger } from "./utils/logger";
 
@@ -24,6 +25,7 @@ export const createApp = async () => {
   app.use("/cards", paidRouter);
   app.use("/cards", walletRouter);
   app.use("/ops", opsRouter);
+  app.use("/analytics", analyticsRouter);
 
   // ── Mini App (Web App API) ─────────────────────────────────
   const { miniappRouter } = await import("./modules/miniapp");

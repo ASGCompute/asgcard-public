@@ -12,7 +12,7 @@ import { env } from "../../config/env";
 import { TelegramClient } from "../bot/telegramClient";
 import type { TgUpdate } from "../bot/telegramClient";
 import { appLogger } from "../../utils/logger";
-import { collectStatus, formatStatusMessage } from "./statusCollector";
+import { collectStatus, formatStatusMessage, sendDailyReport, formatDailyReport } from "./statusCollector";
 
 export const adminRouter = Router();
 
@@ -94,6 +94,20 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
                     parse_mode: "HTML",
                     reply_markup: adminActionsKeyboard(),
                 });
+            } else if (cbq.data === "admin_report") {
+                await client.sendMessage({
+                    chat_id: cbChatId,
+                    text: "⏳ Generating daily report…",
+                    parse_mode: "HTML",
+                });
+                const status = await collectStatus();
+                const message = formatDailyReport(status);
+                await client.sendMessage({
+                    chat_id: cbChatId,
+                    text: message,
+                    parse_mode: "HTML",
+                    reply_markup: adminActionsKeyboard(),
+                });
             } else if (cbq.data === "admin_help") {
                 await sendHelpMessage(client, cbChatId);
             }
@@ -136,6 +150,22 @@ adminRouter.post("/telegram/webhook", async (req, res) => {
                     parse_mode: "HTML",
                     reply_markup: adminActionsKeyboard(),
                 });
+            } else if (text === "/report") {
+                await client.sendMessage({
+                    chat_id: chatId,
+                    text: "⏳ Generating daily report…",
+                    parse_mode: "HTML",
+                });
+
+                const status = await collectStatus();
+                const message = formatDailyReport(status);
+
+                await client.sendMessage({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "HTML",
+                    reply_markup: adminActionsKeyboard(),
+                });
             } else if (text === "/help") {
                 await sendHelpMessage(client, chatId);
             }
@@ -154,7 +184,7 @@ function adminActionsKeyboard(): { inline_keyboard: { text: string; callback_dat
         inline_keyboard: [
             [
                 { text: "📊 Status", callback_data: "admin_status" },
-                { text: "🔄 Refresh", callback_data: "admin_status" },
+                { text: "📋 Report", callback_data: "admin_report" },
             ],
             [
                 { text: "🌐 Dashboard", url: "https://asgcard.dev" },
@@ -174,7 +204,10 @@ async function sendHelpMessage(client: TelegramClient, chatId: number): Promise<
             `🛡️ <b>Admin Bot Commands</b>\n\n` +
             `/start — Setup info + Chat ID\n` +
             `/status — 📊 System status & metrics\n` +
+            `/report — 📋 Daily ops report\n` +
             `/help — ❓ Show this message\n\n` +
+            `<b>Scheduled:</b>\n` +
+            `• 📋 Daily report at 09:00 UTC\n\n` +
             `<b>Auto-notifications:</b>\n` +
             `• 💳 Card operations (create, fund, freeze)\n` +
             `• 💰 Transactions (charges, declines, refunds)\n` +
@@ -201,6 +234,7 @@ adminRouter.post("/telegram/setup", async (req, res) => {
         await client.setMyCommands([
             { command: "start", description: "Get chat ID & setup" },
             { command: "status", description: "📊 System status" },
+            { command: "report", description: "📋 Daily ops report" },
             { command: "help", description: "Show commands" },
         ]);
 
@@ -220,6 +254,33 @@ adminRouter.post("/telegram/setup", async (req, res) => {
             note: "Send /start to the admin bot to get your ADMIN_CHAT_ID",
         });
     } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+    }
+});
+
+// ── Cron endpoint — daily report ───────────────────────────
+
+adminRouter.get("/cron/daily-report", async (req, res) => {
+    // Vercel cron sends Authorization header; we also accept OPS_API_KEY for manual triggers.
+    const authHeader = req.header("Authorization");
+    const opsKey = env.OPS_API_KEY;
+
+    // Vercel cron sets Authorization: Bearer <CRON_SECRET>
+    const cronSecret = process.env.CRON_SECRET;
+    const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    const isOps = opsKey && req.header("X-Ops-Key") === opsKey;
+
+    if (!isCron && !isOps) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+
+    try {
+        await sendDailyReport();
+        appLogger.info("[AdminBot] Daily report sent via cron");
+        res.json({ ok: true, sentAt: new Date().toISOString() });
+    } catch (error) {
+        appLogger.error({ err: error }, "[AdminBot] Daily report cron failed");
         res.status(500).json({ error: (error as Error).message });
     }
 });

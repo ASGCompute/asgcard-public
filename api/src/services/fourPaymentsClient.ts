@@ -81,6 +81,45 @@ interface FPAccountBalance {
   currency: string;
 }
 
+interface FPTransaction {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  description?: string;
+  merchantName?: string;
+  createdAt: string;
+}
+
+interface FPTransactionList {
+  transactions: FPTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+interface FPCardListEntry {
+  id: string;
+  maskedCardNumber: string;
+  balance: { value: number; currency: string };
+  brand: string;
+  label: string;
+  status: string;
+  externalCardId: string;
+}
+
+interface FPCardList {
+  cards: FPCardListEntry[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  total: number;
+}
+
 // ── Error ──────────────────────────────────────────────────
 
 export class FourPaymentsError extends Error {
@@ -295,6 +334,36 @@ class FourPaymentsClient {
     );
     return res.data;
   }
+
+  // ── Transactions ────────────────────────────────────────
+
+  /**
+   * Get card transaction history.
+   * GET /external/api/prepaid-cards/{id}/transactions
+   */
+  async getTransactions(
+    fourPaymentsId: string,
+    page = 1,
+    limit = 20
+  ): Promise<FPTransactionList> {
+    const res = await this.request<{ status: string; data: FPTransactionList }>(
+      "GET",
+      `/external/api/prepaid-cards/${fourPaymentsId}/transactions?page=${page}&limit=${limit}`
+    );
+    return res.data;
+  }
+
+  /**
+   * List all issued cards.
+   * GET /external/api/prepaid-cards/list
+   */
+  async listCards(page = 1, limit = 50): Promise<FPCardList> {
+    const res = await this.request<{ status: string; data: FPCardList }>(
+      "GET",
+      `/external/api/prepaid-cards/list?page=${page}&limit=${limit}`
+    );
+    return res.data;
+  }
 }
 
 // ── Singleton ──────────────────────────────────────────────
@@ -363,4 +432,4 @@ export async function checkIssuerBalance(requiredAmount: number): Promise<Issuer
   }
 }
 
-export type { FPCardIssued, FPCardDetails, FPSensitiveInfo, FPTopUpResult, FPCardType, FPAccountBalance };
+export type { FPCardIssued, FPCardDetails, FPSensitiveInfo, FPTopUpResult, FPCardType, FPAccountBalance, FPTransaction, FPTransactionList, FPCardListEntry, FPCardList };

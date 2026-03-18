@@ -92,3 +92,69 @@ publicRouter.get("/supported", async (_req, res) => {
     });
   }
 });
+
+// ── Telemetry (fire-and-forget, no auth) ──────────────────────
+
+const AGENT_UA_PATTERNS = [
+  /claude/i, /cursor/i, /mcp/i, /gpt/i, /openai/i, /anthropic/i,
+  /copilot/i, /asgcard/i, /bot/i, /agent/i
+];
+
+function isAgentUA(ua: string): boolean {
+  return AGENT_UA_PATTERNS.some((p) => p.test(ua));
+}
+
+publicRouter.post("/telemetry/install", async (req, res) => {
+  try {
+    const { client, version, os } = req.body ?? {};
+    if (!client) {
+      res.status(400).json({ error: "client required" });
+      return;
+    }
+
+    // Fire-and-forget write
+    const { getPool } = await import("../db/db");
+    try {
+      const pool = getPool();
+      pool.query(
+        `INSERT INTO install_events (client_type, version, os) VALUES ($1, $2, $3)`,
+        [String(client).slice(0, 50), String(version ?? "").slice(0, 20), String(os ?? "").slice(0, 20)]
+      ).catch(() => {});
+    } catch {
+      // inmemory mode — skip
+    }
+
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true }); // always return 200
+  }
+});
+
+publicRouter.post("/telemetry/visit", async (req, res) => {
+  try {
+    const { page, referrer } = req.body ?? {};
+    const ua = req.header("user-agent") ?? "";
+    const agentDetected = isAgentUA(ua);
+
+    // Fire-and-forget write
+    const { getPool } = await import("../db/db");
+    try {
+      const pool = getPool();
+      pool.query(
+        `INSERT INTO page_visits (page, referrer, user_agent, is_agent) VALUES ($1, $2, $3, $4)`,
+        [
+          String(page ?? "unknown").slice(0, 100),
+          String(referrer ?? "").slice(0, 500),
+          ua.slice(0, 500),
+          agentDetected
+        ]
+      ).catch(() => {});
+    } catch {
+      // inmemory mode — skip
+    }
+
+    res.json({ ok: true, isAgent: agentDetected });
+  } catch {
+    res.json({ ok: true });
+  }
+});

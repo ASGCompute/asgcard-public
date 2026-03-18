@@ -15,6 +15,9 @@ import type {
   HealthResponse,
   TierResponse,
   WalletAdapter,
+  TransactionListResponse,
+  CardBalanceResponse,
+  CardListEntry,
 } from "./types";
 import { handleX402Payment } from "./utils/x402";
 
@@ -96,6 +99,24 @@ export class ASGCardClient {
     return this.request<HealthResponse>("/health", { method: "GET" });
   }
 
+  /** List all cards for this wallet */
+  async listCards(): Promise<{ cards: CardListEntry[] }> {
+    return this.requestWithAuth<{ cards: CardListEntry[] }>("/wallet", { method: "GET" });
+  }
+
+  /** Get transaction history for a card */
+  async getTransactions(cardId: string, page = 1, limit = 20): Promise<TransactionListResponse> {
+    return this.requestWithAuth<TransactionListResponse>(
+      `/wallet/${cardId}/transactions?page=${page}&limit=${limit}`,
+      { method: "GET" }
+    );
+  }
+
+  /** Get live balance for a card */
+  async getBalance(cardId: string): Promise<CardBalanceResponse> {
+    return this.requestWithAuth<CardBalanceResponse>(`/wallet/${cardId}/balance`, { method: "GET" });
+  }
+
   // ── x402 payment flow ────────────────────────────────
 
   private async requestWithX402<T>(path: string, init: RequestInit): Promise<T> {
@@ -124,6 +145,29 @@ export class ASGCardClient {
     });
 
     return this.parseResponse<T>(retry);
+  }
+
+  // ── Wallet-authenticated requests ────────────────────
+
+  private async requestWithAuth<T>(path: string, init: RequestInit): Promise<T> {
+    if (!this.keypair) {
+      throw new Error("requestWithAuth requires a keypair (privateKey)");
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const message = Buffer.from(`asgcard-auth:${timestamp}`);
+    const signature = this.keypair.sign(message).toString("base64");
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-WALLET-ADDRESS": this.keypair.publicKey(),
+      "X-WALLET-SIGNATURE": signature,
+      "X-WALLET-TIMESTAMP": timestamp,
+      ...(init.headers as Record<string, string> ?? {}),
+    };
+
+    const response = await this.rawFetch(path, { ...init, headers });
+    return this.parseResponse<T>(response);
   }
 
   // ── HTTP primitives ──────────────────────────────────

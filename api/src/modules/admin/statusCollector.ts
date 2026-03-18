@@ -24,18 +24,29 @@ export interface AdminStatus {
         fourPaymentsBalance: number | null;
         totalRevenue: number | null;
         totalVolume: number | null;
+        totalCardBalance: number | null;
     };
     clients: {
         total: number | null;
         linked: number | null;
         daaToday: number | null;
+        daaYesterday: number | null;
         daa7d: number | null;
+        maa: number | null;
     };
     cards: {
         total: number | null;
         active: number | null;
         frozen: number | null;
         last24h: number | null;
+    };
+    analytics: {
+        installsToday: number | null;
+        installs7d: number | null;
+        installsTotal: number | null;
+        visitsToday: number | null;
+        agentVisitsToday: number | null;
+        visits7d: number | null;
     };
     system: {
         uptimeSeconds: number;
@@ -101,7 +112,7 @@ async function get4PaymentsBalance(): Promise<number | null> {
 }
 
 /**
- * Card statistics from the cards table.
+ * Card statistics from the cards table + revenue from payments table.
  */
 async function getCardStats(): Promise<{
     total: number | null;
@@ -111,6 +122,7 @@ async function getCardStats(): Promise<{
     uniqueWallets: number | null;
     totalVolume: number | null;
     totalRevenue: number | null;
+    totalCardBalance: number | null;
 }> {
     try {
         const rows = await query<{
@@ -119,8 +131,7 @@ async function getCardStats(): Promise<{
             frozen: string;
             last24h: string;
             unique_wallets: string;
-            total_volume: string;
-            total_revenue: string;
+            total_card_balance: string;
         }>(`
             SELECT
                 COUNT(*) as total,
@@ -128,20 +139,33 @@ async function getCardStats(): Promise<{
                 COUNT(*) FILTER (WHERE status = 'frozen') as frozen,
                 COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as last24h,
                 COUNT(DISTINCT wallet_address) as unique_wallets,
-                COALESCE(SUM(initial_amount), 0) as total_volume,
-                COALESCE(SUM(balance - initial_amount), 0) as total_revenue
+                COALESCE(SUM(balance), 0) as total_card_balance
             FROM cards
         `);
 
+        // Revenue & Volume from payments (amount is in stroops: 1e7 = 1 USDC)
+        const payRows = await query<{
+            total_volume: string;
+            total_revenue: string;
+        }>(`
+            SELECT
+                COALESCE(SUM(amount::numeric / 10000000), 0) as total_volume,
+                COALESCE(SUM(amount::numeric / 10000000 - tier_amount), 0) as total_revenue
+            FROM payments
+            WHERE status = 'settled'
+        `);
+
         const r = rows[0];
+        const p = payRows[0];
         return {
             total: parseInt(r.total, 10),
             active: parseInt(r.active, 10),
             frozen: parseInt(r.frozen, 10),
             last24h: parseInt(r.last24h, 10),
             uniqueWallets: parseInt(r.unique_wallets, 10),
-            totalVolume: parseFloat(r.total_volume),
-            totalRevenue: parseFloat(r.total_revenue),
+            totalCardBalance: parseFloat(r.total_card_balance),
+            totalVolume: parseFloat(p.total_volume),
+            totalRevenue: parseFloat(p.total_revenue),
         };
     } catch (err) {
         appLogger.error({ err }, "[StatusCollector] Card stats query failed");
@@ -153,6 +177,7 @@ async function getCardStats(): Promise<{
             uniqueWallets: null,
             totalVolume: null,
             totalRevenue: null,
+            totalCardBalance: null,
         };
     }
 }
@@ -214,23 +239,83 @@ async function getWebhookStats(): Promise<{
 }
 
 /**
- * Daily Active Agents — unique wallets active today and in last 7 days.
+ * Daily Active Agents — unique wallets active today, yesterday, 7 days, 30 days.
  */
-async function getDailyActiveAgents(): Promise<{ today: number | null; last7d: number | null }> {
+async function getDailyActiveAgents(): Promise<{
+    today: number | null;
+    yesterday: number | null;
+    last7d: number | null;
+    last30d: number | null;
+}> {
     try {
-        const rows = await query<{ daa_today: string; daa_7d: string }>(`
+        const rows = await query<{
+            daa_today: string;
+            daa_yesterday: string;
+            daa_7d: string;
+            daa_30d: string;
+        }>(`
             SELECT
                 COUNT(DISTINCT wallet_address) FILTER (WHERE request_date = CURRENT_DATE) as daa_today,
-                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date >= CURRENT_DATE - INTERVAL '7 days') as daa_7d
+                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date = CURRENT_DATE - 1) as daa_yesterday,
+                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date >= CURRENT_DATE - INTERVAL '7 days') as daa_7d,
+                COUNT(DISTINCT wallet_address) FILTER (WHERE request_date >= CURRENT_DATE - INTERVAL '30 days') as daa_30d
             FROM api_activity
         `);
         return {
             today: parseInt(rows[0].daa_today, 10),
+            yesterday: parseInt(rows[0].daa_yesterday, 10),
             last7d: parseInt(rows[0].daa_7d, 10),
+            last30d: parseInt(rows[0].daa_30d, 10),
         };
     } catch (err) {
         appLogger.error({ err }, "[StatusCollector] DAA query failed");
-        return { today: null, last7d: null };
+        return { today: null, yesterday: null, last7d: null, last30d: null };
+    }
+}
+
+/**
+ * Install and visit analytics.
+ */
+async function getAnalytics(): Promise<{
+    installsToday: number | null;
+    installs7d: number | null;
+    installsTotal: number | null;
+    visitsToday: number | null;
+    agentVisitsToday: number | null;
+    visits7d: number | null;
+}> {
+    try {
+        const rows = await query<{
+            installs_today: string;
+            installs_7d: string;
+            installs_total: string;
+            visits_today: string;
+            agent_visits_today: string;
+            visits_7d: string;
+        }>(`
+            SELECT
+              (SELECT COUNT(*) FROM install_events WHERE created_at >= CURRENT_DATE)::text as installs_today,
+              (SELECT COUNT(*) FROM install_events WHERE created_at >= now() - INTERVAL '7 days')::text as installs_7d,
+              (SELECT COUNT(*) FROM install_events)::text as installs_total,
+              (SELECT COUNT(*) FROM page_visits WHERE created_at >= CURRENT_DATE)::text as visits_today,
+              (SELECT COUNT(*) FROM page_visits WHERE created_at >= CURRENT_DATE AND is_agent = true)::text as agent_visits_today,
+              (SELECT COUNT(*) FROM page_visits WHERE created_at >= now() - INTERVAL '7 days')::text as visits_7d
+        `);
+        const r = rows[0];
+        return {
+            installsToday: parseInt(r.installs_today, 10),
+            installs7d: parseInt(r.installs_7d, 10),
+            installsTotal: parseInt(r.installs_total, 10),
+            visitsToday: parseInt(r.visits_today, 10),
+            agentVisitsToday: parseInt(r.agent_visits_today, 10),
+            visits7d: parseInt(r.visits_7d, 10),
+        };
+    } catch (err) {
+        appLogger.error({ err }, "[StatusCollector] Analytics query failed");
+        return {
+            installsToday: null, installs7d: null, installsTotal: null,
+            visitsToday: null, agentVisitsToday: null, visits7d: null,
+        };
     }
 }
 
@@ -248,6 +333,7 @@ export async function collectStatus(): Promise<AdminStatus> {
         linkedAccounts,
         webhookStats,
         daa,
+        analytics,
     ] = await Promise.all([
         getTreasuryBalance(),
         get4PaymentsBalance(),
@@ -255,6 +341,7 @@ export async function collectStatus(): Promise<AdminStatus> {
         getLinkedAccounts(),
         getWebhookStats(),
         getDailyActiveAgents(),
+        getAnalytics(),
     ]);
 
     return {
@@ -263,12 +350,15 @@ export async function collectStatus(): Promise<AdminStatus> {
             fourPaymentsBalance: fpBalance,
             totalRevenue: cardStats.totalRevenue,
             totalVolume: cardStats.totalVolume,
+            totalCardBalance: cardStats.totalCardBalance,
         },
         clients: {
             total: cardStats.uniqueWallets,
             linked: linkedAccounts,
             daaToday: daa.today,
+            daaYesterday: daa.yesterday,
             daa7d: daa.last7d,
+            maa: daa.last30d,
         },
         cards: {
             total: cardStats.total,
@@ -276,6 +366,7 @@ export async function collectStatus(): Promise<AdminStatus> {
             frozen: cardStats.frozen,
             last24h: cardStats.last24h,
         },
+        analytics,
         system: {
             uptimeSeconds: process.uptime(),
             memoryMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
@@ -312,19 +403,29 @@ export function formatStatusMessage(s: AdminStatus): string {
 
         `💰 <b>Finances</b>\n` +
         `├ Treasury: ${s.finances.treasuryUsdc !== null ? fmt(s.finances.treasuryUsdc, "$") + " USDC" : "⚠️ N/A"}\n` +
-        `├ 4Payments: ${fmt(s.finances.fourPaymentsBalance)}\n` +
-        `├ Revenue: ${fmt(s.finances.totalRevenue)}\n` +
-        `└ Volume: ${fmt(s.finances.totalVolume)}\n\n` +
+        `├ Issuer Acct: ${fmt(s.finances.fourPaymentsBalance)}\n` +
+        `├ Card Balances: ${fmt(s.finances.totalCardBalance)}\n` +
+        `├ Revenue (fees): ${fmt(s.finances.totalRevenue)}\n` +
+        `└ Volume (paid): ${fmt(s.finances.totalVolume)}\n\n` +
 
         `👥 <b>Clients & Cards</b>\n` +
         `├ Wallets: ${fmtNum(s.clients.total)}\n` +
         `├ TG Linked: ${fmtNum(s.clients.linked)}\n` +
         `├ DAA (today): ${fmtNum(s.clients.daaToday)}\n` +
         `├ DAA (7d): ${fmtNum(s.clients.daa7d)}\n` +
+        `├ MAA (30d): ${fmtNum(s.clients.maa)}\n` +
         `├ Cards total: ${fmtNum(s.cards.total)}\n` +
         `├ Active: ${fmtNum(s.cards.active)}\n` +
         `├ Frozen: ${fmtNum(s.cards.frozen)}\n` +
         `└ Cards 24h: +${fmtNum(s.cards.last24h)}\n\n` +
+
+        `📈 <b>Analytics</b>\n` +
+        `├ Installs today: ${fmtNum(s.analytics.installsToday)}\n` +
+        `├ Installs 7d: ${fmtNum(s.analytics.installs7d)}\n` +
+        `├ Installs total: ${fmtNum(s.analytics.installsTotal)}\n` +
+        `├ Visits today: ${fmtNum(s.analytics.visitsToday)}\n` +
+        `├ Agent visits: ${fmtNum(s.analytics.agentVisitsToday)}\n` +
+        `└ Visits 7d: ${fmtNum(s.analytics.visits7d)}\n\n` +
 
         `🔗 <b>System</b>\n` +
         `├ Uptime: ${hours}h ${mins}m\n` +
@@ -334,4 +435,73 @@ export function formatStatusMessage(s: AdminStatus): string {
         `├ Last webhook: ${s.system.lastWebhookAgo ?? "never"}\n` +
         `└ Errors 24h: ${fmtNum(s.system.errors24h)}`
     );
+}
+
+// ── Daily Report ───────────────────────────────────────────
+
+function delta(today: number | null, yesterday: number | null): string {
+    if (today === null || yesterday === null) return "";
+    const diff = today - yesterday;
+    if (diff === 0) return " (=)";
+    return diff > 0 ? ` (+${diff} ↑)` : ` (${diff} ↓)`;
+}
+
+/**
+ * Format a rich daily report for the admin. Includes trend deltas.
+ */
+export function formatDailyReport(s: AdminStatus): string {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+
+    return (
+        `📋 <b>Daily Ops Report</b>\n` +
+        `📅 ${dateStr}\n\n` +
+
+        `🤖 <b>Agent Activity</b>\n` +
+        `├ DAA today: <b>${fmtNum(s.clients.daaToday)}</b>${delta(s.clients.daaToday, s.clients.daaYesterday)}\n` +
+        `├ DAA yesterday: ${fmtNum(s.clients.daaYesterday)}\n` +
+        `├ WAA (7d): ${fmtNum(s.clients.daa7d)}\n` +
+        `└ MAA (30d): ${fmtNum(s.clients.maa)}\n\n` +
+
+        `💰 <b>Finances</b>\n` +
+        `├ Treasury: ${s.finances.treasuryUsdc !== null ? fmt(s.finances.treasuryUsdc, "$") + " USDC" : "⚠️ N/A"}\n` +
+        `├ Issuer Acct: ${fmt(s.finances.fourPaymentsBalance)}\n` +
+        `├ Card Balances: ${fmt(s.finances.totalCardBalance)}\n` +
+        `├ Revenue (fees): ${fmt(s.finances.totalRevenue)}\n` +
+        `└ Volume (paid): ${fmt(s.finances.totalVolume)}\n\n` +
+
+        `💳 <b>Cards</b>\n` +
+        `├ Total: ${fmtNum(s.cards.total)} (active: ${fmtNum(s.cards.active)})\n` +
+        `├ New 24h: +${fmtNum(s.cards.last24h)}\n` +
+        `└ Unique wallets: ${fmtNum(s.clients.total)}\n\n` +
+
+        `📈 <b>Growth</b>\n` +
+        `├ Installs today: <b>${fmtNum(s.analytics.installsToday)}</b>\n` +
+        `├ Installs 7d: ${fmtNum(s.analytics.installs7d)}\n` +
+        `├ Installs total: ${fmtNum(s.analytics.installsTotal)}\n` +
+        `├ Visits today: ${fmtNum(s.analytics.visitsToday)}\n` +
+        `├ Agent visits: ${fmtNum(s.analytics.agentVisitsToday)}\n` +
+        `└ Visits 7d: ${fmtNum(s.analytics.visits7d)}\n\n` +
+
+        `🔗 <b>System</b>\n` +
+        `├ Webhooks 24h: ${fmtNum(s.system.webhooks24h)}\n` +
+        `├ Errors 24h: ${fmtNum(s.system.errors24h)}\n` +
+        `└ Last webhook: ${s.system.lastWebhookAgo ?? "never"}`
+    );
+}
+
+/**
+ * Collect and send the daily report to all admin chats.
+ * Used by cron and /report command.
+ */
+export async function sendDailyReport(): Promise<void> {
+    const { AdminBot } = await import("./adminBot");
+    const status = await collectStatus();
+    const message = formatDailyReport(status);
+    await AdminBot.send(message);
 }

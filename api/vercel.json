@@ -14,5 +14,11 @@
       "src": "/(.*)",
       "dest": "src/vercel.ts"
     }
+  ],
+  "crons": [
+    {
+      "path": "/admin/cron/daily-report",
+      "schedule": "0 9 * * *"
+    }
   ]
 }

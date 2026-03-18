@@ -296,3 +296,84 @@ opsRouter.post("/nonce-cleanup", async (req, res) => {
         });
     }
 });
+
+// ── GET /ops/daa — Daily Active Agents ────────────────────────
+
+opsRouter.get("/daa", async (_req, res) => {
+    try {
+        // Today
+        const [todayRow] = await query<{ count: string }>(
+            `SELECT COUNT(DISTINCT wallet_address)::text as count
+             FROM api_activity WHERE request_date = CURRENT_DATE`
+        );
+
+        // Yesterday
+        const [yesterdayRow] = await query<{ count: string }>(
+            `SELECT COUNT(DISTINCT wallet_address)::text as count
+             FROM api_activity WHERE request_date = CURRENT_DATE - 1`
+        );
+
+        // Last 7 days
+        const [week] = await query<{ count: string }>(
+            `SELECT COUNT(DISTINCT wallet_address)::text as count
+             FROM api_activity WHERE request_date >= CURRENT_DATE - 7`
+        );
+
+        // Last 30 days
+        const [month] = await query<{ count: string }>(
+            `SELECT COUNT(DISTINCT wallet_address)::text as count
+             FROM api_activity WHERE request_date >= CURRENT_DATE - 30`
+        );
+
+        // Daily history (last 30 days)
+        const history = await query<{
+            date: string;
+            agents: string;
+            calls: string;
+        }>(
+            `SELECT
+               request_date::text as date,
+               COUNT(DISTINCT wallet_address)::text as agents,
+               SUM(request_count)::text as calls
+             FROM api_activity
+             WHERE request_date >= CURRENT_DATE - 30
+             GROUP BY request_date
+             ORDER BY request_date DESC`
+        );
+
+        // Install counts
+        const [installs] = await query<{ count: string }>(
+            `SELECT COUNT(*)::text as count FROM install_events`
+        );
+
+        const [installs7d] = await query<{ count: string }>(
+            `SELECT COUNT(*)::text as count
+             FROM install_events WHERE created_at >= now() - INTERVAL '7 days'`
+        );
+
+        res.json({
+            timestamp: new Date().toISOString(),
+            daa: {
+                today: Number(todayRow?.count ?? 0),
+                yesterday: Number(yesterdayRow?.count ?? 0),
+                last7d: Number(week?.count ?? 0),
+                last30d: Number(month?.count ?? 0),
+            },
+            installs: {
+                total: Number(installs?.count ?? 0),
+                last7d: Number(installs7d?.count ?? 0),
+            },
+            history: history.map((h) => ({
+                date: h.date,
+                agents: Number(h.agents),
+                calls: Number(h.calls),
+            })),
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Failed to query DAA",
+            detail: (error as Error).message,
+        });
+    }
+});
+

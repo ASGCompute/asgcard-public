@@ -91,6 +91,37 @@ export class WalletClient {
     );
   }
 
+  /** Get card transaction history from 4payments */
+  async getTransactions(cardId: string, page = 1, limit = 20): Promise<{
+    cardId: string;
+    lastFour?: string;
+    transactions: Array<{
+      id: string;
+      type: string;
+      amount: number;
+      currency: string;
+      status: string;
+      description?: string;
+      merchantName?: string;
+      createdAt: string;
+    }>;
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
+    return this.authenticatedRequest("GET", `/cards/${cardId}/transactions?page=${page}&limit=${limit}`);
+  }
+
+  /** Get live card balance from 4payments */
+  async getBalance(cardId: string): Promise<{
+    cardId: string;
+    lastFour?: string;
+    balance: number;
+    currency: string;
+    status?: string;
+    source: string;
+  }> {
+    return this.authenticatedRequest("GET", `/cards/${cardId}/balance`);
+  }
+
   // ── Auth signing ────────────────────────────────────────
 
   private signAuth(): { address: string; signature: string; timestamp: string } {

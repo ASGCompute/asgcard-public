@@ -288,7 +288,7 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
             <tr><th>Field</th><th>Type</th><th>Values</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values"><code>10 | 25 | 50 | 100 | 200 | 500</code></td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values"><code>5–5000</code></td></tr>
             <tr><td data-label="Field"><code>cardId</code></td><td data-label="Type"><code>string</code></td><td data-label="Values">UUID of existing card</td></tr>
           </tbody>
         </table>
@@ -654,27 +654,17 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/pricing</code>
         </div>
-        <p>Returns full pricing breakdown for all creation and funding tiers.</p>
+        <p>Returns the flat pricing model — card issuance fee and top-up percentage.</p>
         <strong>Response 200:</strong>
         ${codeBlock(`{
-  "creation": {
-    "tiers": [{
-      "loadAmount": 10,
-      "totalCost": 17.2,
-      "issuanceFee": 3.0,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/create/tier/10"
-    }]
-  },
-  "funding": {
-    "tiers": [{
-      "fundAmount": 10,
-      "totalCost": 14.2,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/fund/tier/10"
-    }]
+  "cardFee": 10,
+  "topUpPercent": 3.5,
+  "minAmount": 5,
+  "maxAmount": 5000,
+  "description": "Card issuance $10. Top-up fee 3.5%.",
+  "endpoints": {
+    "create": "POST /cards/create/tier/:amount",
+    "fund": "POST /cards/fund/tier/:amount"
   }
 }`, 'json')}
       </div>
@@ -684,31 +674,14 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/tiers</code>
         </div>
-        <p>Returns available tiers with endpoints and detailed fee breakdowns.</p>
+        <p>Alias for <code>/pricing</code>. Returns the same flat pricing model.</p>
         <strong>Response 200:</strong>
         ${codeBlock(`{
-  "creation": [{
-    "loadAmount": 10,
-    "totalCost": 17.2,
-    "endpoint": "/cards/create/tier/10",
-    "breakdown": {
-      "cardLoad": 10,
-      "issuanceFee": 3,
-      "topUpFee": 2.2,
-      "ourFee": 2,
-      "buffer": 0
-    }
-  }],
-  "funding": [{
-    "fundAmount": 10,
-    "totalCost": 14.2,
-    "endpoint": "/cards/fund/tier/10",
-    "breakdown": {
-      "fundAmount": 10,
-      "topUpFee": 2.2,
-      "ourFee": 2
-    }
-  }]
+  "cardFee": 10,
+  "topUpPercent": 3.5,
+  "minAmount": 5,
+  "maxAmount": 5000,
+  "description": "Card issuance $10. Top-up fee 3.5%. Any amount $5–$5000."
 }`, 'json')}
       </div>
 
@@ -722,8 +695,8 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-post">POST</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/create/tier/:amount</code>
         </div>
-        <p>Create a new virtual card loaded with the specified tier amount.</p>
-        <p><strong>Available tiers:</strong> <code>10</code>, <code>25</code>, <code>50</code>, <code>100</code>, <code>200</code>, <code>500</code></p>
+        <p>Create a new virtual card loaded with the specified amount.</p>
+        <p><strong>Amount range:</strong> <code>$5</code> – <code>$5,000</code></p>
         <strong>Request body:</strong>
         <div class="docs-table-wrap">
           <table class="docs-table">
@@ -745,7 +718,7 @@ function renderEndpoints(): string {
     "createdAt": "2026-02-11T14:00:00.000Z"
   },
   "payment": {
-    "amountCharged": 17.2,
+    "amountCharged": 20.35,
     "txHash": "<stellar_tx_hash>",
     "network": "stellar"
   },
@@ -787,7 +760,7 @@ function renderEndpoints(): string {
   "fundedAmount": 25,
   "newBalance": 35.0,
   "payment": {
-    "amountCharged": 29.5,
+    "amountCharged": 25.88,
     "txHash": "<stellar_tx_hash>",
     "network": "stellar"
   }

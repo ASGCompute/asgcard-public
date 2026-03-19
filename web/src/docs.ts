@@ -1,11 +1,18 @@
 import './docs.css';
 import {
   fetchLivePricingData,
-  calcCreationCost,
-  calcFundingCost,
-  DEFAULT_PRICING,
   type DynamicPricingData,
 } from './lib/pricing';
+
+// ============================================================
+// SSG-safe inlined pricing (SSG strips imports, so these must be local)
+// ============================================================
+interface _DynamicPricingData { cardFee: number; topUpPercent: number; minAmount: number; maxAmount: number }
+const DEFAULT_PRICING: _DynamicPricingData = { cardFee: 10, topUpPercent: 3.5, minAmount: 5, maxAmount: 5000 };
+const calcCreationCost = (amount: number, p: _DynamicPricingData): number =>
+  Math.round((amount + p.cardFee + amount * (p.topUpPercent / 100)) * 100) / 100;
+const calcFundingCost = (amount: number, p: _DynamicPricingData): number =>
+  Math.round((amount + amount * (p.topUpPercent / 100)) * 100) / 100;
 
 // ============================================================
 // Helpers

@@ -16,7 +16,7 @@ publicRouter.get("/health", (_req, res) => {
 publicRouter.get("/pricing", (_req, res) => {
   res.json({
     cardFee: CARD_FEE,
-    topUpPercent: TOPUP_RATE * 100,
+    topUpPercent: Math.round(TOPUP_RATE * 1000) / 10,
     minAmount: MIN_AMOUNT,
     maxAmount: MAX_AMOUNT,
     description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%.`,
@@ -30,7 +30,7 @@ publicRouter.get("/pricing", (_req, res) => {
 publicRouter.get("/cards/tiers", (_req, res) => {
   res.json({
     cardFee: CARD_FEE,
-    topUpPercent: TOPUP_RATE * 100,
+    topUpPercent: Math.round(TOPUP_RATE * 1000) / 10,
     minAmount: MIN_AMOUNT,
     maxAmount: MAX_AMOUNT,
     description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%. Any amount $${MIN_AMOUNT}–$${MAX_AMOUNT}.`,

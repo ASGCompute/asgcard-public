@@ -14,23 +14,19 @@ vi.mock("../src/services/fourPaymentsClient", () => ({
 }));
 
 import { createApp } from "../src/app";
+import { calcCreationCost, calcFundingCost, toAtomicUsdc } from "../src/config/pricing";
 
 let app: Express;
 beforeAll(async () => { app = await createApp(); });
 
-describe("x402 Challenge — Create Tiers", () => {
-    const createTiers = [10, 25, 50, 100, 200, 500] as const;
-    const expectedAtomicAmounts: Record<number, string> = {
-        10: "172000000",   // totalCost = 17.2 × 10^7
-        25: "325000000",   // totalCost = 32.5 × 10^7
-        50: "580000000",   // totalCost = 58.0 × 10^7
-        100: "1100000000", // totalCost = 110.0 × 10^7
-        200: "2140000000", // totalCost = 214.0 × 10^7
-        500: "5220000000"  // totalCost = 522.0 × 10^7
-    };
+describe("x402 Challenge — Create (dynamic pricing)", () => {
+    const testAmounts = [10, 25, 50, 100, 200, 500];
 
-    for (const amount of createTiers) {
-        it(`POST /cards/create/tier/${amount} → 402 with correct challenge`, async () => {
+    for (const amount of testAmounts) {
+        it(`POST /cards/create/tier/${amount} → 402 with correct dynamic challenge`, async () => {
+            const expectedCost = calcCreationCost(amount);
+            const expectedAtomic = toAtomicUsdc(expectedCost);
+
             const res = await request(app)
                 .post(`/cards/create/tier/${amount}`)
                 .expect(402);
@@ -42,54 +38,68 @@ describe("x402 Challenge — Create Tiers", () => {
             expect(accept.scheme).toBe("exact");
             expect(accept.network).toBe("stellar:pubnet");
             expect(accept.asset).toBe("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75");
-            expect(accept.amount).toBe(expectedAtomicAmounts[amount]);
+            expect(accept.amount).toBe(expectedAtomic);
             expect(accept.payTo).toMatch(/^G[A-Z2-7]{55}$/);
             expect(accept.maxTimeoutSeconds).toBe(300);
             expect(res.body.resource.url).toContain(`/cards/create/tier/${amount}`);
             expect(res.body.resource.description).toContain(`$${amount}`);
         });
     }
+
+    it("POST /cards/create/tier/75 → 402 (any valid amount works)", async () => {
+        const expectedCost = calcCreationCost(75);
+        const expectedAtomic = toAtomicUsdc(expectedCost);
+
+        const res = await request(app)
+            .post("/cards/create/tier/75")
+            .expect(402);
+
+        expect(res.body.accepts[0].amount).toBe(expectedAtomic);
+    });
 });
 
-describe("x402 Challenge — Fund Tiers", () => {
-    const fundTiers = [10, 25, 50, 100, 200, 500] as const;
-    const expectedAtomicAmounts: Record<number, string> = {
-        10: "142000000",   // totalCost = 14.2 × 10^7
-        25: "295000000",   // totalCost = 29.5 × 10^7
-        50: "550000000",   // totalCost = 55.0 × 10^7
-        100: "1070000000", // totalCost = 107.0 × 10^7
-        200: "2110000000", // totalCost = 211.0 × 10^7
-        500: "5190000000"  // totalCost = 519.0 × 10^7
-    };
+describe("x402 Challenge — Fund (dynamic pricing)", () => {
+    const testAmounts = [10, 25, 50, 100, 200, 500];
 
-    for (const amount of fundTiers) {
-        it(`POST /cards/fund/tier/${amount} → 402 with correct challenge`, async () => {
+    for (const amount of testAmounts) {
+        it(`POST /cards/fund/tier/${amount} → 402 with correct dynamic challenge`, async () => {
+            const expectedCost = calcFundingCost(amount);
+            const expectedAtomic = toAtomicUsdc(expectedCost);
+
             const res = await request(app)
                 .post(`/cards/fund/tier/${amount}`)
                 .expect(402);
 
             expect(res.body).toHaveProperty("x402Version", 2);
-            expect(res.body.accepts[0].amount).toBe(expectedAtomicAmounts[amount]);
+            expect(res.body.accepts[0].amount).toBe(expectedAtomic);
             expect(res.body.resource.url).toContain(`/cards/fund/tier/${amount}`);
         });
     }
 });
 
-describe("x402 Challenge — Error Cases", () => {
-    it("POST /cards/create/tier/999 → 400 (unsupported tier)", async () => {
+describe("x402 Challenge — Amount Validation", () => {
+    it("POST /cards/create/tier/3 → 400 (below min)", async () => {
         const res = await request(app)
-            .post("/cards/create/tier/999")
+            .post("/cards/create/tier/3")
             .expect(400);
 
-        expect(res.body.error).toBe("Unsupported tier amount");
+        expect(res.body.error).toContain("Invalid amount");
     });
 
-    it("POST /cards/fund/tier/42 → 400 (unsupported tier)", async () => {
+    it("POST /cards/fund/tier/6000 → 400 (above max)", async () => {
         const res = await request(app)
-            .post("/cards/fund/tier/42")
+            .post("/cards/fund/tier/6000")
             .expect(400);
 
-        expect(res.body.error).toBe("Unsupported tier amount");
+        expect(res.body.error).toContain("Invalid amount");
+    });
+
+    it("POST /cards/create/tier/abc → 400 (non-numeric)", async () => {
+        const res = await request(app)
+            .post("/cards/create/tier/abc")
+            .expect(400);
+
+        expect(res.body.error).toContain("Invalid amount");
     });
 
     it("POST /cards/create/tier/25 with malformed X-Payment → 401", async () => {
@@ -133,22 +143,24 @@ describe("Public Endpoints", () => {
         expect(res.body.timestamp).toBeDefined();
     });
 
-    it("GET /pricing → 200 with 6 creation + 6 funding tiers", async () => {
+    it("GET /pricing → 200 with dynamic pricing model", async () => {
         const res = await request(app)
             .get("/pricing")
             .expect(200);
 
-        expect(res.body.creation.tiers).toHaveLength(6);
-        expect(res.body.funding.tiers).toHaveLength(6);
+        expect(res.body.cardFee).toBe(10);
+        expect(res.body.topUpPercent).toBe(3.5);
+        expect(res.body.minAmount).toBe(5);
+        expect(res.body.maxAmount).toBe(5000);
     });
 
-    it("GET /cards/tiers → 200 with breakdown", async () => {
+    it("GET /cards/tiers → 200 with pricing info", async () => {
         const res = await request(app)
             .get("/cards/tiers")
             .expect(200);
 
-        expect(res.body.creation).toBeDefined();
-        expect(res.body.creation[0].breakdown).toBeDefined();
+        expect(res.body.cardFee).toBe(10);
+        expect(res.body.topUpPercent).toBe(3.5);
     });
 
     it("GET /nonexistent → 404", async () => {

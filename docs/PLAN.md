@@ -84,11 +84,11 @@ Agent            SDK             API            Solana
     "scheme": "exact",
     "network": "solana:mainnet",
     "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "maxAmountRequired": "17200000",
+    "maxAmountRequired": "113500000",
     "payTo": "<ASG_TREASURY_PUBKEY>",
     "maxTimeoutSeconds": 300,
-    "resource": "/cards/create/tier/10",
-    "description": "Create ASG Card with $10 load"
+    "resource": "/cards/create/tier/100",
+    "description": "Create ASG Card with $100 load"
   }]
 }
 ```
@@ -103,7 +103,7 @@ Agent            SDK             API            Solana
     "authorization": {
       "from": "<AGENT_PUBKEY>",
       "to": "<TREASURY_PUBKEY>",
-      "value": "17200000"
+      "value": "113500000"
     },
     "txHash": "<SOLANA_TX_SIGNATURE>"
   }
@@ -171,7 +171,7 @@ const card = await client.createCard({
 
 - `createCard(params)` → `Promise<CardResult>`
 - `fundCard(params)` → `Promise<FundResult>`
-- `getTiers()` → `Promise<Tier[]>`
+- `getPricing()` → `Promise<PricingResponse>`
 - `health()` → `Promise<{ status: string }>`
 - `address` → Solana pubkey string
 
@@ -221,7 +221,7 @@ headers: {
 
 - SDK (install, quick start, config, methods, errors)
 - Authentication (x402 flow, wallet signature)
-- Pricing (таблица тарифов)
+- Pricing ($10 card + 3.5% top-up)
 - Endpoints (все 11 с примерами)
 - Errors + Rate Limits
 - Architecture diagram
@@ -230,29 +230,19 @@ headers: {
 
 ## 5. Ценообразование
 
-### Создание карты
+**Единая модель:**
+- **$10** — выпуск карты (one-time)
+- **3.5%** — комиссия на каждое пополнение
+- Диапазон: $5–$5,000
 
-| Load | Issuance | TopUp | ASG Fee | **Итого** |
-|---|---|---|---|---|
-| $10 | $3.00 | $2.20 | $2.00 | **$17.20** |
-| $25 | $3.00 | $2.20 | $2.00 | **$32.20** |
-| $50 | $3.00 | $2.20 | $2.00 | **$57.20** |
-| $100 | $3.00 | $2.20 | $2.00 | **$107.20** |
-| $200 | $3.00 | $2.20 | $2.00 | **$207.20** |
-| $500 | $3.00 | $2.20 | $2.00 | **$507.20** |
-
-### Пополнение (без issuance fee)
-
-| Сумма | TopUp | ASG Fee | **Итого** |
-|---|---|---|---|
-| $10 | $2.20 | $2.00 | **$14.20** |
-| $25 | $2.20 | $2.00 | **$29.20** |
+> Пример: Создание карты с $100 → $100 + $10 + $3.50 = **$113.50 USDC**
+> Пополнение $200 → $200 + $7.00 = **$207 USDC**
 
 ---
 
 ## 6. Ответы API — Схемы
 
-### POST /cards/create/tier/50 → 201
+### POST /cards/create/tier/100 → 201
 
 ```json
 {
@@ -260,12 +250,12 @@ headers: {
   "card": {
     "cardId": "uuid",
     "nameOnCard": "AI AGENT",
-    "balance": 50,
+    "balance": 100,
     "status": "active",
     "createdAt": "2026-02-11T14:00:00.000Z"
   },
   "payment": {
-    "amountCharged": 57.2,
+    "amountCharged": 113.5,
     "txHash": "<solana_signature>",
     "network": "solana"
   },

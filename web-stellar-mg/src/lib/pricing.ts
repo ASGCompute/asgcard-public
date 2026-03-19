@@ -23,89 +23,52 @@ export interface LivePricingData {
   fundingTiers: FundingTierPrice[]
 }
 
+// ── Dynamic Pricing Model ──────────────────────────────────
+// API returns flat: { cardFee, topUpPercent, minAmount, maxAmount }
+// Tiers are computed client-side from: creation = amount + cardFee + amount × topUpPercent/100
+
 interface PricingApiResponse {
-  creation?: {
-    tiers?: unknown[]
-  }
-  funding?: {
-    tiers?: unknown[]
-  }
+  cardFee?: number
+  topUpPercent?: number
+  minAmount?: number
+  maxAmount?: number
+}
+
+const SAMPLE_AMOUNTS = [25, 50, 100, 250, 500, 1000]
+
+const round2 = (n: number): number => Math.round(n * 100) / 100
+
+function buildCreationTiers(cardFee: number, topUpPercent: number): CreationTierPrice[] {
+  return SAMPLE_AMOUNTS.map(amt => {
+    const topUpFee = round2(amt * (topUpPercent / 100))
+    const totalCost = round2(amt + cardFee + topUpFee)
+    return {
+      loadAmount: amt,
+      issuanceFee: cardFee,
+      topUpFee,
+      serviceFee: 0,
+      totalCost,
+      endpoint: `/cards/create/tier/${amt}`,
+    }
+  })
+}
+
+function buildFundingTiers(topUpPercent: number): FundingTierPrice[] {
+  return SAMPLE_AMOUNTS.map(amt => {
+    const topUpFee = round2(amt * (topUpPercent / 100))
+    const totalCost = round2(amt + topUpFee)
+    return {
+      fundAmount: amt,
+      topUpFee,
+      serviceFee: 0,
+      totalCost,
+      endpoint: `/cards/fund/tier/${amt}`,
+    }
+  })
 }
 
 const normalizeBaseUrl = (baseUrl: string): string => baseUrl.replace(/\/+$/, '')
 const PRICING_REQUEST_TIMEOUT_MS = 3000
-
-const toNumber = (value: unknown): number | null => {
-  const num = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(num) ? num : null
-}
-
-const toNonEmptyString = (value: unknown): string | null => {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
-const parseCreationTier = (raw: unknown): CreationTierPrice | null => {
-  if (!raw || typeof raw !== 'object') return null
-  const tier = raw as Record<string, unknown>
-
-  const loadAmount = toNumber(tier.loadAmount)
-  const issuanceFee = toNumber(tier.issuanceFee)
-  const topUpFee = toNumber(tier.topUpFee)
-  const serviceFee = toNumber(tier.ourFee ?? tier.serviceFee)
-  const totalCost = toNumber(tier.totalCost)
-  const endpoint = toNonEmptyString(tier.endpoint)
-
-  if (
-    loadAmount === null ||
-    issuanceFee === null ||
-    topUpFee === null ||
-    serviceFee === null ||
-    totalCost === null ||
-    endpoint === null
-  ) {
-    return null
-  }
-
-  return {
-    loadAmount,
-    issuanceFee,
-    topUpFee,
-    serviceFee,
-    totalCost,
-    endpoint,
-  }
-}
-
-const parseFundingTier = (raw: unknown): FundingTierPrice | null => {
-  if (!raw || typeof raw !== 'object') return null
-  const tier = raw as Record<string, unknown>
-
-  const fundAmount = toNumber(tier.fundAmount)
-  const topUpFee = toNumber(tier.topUpFee)
-  const serviceFee = toNumber(tier.ourFee ?? tier.serviceFee)
-  const totalCost = toNumber(tier.totalCost)
-  const endpoint = toNonEmptyString(tier.endpoint)
-
-  if (
-    fundAmount === null ||
-    topUpFee === null ||
-    serviceFee === null ||
-    totalCost === null ||
-    endpoint === null
-  ) {
-    return null
-  }
-
-  return {
-    fundAmount,
-    topUpFee,
-    serviceFee,
-    totalCost,
-    endpoint,
-  }
-}
 
 const getPricingCandidates = (): string[] => {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
@@ -160,16 +123,16 @@ export const fetchLivePricingData = async (): Promise<LivePricingData | null> =>
       if (!response.ok) continue
 
       const payload = (await response.json()) as PricingApiResponse
-      const creationRaw = Array.isArray(payload?.creation?.tiers) ? payload.creation.tiers : []
-      const fundingRaw = Array.isArray(payload?.funding?.tiers) ? payload.funding.tiers : []
 
-      const creationTiers = creationRaw
-        .map(parseCreationTier)
-        .filter((tier): tier is CreationTierPrice => tier !== null)
+      const cardFee = payload.cardFee
+      const topUpPercent = payload.topUpPercent
 
-      const fundingTiers = fundingRaw
-        .map(parseFundingTier)
-        .filter((tier): tier is FundingTierPrice => tier !== null)
+      if (typeof cardFee !== 'number' || typeof topUpPercent !== 'number') {
+        continue
+      }
+
+      const creationTiers = buildCreationTiers(cardFee, topUpPercent)
+      const fundingTiers = buildFundingTiers(topUpPercent)
 
       if (creationTiers.length === 0 && fundingTiers.length === 0) {
         continue

@@ -1,4 +1,4 @@
-import type { CardDetails, TierAmount } from "../types/domain";
+import type { CardDetails } from "../types/domain";
 import type { CardRepository } from "../repositories/types";
 import { cardRepository } from "../repositories/runtime";
 import { getFourPaymentsClient, FourPaymentsError } from "./fourPaymentsClient";
@@ -42,7 +42,7 @@ class CardService {
     email: string;
     phone?: string;
     initialAmountUsd: number;
-    tierAmount: TierAmount;
+    amount: number;
     chargedUsd: number;
     txHash: string;
   }) {
@@ -140,7 +140,7 @@ class CardService {
       email: profileEmail,
       phone: profilePhone,
       initialAmountUsd: input.initialAmountUsd,
-      tierAmount: input.tierAmount,
+      tierAmount: input.amount,
       txHash: input.txHash,
       details: cardDetails,
       fourPaymentsId: fpCard.id,
@@ -185,7 +185,7 @@ class CardService {
     AdminBot.cardCreated({
       cardId: card.cardId,
       wallet: input.walletAddress,
-      tier: input.tierAmount,
+      tier: input.amount,
       balance: input.initialAmountUsd,
       last4: cardDetails.cardNumber?.slice(-4) ?? "????",
     }).catch(() => {});

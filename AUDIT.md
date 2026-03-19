@@ -25,10 +25,10 @@ Sources:
 - Listed in table: 10 endpoints.
 - OpenCard docs expose 10 endpoints.
 
-2. Pricing mismatch with OpenCard docs.
-- `PLAN.md` currently hardcodes fees that diverge from OpenCard for multiple tiers.
-- OpenCard docs list full tier matrices for creation and funding (10/25/50/100/200/500).
-- `PLAN.md` funding table currently includes only 10 and 25.
+2. Pricing model updated.
+- ASG Card uses a flat fee model: $10 card issuance + 3.5% top-up fee.
+- Any amount from $5 to $5,000 per operation.
+- Old OpenCard tier matrices (10/25/50/100/200/500) no longer apply.
 
 3. x402 proof serialization detail.
 - OpenCard docs specify `X-Payment` as base64-encoded JSON payload.

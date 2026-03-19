@@ -31,7 +31,7 @@ console.log(result.payment.txHash);       // Stellar tx hash
 
 ## How It Works
 
-1. SDK calls `POST /cards/create/tier/10`
+1. SDK calls `POST /cards/create/tier/100`
 2. API returns `402` with x402 payment challenge
 3. SDK builds a Soroban USDC transfer, signs it, and retries with `X-PAYMENT` header
 4. API verifies + settles on Stellar mainnet → returns `201` with card details
@@ -52,7 +52,7 @@ console.log(result.payment.txHash);       // Stellar tx hash
 
 ```typescript
 const card = await client.createCard({
-  amount: 10,            // 10, 25, 50, 100, 200, or 500 USD
+  amount: 50,            // Any amount $5–$5,000
   nameOnCard: 'MY AGENT',
   email: 'agent@example.com',
 });
@@ -67,11 +67,11 @@ const funded = await client.fundCard({
 });
 ```
 
-### `client.getTiers()`
+### `client.getPricing()`
 
 ```typescript
-const tiers = await client.getTiers();
-// { creation: [...], funding: [...] }
+const pricing = await client.getPricing();
+// { cardFee: 10, topUpPercent: 3.5, minAmount: 5, maxAmount: 5000 }
 ```
 
 ### `client.health()`

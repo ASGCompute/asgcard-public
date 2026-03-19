@@ -33,7 +33,7 @@ export interface ASGCardClientConfig {
 // ── Card Operations ──────────────────────────────────────
 
 export interface CreateCardParams {
-  amount: 10 | 25 | 50 | 100 | 200 | 500;
+  amount: number;
   nameOnCard: string;
   email: string;
   /** Phone number for cardholder registration (e.g. +1234567890). Required by card issuer. */
@@ -41,23 +41,18 @@ export interface CreateCardParams {
 }
 
 export interface FundCardParams {
-  amount: 10 | 25 | 50 | 100 | 200 | 500;
+  amount: number;
   cardId: string;
 }
 
-// ── Tier Catalog ─────────────────────────────────────────
+// ── Pricing ──────────────────────────────────────────────
 
-export interface TierEntry {
-  loadAmount?: number;
-  fundAmount?: number;
-  totalCost: number;
-  endpoint: string;
-  breakdown?: Record<string, number>;
-}
-
-export interface TierResponse {
-  creation: TierEntry[];
-  funding: TierEntry[];
+export interface PricingResponse {
+  cardFee: number;
+  topUpPercent: number;
+  minAmount: number;
+  maxAmount: number;
+  description: string;
 }
 
 // ── Card Result ──────────────────────────────────────────

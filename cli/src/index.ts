@@ -23,7 +23,7 @@
  *   asgcard card:fund <id>     — Fund a card (x402 payment)
  *   asgcard card:freeze <id>   — Freeze a card
  *   asgcard card:unfreeze <id> — Unfreeze a card
- *   asgcard pricing            — View pricing tiers
+ *   asgcard pricing            — View pricing
  *   asgcard health             — API health check
  */
 
@@ -48,7 +48,7 @@ const VERSION = "0.2.0";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";
-const MIN_CARD_COST_USDC = 17.20; // $10 tier total cost
+const MIN_CARD_COST_USDC = 15.53; // $5 card: $5 + $10 + 3.5%
 
 // ── Config persistence ──────────────────────────────────────
 
@@ -345,7 +345,7 @@ walletCmd
         console.log(chalk.dim("   USDC Balance:   ") + balanceColor(`$${balance.toFixed(2)}`));
       }
 
-      console.log(chalk.dim("   Min Required:   ") + chalk.dim(`$${MIN_CARD_COST_USDC} USDC (for $10 card tier)`));
+      console.log(chalk.dim("   Min Required:   ") + chalk.dim(`$${MIN_CARD_COST_USDC} USDC (for $5 card + $10 issuance + 3.5%)`));
       console.log();
 
       if (!funded) {
@@ -676,14 +676,14 @@ description: ASG Card — virtual MasterCard cards for AI agents, powered by x40
 ## Canonical Flow
 
 1. **Check wallet status**: Use \`get_wallet_status\` MCP tool to verify wallet address and USDC balance
-2. **Check pricing**: Use \`get_pricing\` to see available card tiers and costs
+2. **Check pricing**: Use \`get_pricing\` to see pricing
 3. **Create a card**: Use \`create_card\` with amount, name, and email
 4. **Manage cards**: Use \`list_cards\`, \`get_card\`, \`get_card_details\`, \`freeze_card\`, \`unfreeze_card\`
 
 ## Zero Balance Handling
 
 If wallet has insufficient USDC:
-- Tell the user their current balance and the minimum required ($17.20 for $10 tier)
+- Tell the user their current balance and the minimum required
 - Provide their Stellar public key for deposits
 - Explain: "Send USDC on Stellar to your wallet address, then retry"
 
@@ -692,7 +692,7 @@ If wallet has insufficient USDC:
 | Tool | Description |
 |------|-------------|
 | \`get_wallet_status\` | Check wallet address, USDC balance, and readiness |
-| \`get_pricing\` | View tier pricing for card creation and funding |
+| \`get_pricing\` | View pricing (card $10, top-up 3.5%) |
 | \`create_card\` | Create virtual MasterCard (pays USDC on-chain via x402) |
 | \`fund_card\` | Top up existing card |
 | \`list_cards\` | List all wallet cards |
@@ -706,7 +706,7 @@ If wallet has insufficient USDC:
 - All payments are in USDC on Stellar via x402 protocol
 - Card details are returned immediately on creation (agent-first model)
 - Wallet uses Stellar Ed25519 keypair — private key must stay local
-- Minimum card tier is $10 (total cost $17.20 USDC including fees)
+- Minimum card cost is ~$15.53 USDC (for $5 card + $10 issuance + 3.5%)
 `;
         writeFileSync(join(SKILL_DIR, "SKILL.md"), skillContent);
         console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
@@ -742,7 +742,7 @@ If wallet has insufficient USDC:
         console.log(chalk.bold("\n  🎉 Ready! Create your first card:\n"));
         console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890\n"));
       } else {
-        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CARD_COST_USDC} for $10 tier)`));
+        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CARD_COST_USDC} for minimum card)`));
         console.log(chalk.bold("\n  📥 Next step: Fund your wallet\n"));
         console.log(chalk.dim("     Send USDC on Stellar to:"));
         console.log(chalk.cyan(`     ${kp.publicKey()}\n`));
@@ -872,7 +872,7 @@ program
         } else if (balance >= MIN_CARD_COST_USDC) {
           console.log(chalk.dim("  USDC Balance:     ") + chalk.green(`✅ $${balance.toFixed(2)}`));
         } else {
-          console.log(chalk.dim("  USDC Balance:     ") + chalk.red(`❌ $${balance.toFixed(2)} (need $${MIN_CARD_COST_USDC} for $10 tier)`));
+          console.log(chalk.dim("  USDC Balance:     ") + chalk.red(`❌ $${balance.toFixed(2)} (need $${MIN_CARD_COST_USDC} for $5 min card)`));
           allGood = false;
         }
       } catch {
@@ -1075,21 +1075,27 @@ program
 
 // ── card:create ─────────────────────────────────────────────
 
-const VALID_AMOUNTS = ["10", "25", "50", "100", "200", "500"];
+const AMOUNT_MIN = 5;
+const AMOUNT_MAX = 5000;
+
+function isValidAmount(amount: string): boolean {
+  const num = Number(amount);
+  return Number.isFinite(num) && num >= AMOUNT_MIN && num <= AMOUNT_MAX;
+}
 
 program
   .command("card:create")
   .description("Create a new virtual card (pays on-chain via x402)")
-  .requiredOption("-a, --amount <amount>", `Card load amount (${VALID_AMOUNTS.join(", ")})`)
+  .requiredOption("-a, --amount <amount>", `Card load amount ($${AMOUNT_MIN}–$${AMOUNT_MAX})`)
   .requiredOption("-n, --name <name>", "Name on card")
   .requiredOption("-e, --email <email>", "Email for notifications")
   .requiredOption("-p, --phone <phone>", "Phone number (e.g. +1234567890)")
   .action(async (options: { amount: string; name: string; email: string; phone: string }) => {
-    if (!VALID_AMOUNTS.includes(options.amount)) {
+    if (!isValidAmount(options.amount)) {
       remediate(
         `Invalid amount: ${options.amount}`,
-        `Available amounts: ${VALID_AMOUNTS.join(", ")}`,
-        "asgcard pricing  (to see all tiers and costs)"
+        `Amount must be between $${AMOUNT_MIN} and $${AMOUNT_MAX}`,
+        "asgcard pricing  (to see pricing details)"
       );
       process.exit(1);
     }
@@ -1166,13 +1172,13 @@ program
   .command("card:fund")
   .description("Fund an existing card (pays on-chain via x402)")
   .argument("<id>", "Card ID to fund")
-  .requiredOption("-a, --amount <amount>", `Fund amount (${VALID_AMOUNTS.join(", ")})`)
+  .requiredOption("-a, --amount <amount>", `Fund amount ($${AMOUNT_MIN}–$${AMOUNT_MAX})`)
   .action(async (id: string, options: { amount: string }) => {
-    if (!VALID_AMOUNTS.includes(options.amount)) {
+    if (!isValidAmount(options.amount)) {
       remediate(
         `Invalid amount: ${options.amount}`,
-        `Available amounts: ${VALID_AMOUNTS.join(", ")}`,
-        "asgcard pricing  (to see all tiers and costs)"
+        `Amount must be between $${AMOUNT_MIN} and $${AMOUNT_MAX}`,
+        "asgcard pricing  (to see pricing details)"
       );
       process.exit(1);
     }
@@ -1361,40 +1367,60 @@ program
     }
   });
 
-// ── pricing (FIXED: no private key required) ────────────────
+// ── pricing (no private key required) ───────────────────────
 
 program
   .command("pricing")
-  .description("View current pricing tiers (no authentication required)")
+  .description("View current pricing (no authentication required)")
   .action(async () => {
     const spinner = ora("Fetching pricing...").start();
 
     try {
-      const res = await fetch(`${getApiUrl()}/cards/tiers`);
+      const res = await fetch(`${getApiUrl()}/pricing`);
       if (!res.ok) throw new Error(`API returned ${res.status}`);
-      const tiers = await res.json() as { creation: Array<Record<string, unknown>>; funding: Array<Record<string, unknown>> };
+      const data = await res.json() as { cardFee?: number; topUpPercent?: number; minAmount?: number; maxAmount?: number };
       spinner.stop();
 
-      console.log(chalk.bold("\n💰 Card Creation Tiers:\n"));
-      console.log(
-        chalk.dim("  Load Amount   Total Cost   Endpoint")
-      );
-      for (const t of tiers.creation) {
+      const cardFee = data.cardFee ?? 10;
+      const topUpPct = data.topUpPercent ?? 3.5;
+      const minAmt = data.minAmount ?? 5;
+      const maxAmt = data.maxAmount ?? 5000;
+
+      console.log(chalk.bold("\n💳 ASG Card Pricing\n"));
+      console.log(chalk.dim("  Card Issuance:  ") + chalk.green(`$${cardFee}`) + chalk.dim(" (one-time)"));
+      console.log(chalk.dim("  Top-Up Fee:     ") + chalk.green(`${topUpPct}%`) + chalk.dim(" (on every load)"));
+      console.log(chalk.dim("  Amount Range:   ") + chalk.dim(`$${minAmt} – $${maxAmt} per operation`));
+
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+      const sampleAmounts = [25, 50, 100, 250, 500, 1000];
+
+      console.log(chalk.bold("\n  Card Creation Examples:\n"));
+      console.log(chalk.dim("  Load        + Card Fee   + Top-Up       = Total USDC"));
+      for (const amt of sampleAmounts) {
+        const topUp = round2(amt * topUpPct / 100);
+        const total = round2(amt + cardFee + topUp);
         console.log(
-          `  ${chalk.green("$" + String(t.loadAmount || "?").padEnd(11))} ${chalk.cyan("$" + String(t.totalCost).padEnd(11))} ${chalk.dim(String(t.endpoint))}`
+          `  ${chalk.green("$" + String(amt).padEnd(9))} ` +
+          `${chalk.dim("$" + String(cardFee).padEnd(10))} ` +
+          `${chalk.dim("$" + topUp.toFixed(2).padEnd(12))} ` +
+          `${chalk.cyan("$" + total.toFixed(2))}`
         );
       }
 
-      console.log(chalk.bold("\n💰 Card Funding Tiers:\n"));
-      console.log(
-        chalk.dim("  Fund Amount   Total Cost   Endpoint")
-      );
-      for (const t of tiers.funding) {
+      console.log(chalk.bold("\n  Card Funding Examples:\n"));
+      console.log(chalk.dim("  Amount      + Top-Up       = Total USDC"));
+      for (const amt of sampleAmounts) {
+        const topUp = round2(amt * topUpPct / 100);
+        const total = round2(amt + topUp);
         console.log(
-          `  ${chalk.green("$" + String(t.fundAmount || "?").padEnd(11))} ${chalk.cyan("$" + String(t.totalCost).padEnd(11))} ${chalk.dim(String(t.endpoint))}`
+          `  ${chalk.green("$" + String(amt).padEnd(9))} ` +
+          `${chalk.dim("$" + topUp.toFixed(2).padEnd(12))} ` +
+          `${chalk.cyan("$" + total.toFixed(2))}`
         );
       }
-      console.log();
+
+      console.log(chalk.dim("\n  Any amount $" + minAmt + "–$" + maxAmt + " is supported."));
+      console.log(chalk.dim("  Endpoints: POST /cards/create/tier/:amount • POST /cards/fund/tier/:amount\n"));
     } catch (error) {
       spinner.fail();
       remediate(

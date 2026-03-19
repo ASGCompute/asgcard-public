@@ -56,7 +56,7 @@ Same config in your Cursor MCP settings.
 | `get_card_details` | Get PAN, CVV, expiry for purchases |
 | `freeze_card` | Temporarily disable a card |
 | `unfreeze_card` | Re-enable a frozen card |
-| `get_pricing` | View available tiers and costs |
+| `get_pricing` | View pricing ($10 card, 3.5% top-up) |
 
 ## Real-World Use Cases
 

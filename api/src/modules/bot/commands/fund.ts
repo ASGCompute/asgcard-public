@@ -11,15 +11,7 @@ import type { TelegramClient } from "../telegramClient";
 import { requireOwnerBinding } from "../../authz/ownerPolicy";
 import { cardService, HttpError } from "../../../services/cardService";
 import { persistentMenu } from "../keyboards";
-import { FUNDING_TIERS } from "../../../config/pricing";
-
-// ── Types ──────────────────────────────────────────────────
-
-interface FundTier {
-    label: string;
-    amount: number;
-    totalCost: number;
-}
+import { TOPUP_RATE, calcFundingCost, MIN_AMOUNT, MAX_AMOUNT } from "../../../config/pricing";
 
 // ── Fund Command ───────────────────────────────────────────
 
@@ -110,14 +102,14 @@ export async function handleFundCallback(
     }
 
     if (action === "fund_select") {
-        await showFundTiers(client, chatId, owner.ownerWallet, cardId);
+        await showFundInfo(client, chatId, owner.ownerWallet, cardId);
     } else if (action === "fund_info") {
         const amount = Number(parts[2]);
         await showFundDetails(client, chatId, owner.ownerWallet, cardId, amount);
     }
 }
 
-// ── Fund Details (tier selected) ───────────────────────────
+// ── Fund Details (amount selected) ─────────────────────────
 
 async function showFundDetails(
     client: TelegramClient,
@@ -127,31 +119,29 @@ async function showFundDetails(
     amount: number
 ): Promise<void> {
     try {
-        const tier = FUNDING_TIERS.find((t) => t.fundAmount === amount);
-        if (!tier) {
+        if (amount < MIN_AMOUNT || amount > MAX_AMOUNT) {
             await client.sendMessage({
                 chat_id: chatId,
-                text: "⚠️ Invalid funding tier.",
+                text: `⚠️ Amount must be between $${MIN_AMOUNT} and $${MAX_AMOUNT}.`,
             });
             return;
         }
 
         const result = await cardService.getCard(wallet, cardId);
         const last4 = result.card.lastFour;
-
-        const fundEndpoint = `https://api.asgcard.dev${tier.endpoint}`;
+        const totalCost = calcFundingCost(amount);
+        const fee = totalCost - amount;
 
         await client.sendMessage({
             chat_id: chatId,
             text:
                 `<b>💰 Fund Card xxxx ${last4}</b>\n\n` +
-                `<b>Load Amount:</b> $${tier.fundAmount.toFixed(2)}\n` +
-                `<b>Top-up Fee:</b> $${tier.topUpFee.toFixed(2)}\n` +
-                `<b>Service Fee:</b> $${tier.serviceFee.toFixed(2)}\n` +
-                `<b>Total USDC Cost:</b> $${tier.totalCost.toFixed(2)}\n\n` +
+                `<b>Load Amount:</b> $${amount.toFixed(2)}\n` +
+                `<b>Top-up fee (${(TOPUP_RATE * 100).toFixed(1)}%):</b> $${fee.toFixed(2)}\n` +
+                `<b>Total USDC Cost:</b> $${totalCost.toFixed(2)}\n\n` +
                 `<i>Payment: USDC on Stellar via x402 protocol</i>\n\n` +
                 `To fund this card, use the SDK or API:\n` +
-                `<code>POST ${tier.endpoint}</code>\n` +
+                `<code>POST /cards/fund/tier/${amount}</code>\n` +
                 `with the card ID and x402 payment header.\n\n` +
                 `📖 <a href="https://docs.asgcard.dev/api/fund">Documentation</a>`,
             parse_mode: "HTML",
@@ -159,7 +149,7 @@ async function showFundDetails(
                 inline_keyboard: [
                     [
                         {
-                            text: "⬅️ Back to tiers",
+                            text: "⬅️ Back",
                             callback_data: `fund_select:${cardId}`,
                         },
                     ],
@@ -175,9 +165,9 @@ async function showFundDetails(
     }
 }
 
-// ── Fund Tiers Display ─────────────────────────────────────
+// ── Fund Info Display ──────────────────────────────────────
 
-async function showFundTiers(
+async function showFundInfo(
     client: TelegramClient,
     chatId: number,
     wallet: string,
@@ -187,17 +177,12 @@ async function showFundTiers(
         const result = await cardService.getCard(wallet, cardId);
         const last4 = result.card.lastFour;
 
-        // Build tier buttons from FUNDING_TIERS config
-        const fundTiers: FundTier[] = FUNDING_TIERS.map((t) => ({
-            label: `$${t.fundAmount}`,
-            amount: t.fundAmount,
-            totalCost: t.totalCost,
-        }));
-
-        const tierButtons = fundTiers.map((tier) => [
+        // Show common amounts as quick buttons
+        const quickAmounts = [25, 50, 100, 200, 500];
+        const amountButtons = quickAmounts.map((amt) => [
             {
-                text: `${tier.label} (cost: $${tier.totalCost.toFixed(2)})`,
-                callback_data: `fund_info:${cardId}:${tier.amount}`,
+                text: `$${amt} (cost: $${calcFundingCost(amt).toFixed(2)})`,
+                callback_data: `fund_info:${cardId}:${amt}`,
             },
         ]);
 
@@ -206,11 +191,11 @@ async function showFundTiers(
             text:
                 `<b>💰 Fund Card xxxx ${last4}</b>\n` +
                 `Current Balance: <b>$${result.card.balance.toFixed(2)}</b>\n\n` +
-                `Select a funding amount:\n` +
-                `<i>Payment is via USDC on Stellar (x402 protocol).</i>\n` +
-                `<i>Use the SDK for programmatic funding.</i>`,
+                `<b>Top-up fee:</b> ${(TOPUP_RATE * 100).toFixed(1)}% • Any amount $${MIN_AMOUNT}–$${MAX_AMOUNT}\n\n` +
+                `Select a quick amount or use the SDK with any amount:\n` +
+                `<i>Payment is via USDC on Stellar (x402 protocol).</i>`,
             parse_mode: "HTML",
-            reply_markup: { inline_keyboard: tierButtons },
+            reply_markup: { inline_keyboard: amountButtons },
         });
     } catch (error) {
         const msg =

@@ -60,7 +60,7 @@
         "tags": [
           "public"
         ],
-        "summary": "Get pricing tiers and fee breakdowns",
+        "summary": "Get pricing ($10 card issuance + 3.5% top-up)",
         "operationId": "getPricing",
         "responses": {
           "200": {
@@ -81,11 +81,11 @@
         "tags": [
           "public"
         ],
-        "summary": "Get available create/fund tiers",
+        "summary": "Get pricing (alias for /pricing)",
         "operationId": "getCardTiers",
         "responses": {
           "200": {
-            "description": "Tier catalog",
+            "description": "Pricing info",
             "content": {
               "application/json": {
                 "schema": {
@@ -102,7 +102,7 @@
         "tags": [
           "x402"
         ],
-        "summary": "Create a virtual card for a supported tier amount",
+        "summary": "Create a virtual card ($5–$5,000)",
         "description": "x402 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. The 201 response includes a `detailsEnvelope` with full PAN, CVV, expiry, billing address, and one-time-access metadata (agent-first model). PAN/CVV are never logged or exposed in metrics.",
         "operationId": "createCardByTier",
         "parameters": [
@@ -114,7 +114,7 @@
               "type": "integer",
               "minimum": 1
             },
-            "description": "Tier amount in USD (for example 10, 25, 50, 100, 200, 500)"
+            "description": "Amount in USD ($5–$5,000)"
           }
         ],
         "requestBody": {
@@ -149,7 +149,7 @@
         "tags": [
           "x402"
         ],
-        "summary": "Fund an existing card by tier amount",
+        "summary": "Fund an existing card ($5–$5,000)",
         "description": "This endpoint participates in the x402 payment flow.",
         "operationId": "fundCardByTier",
         "parameters": [
@@ -161,7 +161,7 @@
               "type": "integer",
               "minimum": 1
             },
-            "description": "Tier amount in USD"
+            "description": "Amount in USD ($5–$5,000)"
           }
         ],
         "requestBody": {
@@ -544,59 +544,36 @@
           }
         }
       },
-      "PricingTierBreakdown": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "PricingTier": {
-        "type": "object",
-        "additionalProperties": true
-      },
       "PricingResponse": {
         "type": "object",
         "properties": {
-          "creation": {
-            "type": "object",
-            "properties": {
-              "tiers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingTier"
-                }
-              }
-            }
+          "cardFee": {
+            "type": "number",
+            "example": 10,
+            "description": "One-time card issuance fee in USD"
           },
-          "funding": {
-            "type": "object",
-            "properties": {
-              "tiers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PricingTier"
-                }
-              }
-            }
+          "topUpPercent": {
+            "type": "number",
+            "example": 3.5,
+            "description": "Top-up fee percentage"
+          },
+          "minAmount": {
+            "type": "number",
+            "example": 5
+          },
+          "maxAmount": {
+            "type": "number",
+            "example": 5000
+          },
+          "description": {
+            "type": "string",
+            "example": "$10 card issuance + 3.5% top-up fee"
           }
         }
       },
       "CardTiersResponse": {
-        "type": "object",
-        "properties": {
-          "creation": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          },
-          "funding": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          }
-        }
+        "description": "Alias — same shape as PricingResponse",
+        "$ref": "#/components/schemas/PricingResponse"
       },
       "CreateCardRequest": {
         "type": "object",
@@ -623,7 +600,7 @@
           "amountCharged": {
             "type": "number",
             "format": "float",
-            "example": 17.2
+            "example": 20.35
           },
           "txHash": {
             "type": "string"

@@ -1,10 +1,8 @@
-import type { TierAmount } from "./domain";
-
 export interface PaymentContext {
   payer: string;
   txHash: string;
   atomicAmount: string;
-  tierAmount: TierAmount;
+  amount: number;
   totalCostUsd: number;
 }
 

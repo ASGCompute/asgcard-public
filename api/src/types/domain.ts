@@ -1,22 +1,3 @@
-export type TierAmount = 10 | 25 | 50 | 100 | 200 | 500;
-
-export interface CreationTier {
-  loadAmount: TierAmount;
-  issuanceFee: number;
-  topUpFee: number;
-  serviceFee: number;
-  totalCost: number;
-  endpoint: string;
-}
-
-export interface FundingTier {
-  fundAmount: TierAmount;
-  topUpFee: number;
-  serviceFee: number;
-  totalCost: number;
-  endpoint: string;
-}
-
 export interface CardBillingAddress {
   street: string;
   city: string;

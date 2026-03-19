@@ -11,8 +11,8 @@
 
 Demonstrate 2 cases on Stellar testnet using OZ Smart Account library:
 
-1. **SUCCESS**: Agent session key creates an ASG Card ($10 tier) — policy allows
-2. **BLOCKED**: Same session key attempts $600 tier — policy spending limit blocks tx
+1. **SUCCESS**: Agent session key creates an ASG Card ($100 amount) — policy allows
+2. **BLOCKED**: Same session key attempts $5000 amount — policy spending limit blocks tx
 
 ## Architecture
 
@@ -32,15 +32,15 @@ Agent Runtime                    Stellar (Soroban)                   ASG Card AP
 
 ## Acceptance Criteria
 
-### Case 1: SUCCESS ($10 tier within limit)
+### Case 1: SUCCESS ($100 card within limit)
 
 ```
 Input:
   - Session key with policy: {limit: $500, payTo: GBQL4G3..., ttl: 24h}
-  - POST /cards/create/tier/10 with X-PAYMENT (signed via smart account)
+  - POST /cards/create/tier/100 with X-PAYMENT (signed via smart account)
 
 Expected:
-  - Smart account __check_auth() → PASS (amount $17.20 < $500 limit)
+  - Smart account __check_auth() → PASS (amount $113.50 < $500 limit)
   - x402 verify/settle → SUCCESS
   - HTTP 201 with card data
 
@@ -50,18 +50,16 @@ Evidence:
   - Smart account contract log showing policy pass
 ```
 
-### Case 2: BLOCKED ($600 tier over limit)
+### Case 2: BLOCKED ($5000 amount over limit)
 
 ```
 Input:
   - Same session key, same policy
-  - POST /cards/create/tier/500 (totalCost $522 > $500 limit)
-  - Wait... $522 is just under $500? No:
-    Tier $500 → totalCost = $522. Policy limit = $500.
-    $522 > $500 → BLOCKED ✅
+  - POST /cards/create/tier/5000 (totalCost $5185 > $500 limit)
+  - $5000 + $10 card fee + $175 (3.5%) = $5185 > $500 → BLOCKED ✅
 
 Expected:
-  - Smart account __check_auth() → REJECT (amount $522 > $500 limit)
+  - Smart account __check_auth() → REJECT (amount $5185 > $500 limit)
   - Stellar tx fails at submission (auth rejected)
   - Agent receives error before x402 even processes
   - No X-PAYMENT header sent to API (client-side rejection)
@@ -122,9 +120,9 @@ async function runPOC() {
   // 2. Initialize with owner + policy (limit $500, payTo treasury, 24h)
   // 3. Generate session keypair
   // 4. Add session via add_session()
-  // 5. Case 1: Build $17.20 USDC payment → sign with session key → submit
+  // 5. Case 1: Build $113.50 USDC payment → sign with session key → submit
   //    Expected: SUCCESS
-  // 6. Case 2: Build $522 USDC payment → sign with session key → simulate
+  // 6. Case 2: Build $5185 USDC payment → sign with session key → simulate
   //    Expected: auth rejection
   // 7. Output results as JSON
 }
@@ -141,14 +139,14 @@ Output `poc-smart-wallet-results.json`:
   "case1": {
     "status": "SUCCESS",
     "tx_hash": "...",
-    "amount_usdc": 17.20,
+    "amount_usdc": 113.50,
     "policy_limit": 500,
     "policy_verdict": "PASS"
   },
   "case2": {
     "status": "BLOCKED",
     "simulation_error": "policy_limit_exceeded",
-    "amount_usdc": 522,
+    "amount_usdc": 5185,
     "policy_limit": 500,
     "policy_verdict": "REJECT"
   }

@@ -2,8 +2,9 @@ import type { Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import { env } from "../config/env";
 import {
-  findCreationTier,
-  findFundingTier,
+  calcCreationCost,
+  calcFundingCost,
+  isValidAmount,
   toAtomicUsdc
 } from "../config/pricing";
 import { paymentService } from "../services/paymentService";
@@ -112,14 +113,14 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
     const metricEvent = purpose === "create" ? "request_create" as const : "request_fund" as const;
 
     const amount = Number(req.params.amount);
-    const tier = purpose === "create" ? findCreationTier(amount) : findFundingTier(amount);
 
-    if (!tier) {
-      res.status(400).json({ error: "Unsupported tier amount" });
+    if (!isValidAmount(amount)) {
+      res.status(400).json({ error: "Invalid amount. Must be between $5 and $5,000." });
       return;
     }
 
-    const requiredAtomic = toAtomicUsdc(tier.totalCost);
+    const totalCost = purpose === "create" ? calcCreationCost(amount) : calcFundingCost(amount);
+    const requiredAtomic = toAtomicUsdc(totalCost);
 
     // ── Check for payment header (canonical X-PAYMENT, legacy X-Payment) ──
     const paymentHeader = req.header("X-PAYMENT") ?? req.header("X-Payment");
@@ -139,7 +140,7 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
           latencyMs: elapsed(),
           metadata: {
             purpose,
-            tierAmount: amount,
+            amount,
             availableBalance: balanceResult.availableBalance ?? null,
             requiredAmount: requiredIssuerAmount,
             ...(balanceResult.error ? { error: balanceResult.error.substring(0, 200) } : {}),
@@ -151,7 +152,7 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
           .json({
             error: "Service temporarily unavailable",
             reason: "provider_capacity",
-            message: `The $${amount} tier is temporarily unavailable due to provider capacity. Please retry later.`,
+            message: `The $${amount} amount is temporarily unavailable due to provider capacity. Please retry later.`,
             retryAfter: 60,
           });
         return;
@@ -215,7 +216,7 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
       paymentPayload,
       paymentRequirements,
       payer: accepted.payTo,  // will be overridden by facilitator's payer field
-      tierAmount: amount as 10 | 25 | 50 | 100 | 200 | 500,
+      amount,
     });
 
     if (!result.valid) {
@@ -245,8 +246,8 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
       payer,
       txHash: result.settleResponse?.transaction ?? "",
       atomicAmount: requiredAtomic,
-      tierAmount: amount as 10 | 25 | 50 | 100 | 200 | 500,
-      totalCostUsd: tier.totalCost
+      amount,
+      totalCostUsd: totalCost
     };
 
     // DAA tracking — fire-and-forget

@@ -10,7 +10,7 @@
  *   - get_card_details:  Get sensitive card details (PAN, CVV, expiry)
  *   - freeze_card:       Freeze a card temporarily
  *   - unfreeze_card:     Unfreeze a frozen card
- *   - get_pricing:       Get available tier pricing
+ *   - get_pricing:       Get pricing info
  *   - get_transactions:  Get card transaction history from 4payments
  *   - get_balance:       Get live card balance from 4payments
  */
@@ -23,7 +23,7 @@ import { WalletClient } from "./wallet-client.js";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";
-const MIN_CARD_COST_USDC = 17.20;
+const MIN_CARD_COST_USDC = 15.18;
 
 async function getUsdcBalance(publicKey: string): Promise<number> {
   try {
@@ -61,7 +61,7 @@ const VALID_AMOUNTS = [10, 25, 50, 100, 200, 500] as const;
 export function createASGCardServer(config: ServerConfig): McpServer {
   const apiUrl = config.apiUrl ?? "https://api.asgcard.dev";
 
-  // SDK client for x402-paid operations (create, fund, tiers, health)
+  // SDK client for x402-paid operations (create, fund, pricing, health)
   const sdkClient = new ASGCardClient({
     privateKey: config.privateKey,
     baseUrl: apiUrl,
@@ -109,10 +109,10 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           } else if (balance === 0) {
             status.nextStep = `Wallet has zero USDC. Send at least $${MIN_CARD_COST_USDC} USDC on Stellar to ${publicKey}. After funding, use create_card to issue your first virtual card.`;
           } else {
-            status.nextStep = `Current balance $${balance.toFixed(2)} is below minimum $${MIN_CARD_COST_USDC} for the $10 card tier. Send more USDC to ${publicKey}.`;
+            status.nextStep = `Current balance $${balance.toFixed(2)} is below minimum card cost. Send more USDC to ${publicKey}.`;
           }
         } else {
-          status.nextStep = "Wallet is funded and ready. Use get_pricing to see available card tiers, then create_card to issue a virtual card.";
+          status.nextStep = "Wallet is funded and ready. Use get_pricing to see pricing, then create_card to issue a virtual card.";
         }
 
         return {
@@ -137,7 +137,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
     {
       amount: z
         .enum(["10", "25", "50", "100", "200", "500"])
-        .describe("Card tier amount in USD. Available tiers: 10, 25, 50, 100, 200, 500"),
+        .describe("Card load amount in USD ($5–$5,000)"),
       nameOnCard: z.string().min(1).describe("Name to print on the virtual card"),
       email: z.string().email().describe("Email address for card notifications"),
       phone: z.string().min(1).describe("Phone number for cardholder registration, e.g. +1234567890"),
@@ -182,7 +182,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
     {
       amount: z
         .enum(["10", "25", "50", "100", "200", "500"])
-        .describe("Fund tier amount in USD. Available tiers: 10, 25, 50, 100, 200, 500"),
+        .describe("Fund amount in USD ($5–$5,000)"),
       cardId: z.string().min(1).describe("The card ID to fund"),
     },
     async ({ amount, cardId }) => {
@@ -366,11 +366,11 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   server.tool(
     "get_pricing",
-    "Get current pricing tiers for card creation and funding. Shows available amounts, total costs (including fees), and API endpoints for each tier.",
+    "Get pricing info. Card issuance $10, top-up fee 3.5%. Any amount $5–$5,000.",
     {},
     async () => {
       try {
-        const result = await sdkClient.getTiers();
+        const result = await sdkClient.getPricing();
 
         return {
           content: [

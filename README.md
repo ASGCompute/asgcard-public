@@ -100,7 +100,7 @@ const card = await client.createCard({
 | `listCards()` | List all cards for this wallet |
 | `getTransactions(cardId, page?, limit?)` | Get card transaction history |
 | `getBalance(cardId)` | Get live card balance |
-| `getTiers()` | Get current pricing tiers |
+| `getPricing()` | Get current pricing |
 | `health()` | API health check |
 
 ## MCP Server (AI Agent Integration)
@@ -117,7 +117,7 @@ const card = await client.createCard({
 | `get_card_details` | Get PAN, CVV, expiry |
 | `freeze_card` | Freeze a card |
 | `unfreeze_card` | Unfreeze a card |
-| `get_pricing` | View tier pricing |
+| `get_pricing` | View pricing |
 | `get_transactions` | Card transaction history (real 4payments data) |
 | `get_balance` | Live card balance from 4payments |
 
@@ -135,29 +135,14 @@ For custom autonomous agents and raw LLM pipelines, the [x402-payments-skill](ht
 
 ## Pricing
 
-### Card Creation
+**Simple, transparent, no hidden fees.**
 
-| Card Load | Total Cost (USDC) |
-|-----------|:-----------------:|
-| $10 | **$17.20** |
-| $25 | **$32.50** |
-| $50 | **$58.00** |
-| $100 | **$110.00** |
-| $200 | **$214.00** |
-| $500 | **$522.00** |
+- **$10** one-time card issuance
+- **3.5%** on every top-up
 
-### Card Funding (Top-Up)
+That's it. Load any amount from $5 to $5,000.
 
-| Fund Amount | Total Cost (USDC) |
-|-------------|:-----------------:|
-| $10 | **$14.20** |
-| $25 | **$29.50** |
-| $50 | **$55.00** |
-| $100 | **$107.00** |
-| $200 | **$211.00** |
-| $500 | **$519.00** |
-
-Live pricing: `GET https://api.asgcard.dev/pricing`
+> Load $100 onto a new card → **$113.50 USDC**. Top up $200 later → just **$207 USDC**.
 
 ## API Endpoints
 
@@ -166,8 +151,8 @@ Live pricing: `GET https://api.asgcard.dev/pricing`
 | Route | Method | Description |
 |-------|--------|-------------|
 | `/health` | GET | Health check |
-| `/pricing` | GET | Current pricing tiers |
-| `/cards/tiers` | GET | Detailed tier breakdown |
+| `/pricing` | GET | Pricing info |
+| `/cards/tiers` | GET | Pricing info |
 | `/supported` | GET | x402 capabilities |
 
 ### Paid (x402 Payment Required)

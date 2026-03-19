@@ -298,8 +298,8 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
   cardId: 'card-uuid',
 });`, 'typescript')}
 
-      <h4 class="docs-method-sig"><code>client.getTiers(): Promise&lt;TierResponse&gt;</code></h4>
-      <p>Get pricing tiers and fee breakdown (no payment required).</p>
+      <h4 class="docs-method-sig"><code>client.getPricing(): Promise&lt;PricingResponse&gt;</code></h4>
+      <p>Get pricing info: card $10, top-up 3.5% (no payment required).</p>
 
       <h4 class="docs-method-sig"><code>client.health(): Promise&lt;HealthResponse&gt;</code></h4>
       <p>Check if the ASG Card API is reachable.</p>
@@ -470,7 +470,7 @@ function renderAuthentication(): string {
     "scheme": "exact",
     "network": "stellar:mainnet",
     "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "maxAmountRequired": "17200000",
+    "maxAmountRequired": "113500000",
     "payTo": "<TREASURY_PUBKEY>",
     "maxTimeoutSeconds": 300,
     "resource": "/cards/create/tier/10",
@@ -506,7 +506,7 @@ function renderAuthentication(): string {
     "authorization": {
       "from": "<AGENT_PUBKEY>",
       "to": "<TREASURY_PUBKEY>",
-      "value": "17200000"
+      "value": "113500000"
     },
     "txHash": "<STELLAR_TX_HASH>"
   }

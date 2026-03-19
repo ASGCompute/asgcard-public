@@ -15,6 +15,7 @@ vi.mock("../src/services/fourPaymentsClient", () => ({
 }));
 
 import { createApp } from "../src/app";
+import { calcCreationCost, calcFundingCost, toAtomicUsdc } from "../src/config/pricing";
 
 let app: Express;
 beforeAll(async () => {
@@ -42,7 +43,7 @@ describe("Issuer Failsafe — Create Route", () => {
 
     expect(res.body).toHaveProperty("x402Version", 2);
     expect(res.body.accepts).toHaveLength(1);
-    expect(res.body.accepts[0].amount).toBe("5220000000");
+    expect(res.body.accepts[0].amount).toBe(toAtomicUsdc(calcCreationCost(500)));
   });
 
   it("issuer balance insufficient → 503, no challenge", async () => {
@@ -109,7 +110,7 @@ describe("Issuer Failsafe — Fund Route", () => {
       .expect(402);
 
     expect(res.body).toHaveProperty("x402Version", 2);
-    expect(res.body.accepts[0].amount).toBe("5190000000");
+    expect(res.body.accepts[0].amount).toBe(toAtomicUsdc(calcFundingCost(500)));
   });
 
   it("issuer balance insufficient → 503, no challenge", async () => {
@@ -173,13 +174,13 @@ describe("Issuer Failsafe — Lower tiers", () => {
     expect(res.body.error).toBe("Service temporarily unavailable");
   });
 
-  it("unsupported tier still returns 400 (before issuer check)", async () => {
-    // checkIssuerBalance should NOT be called for invalid tiers
+  it("out-of-range amount returns 400 (before issuer check)", async () => {
+    // checkIssuerBalance should NOT be called for invalid amounts
     const res = await request(app)
-      .post("/cards/create/tier/999")
+      .post("/cards/create/tier/99999")
       .expect(400);
 
-    expect(res.body.error).toBe("Unsupported tier amount");
+    expect(res.body.error).toContain("Invalid amount");
     expect(mockCheckIssuerBalance).not.toHaveBeenCalled();
   });
 });

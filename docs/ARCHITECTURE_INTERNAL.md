@@ -67,13 +67,13 @@ sequenceDiagram
     participant Stellar as Stellar Pubnet
     participant FP as 4payments.io
 
-    Agent->>API: POST /cards/create/tier/10<br>{nameOnCard, email}
-    API-->>Agent: 402 PaymentRequired<br>{x402Version:2, amount:"17200000", payTo:G...}
+    Agent->>API: POST /cards/create/tier/100<br>{nameOnCard, email}
+    API-->>Agent: 402 PaymentRequired<br>{x402Version:2, amount:"113500000", payTo:G...}
 
     Note over Agent: SDK builds Soroban USDC transfer TX
     Agent->>Stellar: Sign auth entries + build TX envelope
 
-    Agent->>API: POST /cards/create/tier/10<br>X-PAYMENT: base64(PaymentPayload)
+    Agent->>API: POST /cards/create/tier/100<br>X-PAYMENT: base64(PaymentPayload)
     API->>FAC: POST /verify {paymentPayload, paymentRequirements}
     FAC-->>API: {isValid:true, payer:"GABCD..."}
     API->>FAC: POST /settle {paymentPayload, paymentRequirements}
@@ -98,31 +98,13 @@ sequenceDiagram
 
 ## 4. Комиссии
 
-### Создание карты
+**Единая модель:**
+- **$10** — выпуск карты (one-time)
+- **3.5%** — комиссия на каждое пополнение
+- Диапазон: $5–$5,000
 
-| Загрузка | Issuance | Top-Up | Наша | **Итого** |
-|----------|:--------:|:------:|:----:|:---------:|
-| $10 | $3.00 | $2.20 | $2.00 | **$17.20** |
-| $25 | $3.00 | $2.50 | $2.00 | **$32.50** |
-| $50 | $3.00 | $3.00 | $2.00 | **$58.00** |
-| $100 | $3.00 | $4.00 | $3.00 | **$110.00** |
-| $200 | $3.00 | $6.00 | $5.00 | **$214.00** |
-| $500 | $3.00 | $12.00 | $7.00 | **$522.00** |
-
-### Пополнение
-
-| Сумма | Top-Up | Наша | **Итого** |
-|-------|:------:|:----:|:---------:|
-| $10 | $2.20 | $2.00 | **$14.20** |
-| $25 | $2.50 | $2.00 | **$29.50** |
-| $50 | $3.00 | $2.00 | **$55.00** |
-| $100 | $4.00 | $3.00 | **$107.00** |
-| $200 | $6.00 | $5.00 | **$211.00** |
-| $500 | $12.00 | $7.00 | **$519.00** |
-
-> **Issuance Fee** ($3) — 4payments за выпуск (BIN 539578 MasterCard)
-> **Top-Up Fee** — 4payments за пополнение
-> **Наша (Service Fee)** — маржа ASG Card
+> Пример: Загрузка $100 на новую карту → $100 + $10 + $3.50 = **$113.50 USDC**
+> Пополнение $200 → $200 + $7.00 = **$207 USDC**
 
 ---
 
@@ -150,7 +132,7 @@ const card = await client.createCard({
 |-----------|----------|
 | `createCard()` | Выпуск + x402 оплата |
 | `fundCard()` | Пополнение + x402 оплата |
-| `getTiers()` | Актуальные тарифы |
+| `getPricing()` | Актуальный прайсинг |
 | `health()` | Health check |
 
 ### Details Envelope
@@ -180,7 +162,7 @@ graph LR
 | `get_card_details` | wallet-auth | PAN, CVV, expiry |
 | `freeze_card` | wallet-auth | Заморозить |
 | `unfreeze_card` | wallet-auth | Разморозить |
-| `get_pricing` | public | Тарифы |
+| `get_pricing` | public | Прайсинг ($10 + 3.5%) |
 
 **Repo:** `mcp-server/` | **npm:** `@asgcard/mcp-server`  
 **Полная документация:** `docs/MCP_SERVER.md`
@@ -225,8 +207,8 @@ graph LR
 | Route | Method | Описание |
 |-------|--------|----------|
 | `/health` | GET | Health check |
-| `/pricing` | GET | Тарифы |
-| `/cards/tiers` | GET | Детальные тарифы |
+| `/pricing` | GET | Прайсинг ($10 + 3.5%) |
+| `/cards/tiers` | GET | Alias для /pricing |
 | `/supported` | GET | x402 capabilities |
 
 ### Paid (x402)

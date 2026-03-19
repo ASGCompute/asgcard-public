@@ -37,7 +37,7 @@ asgcard cards
 | `asgcard card:fund <id>` | Fund a card (x402 payment) |
 | `asgcard card:freeze <id>` | Freeze a card |
 | `asgcard card:unfreeze <id>` | Unfreeze a card |
-| `asgcard pricing` | View pricing tiers |
+| `asgcard pricing` | View pricing (card $10, top-up 3.5%) |
 | `asgcard health` | Check API status |
 
 ## Authentication

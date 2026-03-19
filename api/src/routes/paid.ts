@@ -33,8 +33,8 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req
       nameOnCard: parsed.data.nameOnCard,
       email: parsed.data.email,
       phone: parsed.data.phone,
-      initialAmountUsd: req.paymentContext.tierAmount,
-      tierAmount: req.paymentContext.tierAmount,
+      initialAmountUsd: req.paymentContext.amount,
+      amount: req.paymentContext.amount,
       chargedUsd: req.paymentContext.totalCostUsd,
       txHash: req.paymentContext.txHash
     });
@@ -85,7 +85,7 @@ paidRouter.post("/fund/tier/:amount", requireX402Payment("fund"), async (req, re
     const result = await cardService.fundCard({
       walletAddress: req.paymentContext.payer,
       cardId: parsed.data.cardId,
-      fundAmountUsd: req.paymentContext.tierAmount,
+      fundAmountUsd: req.paymentContext.amount,
       chargedUsd: req.paymentContext.totalCostUsd,
       txHash: req.paymentContext.txHash
     });

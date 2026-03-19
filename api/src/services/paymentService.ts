@@ -1,7 +1,7 @@
 import { facilitatorClient, FacilitatorError } from "./facilitatorClient";
 import { emitMetric } from "./metrics";
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from "../types/x402";
-import type { TierAmount } from "../types/domain";
+
 import type { PaymentRepository } from "../repositories/types";
 import { paymentRepository } from "../repositories/runtime";
 
@@ -17,7 +17,7 @@ export interface VerifyPaymentInput {
     paymentPayload: PaymentPayload;
     paymentRequirements: PaymentRequirements;
     payer: string;
-    tierAmount: TierAmount;
+    amount: number;
 }
 
 // ── PaymentService (x402 v2) ───────────────────────────────
@@ -80,7 +80,7 @@ export class PaymentService {
                 txHash,
                 payer,
                 amount: input.paymentRequirements.amount,
-                tierAmount: input.tierAmount,
+                tierAmount: input.amount,
                 status: "settled",    // facilitator already submitted + confirmed
                 settleId: txHash      // for settled payments, settleId = txHash
             });

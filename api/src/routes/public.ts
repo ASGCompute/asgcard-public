@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { env } from "../config/env";
-import { CREATION_TIERS, FUNDING_TIERS } from "../config/pricing";
+import { CARD_FEE, TOPUP_RATE, MIN_AMOUNT, MAX_AMOUNT } from "../config/pricing";
 import { facilitatorClient } from "../services/facilitatorClient";
 
 export const publicRouter = Router();
@@ -15,52 +15,25 @@ publicRouter.get("/health", (_req, res) => {
 
 publicRouter.get("/pricing", (_req, res) => {
   res.json({
-    creation: {
-      tiers: CREATION_TIERS.map((tier) => ({
-        loadAmount: tier.loadAmount,
-        totalCost: tier.totalCost,
-        issuanceFee: tier.issuanceFee,
-        topUpFee: tier.topUpFee,
-        ourFee: tier.serviceFee,
-        endpoint: tier.endpoint
-      }))
+    cardFee: CARD_FEE,
+    topUpPercent: TOPUP_RATE * 100,
+    minAmount: MIN_AMOUNT,
+    maxAmount: MAX_AMOUNT,
+    description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%.`,
+    endpoints: {
+      create: "POST /cards/create/tier/:amount",
+      fund: "POST /cards/fund/tier/:amount",
     },
-    funding: {
-      tiers: FUNDING_TIERS.map((tier) => ({
-        fundAmount: tier.fundAmount,
-        totalCost: tier.totalCost,
-        topUpFee: tier.topUpFee,
-        ourFee: tier.serviceFee,
-        endpoint: tier.endpoint
-      }))
-    }
   });
 });
 
 publicRouter.get("/cards/tiers", (_req, res) => {
   res.json({
-    creation: CREATION_TIERS.map((tier) => ({
-      loadAmount: tier.loadAmount,
-      totalCost: tier.totalCost,
-      endpoint: tier.endpoint,
-      breakdown: {
-        cardLoad: tier.loadAmount,
-        issuanceFee: tier.issuanceFee,
-        topUpFee: tier.topUpFee,
-        ourFee: tier.serviceFee,
-        buffer: 0
-      }
-    })),
-    funding: FUNDING_TIERS.map((tier) => ({
-      fundAmount: tier.fundAmount,
-      totalCost: tier.totalCost,
-      endpoint: tier.endpoint,
-      breakdown: {
-        fundAmount: tier.fundAmount,
-        topUpFee: tier.topUpFee,
-        ourFee: tier.serviceFee
-      }
-    }))
+    cardFee: CARD_FEE,
+    topUpPercent: TOPUP_RATE * 100,
+    minAmount: MIN_AMOUNT,
+    maxAmount: MAX_AMOUNT,
+    description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%. Any amount $${MIN_AMOUNT}–$${MAX_AMOUNT}.`,
   });
 });
 
@@ -78,7 +51,6 @@ publicRouter.get("/supported", async (_req, res) => {
       }
     });
   } catch (error) {
-    // Even if facilitator is down, return local config
     res.json({
       facilitator: null,
       facilitatorError: error instanceof Error ? error.message : "unavailable",
@@ -112,7 +84,6 @@ publicRouter.post("/telemetry/install", async (req, res) => {
       return;
     }
 
-    // Fire-and-forget write
     const { getPool } = await import("../db/db");
     try {
       const pool = getPool();
@@ -120,13 +91,11 @@ publicRouter.post("/telemetry/install", async (req, res) => {
         `INSERT INTO install_events (client_type, version, os) VALUES ($1, $2, $3)`,
         [String(client).slice(0, 50), String(version ?? "").slice(0, 20), String(os ?? "").slice(0, 20)]
       ).catch(() => {});
-    } catch {
-      // inmemory mode — skip
-    }
+    } catch { /* inmemory mode */ }
 
     res.json({ ok: true });
   } catch {
-    res.json({ ok: true }); // always return 200
+    res.json({ ok: true });
   }
 });
 
@@ -136,7 +105,6 @@ publicRouter.post("/telemetry/visit", async (req, res) => {
     const ua = req.header("user-agent") ?? "";
     const agentDetected = isAgentUA(ua);
 
-    // Fire-and-forget write
     const { getPool } = await import("../db/db");
     try {
       const pool = getPool();
@@ -149,9 +117,7 @@ publicRouter.post("/telemetry/visit", async (req, res) => {
           agentDetected
         ]
       ).catch(() => {});
-    } catch {
-      // inmemory mode — skip
-    }
+    } catch { /* inmemory mode */ }
 
     res.json({ ok: true, isAgent: agentDetected });
   } catch {

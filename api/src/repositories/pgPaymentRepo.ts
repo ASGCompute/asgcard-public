@@ -1,6 +1,5 @@
 import { query } from "../db/db";
 import type { PaymentRecord, PaymentRepository, PaymentStatus } from "./types";
-import type { TierAmount } from "../types/domain";
 
 /**
  * Postgres-backed payment repository.
@@ -114,7 +113,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
             txHash: row.tx_hash,
             payer: row.payer,
             amount: row.amount,
-            tierAmount: row.tier_amount as TierAmount,
+            tierAmount: row.tier_amount,
             status: row.status as PaymentStatus,
             settleId: row.settle_id ?? undefined,
             cardId: row.card_id ?? undefined,

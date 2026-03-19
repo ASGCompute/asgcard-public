@@ -1,4 +1,4 @@
-import type { StoredCard, TierAmount, CardDetails } from "../types/domain";
+import type { StoredCard, CardDetails } from "../types/domain";
 
 // ── Card Repository ────────────────────────────────────────
 
@@ -8,7 +8,7 @@ export interface CreateCardInput {
     email: string;
     phone?: string;
     initialAmountUsd: number;
-    tierAmount: TierAmount;
+    tierAmount: number;
     txHash: string;
     details: CardDetails;
     fourPaymentsId?: string;
@@ -43,7 +43,7 @@ export interface PaymentRecord {
     txHash: string;
     payer: string;
     amount: string;
-    tierAmount: TierAmount;
+    tierAmount: number;
     status: PaymentStatus;
     settleId?: string;
     cardId?: string;

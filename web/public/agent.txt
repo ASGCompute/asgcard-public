@@ -27,19 +27,19 @@ install_cursor: npx @asgcard/cli install --client cursor
 # MCP Tools (9 total)
 mcp_tools:
   - get_wallet_status: Check wallet address, USDC balance, and readiness (use FIRST)
-  - create_card: Create virtual MasterCard ($10-$500, pays USDC via x402)
+  - create_card: Create virtual MasterCard ($5–$5,000, pays USDC via x402)
   - fund_card: Top up existing card
   - list_cards: List all wallet cards
   - get_card: Get card summary
   - get_card_details: Get PAN, CVV, expiry (rate-limited 5/hr)
   - freeze_card: Temporarily freeze card
   - unfreeze_card: Re-enable frozen card
-  - get_pricing: View tier pricing
+  - get_pricing: View pricing (card $10, top-up 3.5%)
 
 # Recommended Agent Flow
 agent_flow:
   1. get_wallet_status → verify wallet is funded
-  2. get_pricing → see available tiers
+  2. get_pricing → see pricing
   3. create_card → issue virtual card
   4. list_cards / get_card → manage cards
   5. fund_card → top up when needed
@@ -52,8 +52,8 @@ endpoints:
     - GET /cards/tiers
     - GET /supported
   paid_x402:
-    - POST /cards/create/tier/:amount (10, 25, 50, 100, 200, 500)
-    - POST /cards/fund/tier/:amount (10, 25, 50, 100, 200, 500)
+    - POST /cards/create/tier/:amount ($5–$5,000)
+    - POST /cards/fund/tier/:amount ($5–$5,000)
   wallet_signed:
     - GET /cards
     - GET /cards/:cardId
@@ -61,23 +61,13 @@ endpoints:
     - POST /cards/:cardId/freeze
     - POST /cards/:cardId/unfreeze
 
-# Card Creation Pricing (from api/src/config/pricing.ts)
-creation_tiers:
-  - $10 card → $17.20 USDC via /cards/create/tier/10
-  - $25 card → $32.50 USDC via /cards/create/tier/25
-  - $50 card → $58.00 USDC via /cards/create/tier/50
-  - $100 card → $110.00 USDC via /cards/create/tier/100
-  - $200 card → $214.00 USDC via /cards/create/tier/200
-  - $500 card → $522.00 USDC via /cards/create/tier/500
-
-# Card Funding Pricing
-funding_tiers:
-  - $10 fund → $14.20 USDC via /cards/fund/tier/10
-  - $25 fund → $29.50 USDC via /cards/fund/tier/25
-  - $50 fund → $55.00 USDC via /cards/fund/tier/50
-  - $100 fund → $107.00 USDC via /cards/fund/tier/100
-  - $200 fund → $211.00 USDC via /cards/fund/tier/200
-  - $500 fund → $519.00 USDC via /cards/fund/tier/500
+# Pricing
+pricing:
+  card_issuance: $10 (one-time)
+  top_up_fee: 3.5%
+  amount_range: $5–$5,000
+  example_create: Load $100 → $113.50 USDC total
+  example_fund: Top up $200 → $207 USDC
 
 # Payment
 payment_protocol: x402

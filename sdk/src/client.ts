@@ -13,7 +13,7 @@ import type {
   FundCardParams,
   FundResult,
   HealthResponse,
-  TierResponse,
+  PricingResponse,
   WalletAdapter,
   TransactionListResponse,
   CardBalanceResponse,
@@ -62,7 +62,8 @@ export class ASGCardClient {
   }
 
   /**
-   * Create a virtual card for a supported tier amount.
+   * Create a virtual card.
+   * Card issuance $10 + 3.5% top-up fee.
    * Handles 402 → x402 payment → 201 automatically.
    */
   async createCard(params: CreateCardParams): Promise<CardResult> {
@@ -79,7 +80,7 @@ export class ASGCardClient {
   }
 
   /**
-   * Fund an existing card by tier amount.
+   * Fund an existing card. Top-up fee 3.5%.
    * Handles 402 → x402 payment → 200 automatically.
    */
   async fundCard(params: FundCardParams): Promise<FundResult> {
@@ -89,9 +90,14 @@ export class ASGCardClient {
     });
   }
 
-  /** Get available create/fund tier amounts and pricing */
-  async getTiers(): Promise<TierResponse> {
-    return this.request<TierResponse>("/cards/tiers", { method: "GET" });
+  /** Get pricing info */
+  async getPricing(): Promise<PricingResponse> {
+    return this.request<PricingResponse>("/cards/tiers", { method: "GET" });
+  }
+
+  /** @deprecated Use getPricing() */
+  async getTiers(): Promise<PricingResponse> {
+    return this.getPricing();
   }
 
   /** Health check */

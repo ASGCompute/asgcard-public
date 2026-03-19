@@ -217,7 +217,7 @@ Create a virtual card. Pays USDC automatically.
 
 | Field | Type | Values |
 |-------|------|--------|
-| `amount` | `number` | `10 \| 25 \| 50 \| 100 \| 200 \| 500` |
+| `amount` | `number` | `5`–`5000` (any whole dollar amount) |
 | `nameOnCard` | `string` | Name embossed on card |
 | `email` | `string` | Delivery email |
 
@@ -243,7 +243,7 @@ Fund an existing card.
 
 | Field | Type | Values |
 |-------|------|--------|
-| `amount` | `number` | `10 \| 25 \| 50 \| 100 \| 200 \| 500` |
+| `amount` | `number` | `5`–`5000` (any whole dollar amount) |
 | `cardId` | `string` | UUID of existing card |
 
 **Code snippet:**
@@ -257,9 +257,9 @@ const result = await client.fundCard({
 
 ---
 
-##### `client.getTiers(): Promise<TierResponse>`
+##### `client.getPricing(): Promise<PricingResponse>`
 
-Get pricing tiers and fee breakdown (no payment required).
+Get current pricing info (no payment required). Returns $10 card fee + 3.5% top-up fee.
 
 ##### `client.health(): Promise<HealthResponse>`
 
@@ -390,11 +390,11 @@ curl -X POST https://api.asgcard.dev/cards/create/tier/10 \
     "scheme": "exact",
     "network": "solana:mainnet",
     "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "maxAmountRequired": "17200000",
+    "maxAmountRequired": "113500000",
     "payTo": "<TREASURY_PUBKEY>",
     "maxTimeoutSeconds": 300,
-    "resource": "/cards/create/tier/10",
-    "description": "Create ASG Card with $10 load"
+    "resource": "/cards/create/tier/100",
+    "description": "Create ASG Card with $100 load"
   }]
 }
 ```
@@ -428,7 +428,7 @@ curl -X POST https://api.asgcard.dev/cards/create/tier/10 \
     "authorization": {
       "from": "<AGENT_PUBKEY>",
       "to": "<TREASURY_PUBKEY>",
-      "value": "17200000"
+      "value": "113500000"
     },
     "txHash": "<SOLANA_TX_SIGNATURE>"
   }
@@ -490,50 +490,15 @@ const response = await fetch('https://api.asgcard.dev/cards', {
 
 ### 4.5 Pricing (`#pricing`)
 
-> **[ПРАВИЛО]** UI и Docs не хардкодят цены. Источник — `GET /pricing`. Таблицы ниже являются snapshot из `api/src/config/pricing.ts` на момент написания ТЗ и должны отображаться динамически.
+> **[ПРАВИЛО]** UI и Docs не хардкодят цены. Источник — `GET /pricing`.
 
-#### 4.5.1 Card Creation (`#card-creation`)
+**Единая модель:**
+- **$10** — выпуск карты (one-time card fee)
+- **3.5%** — комиссия на каждое пополнение
+- Диапазон: $5–$5,000
 
-Текст: "Creating a new virtual card includes the card load amount plus fees."
-
-**Таблица (СТРОГО из `api/src/config/pricing.ts` lines 5-53):**
-
-| Load | Issuance Fee | TopUp Fee | ASG Fee | **Total** |
-|------|-------------|-----------|---------|-----------|
-| $10 | $3.00 | $2.20 | $2.00 | **$17.20** |
-| $25 | $3.00 | $2.50 | $2.00 | **$32.50** |
-| $50 | $3.00 | $3.00 | $2.00 | **$58.00** |
-| $100 | $3.00 | $4.00 | $3.00 | **$110.00** |
-| $200 | $3.00 | $6.00 | $5.00 | **$214.00** |
-| $500 | $3.00 | $12.00 | $7.00 | **$522.00** |
-
-> **[ФАКТ]** Все значения из `CREATION_TIERS` в `pricing.ts`.
-
----
-
-#### 4.5.2 Card Funding (`#card-funding`)
-
-Текст: "Adding funds to an existing card — no issuance fee."
-
-**Таблица (СТРОГО из `api/src/config/pricing.ts` lines 56-98):**
-
-| Fund Amount | TopUp Fee | ASG Fee | **Total** |
-|-------------|-----------|---------|-----------|
-| $10 | $2.20 | $2.00 | **$14.20** |
-| $25 | $2.50 | $2.00 | **$29.50** |
-| $50 | $3.00 | $2.00 | **$55.00** |
-| $100 | $4.00 | $3.00 | **$107.00** |
-| $200 | $6.00 | $5.00 | **$211.00** |
-| $500 | $12.00 | $7.00 | **$519.00** |
-
-> **[ФАКТ]** Все значения из `FUNDING_TIERS` в `pricing.ts`.
-
-> **⚠️ [ВАЖНО]** Значения в `CTO_TZ.md` §9 и `PLAN.md` §5 отличаются от кода. Код = source of truth.  
-> Расхождения:  
->
-> - PLAN.md указывает одинаковый topUpFee ($2.20) и serviceFee ($2.00) для всех тиров → в коде они растут: $50→$3.00/$2.00, $100→$4.00/$3.00 и т.д.  
-> - CTO_TZ.md fund tiers $50→55.00, $100→107.00, $200→211.00, $500→519.00 → совпадают с кодом ✅  
-> - CTO_TZ.md create tiers $25→32.50, $50→58.00, $100→110.00, $200→214.00, $500→522.00 → совпадают с кодом ✅
+> Пример: Создание карты с $100 → $100 + $10 + $3.50 = **$113.50 USDC**
+> Пополнение $200 → $200 + $7.00 = **$207 USDC**
 
 ---
 
@@ -554,7 +519,7 @@ All non-2xx responses return:
 
 | HTTP | Где возникает | Пример |
 |------|---------------|--------|
-| `400` | unsupported tier, invalid body | `{"error":"Unsupported tier amount"}` |
+| `400` | invalid amount or body | `{"error":"Invalid amount"}` |
 | `401` | invalid wallet auth или X-Payment proof | `{"error":"Invalid wallet signature"}` |
 | `402` | x402 challenge при отсутствии `X-Payment` | challenge JSON |
 | `404` | card not found | `{"error":"Card not found"}` |
@@ -647,72 +612,29 @@ Health check. No authentication required.
 
 #### `GET /pricing`
 
-Returns full pricing breakdown for all creation and funding tiers.
+Returns current pricing: $10 card issuance fee + 3.5% top-up fee. Accepted range: $5–$5,000.
 
 **Response 200:**
 
 ```json
 {
-  "creation": {
-    "tiers": [{
-      "loadAmount": 10,
-      "totalCost": 17.2,
-      "issuanceFee": 3.0,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/create/tier/10"
-    }]
-  },
-  "funding": {
-    "tiers": [{
-      "fundAmount": 10,
-      "totalCost": 14.2,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/fund/tier/10"
-    }]
-  }
+  "cardFee": 10,
+  "topUpRate": 0.035,
+  "minAmount": 5,
+  "maxAmount": 5000,
+  "currency": "USDC"
 }
 ```
 
-> **[ФАКТ]** Из `public.ts` lines 15-37. Поле `ourFee` в JSON = `serviceFee` в коде (переименовано на выходе: `ourFee: tier.serviceFee`).
+> **[ФАКТ]** Source: `api/src/config/pricing.ts`. Flat fee model.
 
 ---
 
 #### `GET /cards/tiers`
 
-Returns available tiers with endpoints and detailed fee breakdowns.
+Alias for `GET /pricing`. Returns the same flat pricing info.
 
-**Response 200:**
-
-```json
-{
-  "creation": [{
-    "loadAmount": 10,
-    "totalCost": 17.2,
-    "endpoint": "/cards/create/tier/10",
-    "breakdown": {
-      "cardLoad": 10,
-      "issuanceFee": 3,
-      "topUpFee": 2.2,
-      "ourFee": 2,
-      "buffer": 0
-    }
-  }],
-  "funding": [{
-    "fundAmount": 10,
-    "totalCost": 14.2,
-    "endpoint": "/cards/fund/tier/10",
-    "breakdown": {
-      "fundAmount": 10,
-      "topUpFee": 2.2,
-      "ourFee": 2
-    }
-  }]
-}
-```
-
-> **[ФАКТ]** Из `public.ts` lines 39-64. `buffer` всегда = 0.
+> **[ФАКТ]** Both endpoints return identical data.
 
 ---
 
@@ -722,9 +644,9 @@ Returns available tiers with endpoints and detailed fee breakdowns.
 
 #### `POST /cards/create/tier/:amount`
 
-Create a new virtual card loaded with the specified tier amount.
+Create a new virtual card loaded with the specified amount ($5–$5,000).
 
-**Available tiers:** `10`, `25`, `50`, `100`, `200`, `500`
+**Pricing:** $10 card fee + 3.5% top-up on the amount.
 
 **Request body (из `paid.ts` lines 6-9, zod schema):**
 
@@ -741,12 +663,12 @@ Create a new virtual card loaded with the specified tier amount.
   "card": {
     "cardId": "550e8400-e29b-41d4-a716-446655440000",
     "nameOnCard": "AGENT ALPHA",
-    "balance": 10,
+    "balance": 100,
     "status": "active",
     "createdAt": "2026-02-11T14:00:00.000Z"
   },
   "payment": {
-    "amountCharged": 17.2,
+    "amountCharged": 113.5,
     "txHash": "<solana_signature>",
     "network": "solana"
   },
@@ -934,7 +856,7 @@ npm install @asgcard/sdk @solana/web3.js
 
 ### 6.4 Methods
 
-5 методов: `createCard`, `fundCard`, `getTiers`, `health`, `address` (getter).  
+5 методов: `createCard`, `fundCard`, `getPricing`, `health`, `address` (getter).  
 Все документированы в §4.3.4.
 
 ### 6.5 Errors
@@ -956,7 +878,7 @@ npm install @asgcard/sdk @solana/web3.js
 | `FundCardParams` | `fundCard()` | `amount` (literal union), `cardId` |
 | `CardResult` | `createCard()` return | `success`, `card`, `payment`, `details` |
 | `FundResult` | `fundCard()` return | `success`, `cardId`, `fundedAmount`, `newBalance`, `payment` |
-| `TierResponse` | `getTiers()` return | `creation: TierEntry[]`, `funding: TierEntry[]` |
+| `PricingResponse` | `getPricing()` return | `cardFee`, `topUpRate`, `minAmount`, `maxAmount` |
 | `HealthResponse` | `health()` return | `status`, `timestamp`, `version` |
 | `WalletAdapter` | Config | `publicKey`, `signTransaction()` |
 | `X402Challenge` | Internal | `x402Version`, `accepts: X402Accept[]` |
@@ -1007,7 +929,7 @@ npm install @asgcard/sdk @solana/web3.js
 
 ### 8.2 Таблицы
 
-См. §4.5.1 (Creation) и §4.5.2 (Funding).
+См. §4.5 (Pricing — единая модель: $10 card fee + 3.5% top-up).
 
 ### 8.3 Atomic USDC
 

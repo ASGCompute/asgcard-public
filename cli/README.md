@@ -44,7 +44,7 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 
 | Command | Description |
 |---------|-------------|
-| `asgcard pricing` | View pricing tiers (no auth required) |
+| `asgcard pricing` | View pricing (no auth required) |
 | `asgcard health` | API health check (no auth required) |
 | `asgcard whoami` | Show your wallet address |
 | `asgcard login [key]` | Save Stellar key (legacy, use `wallet import`) |
@@ -70,18 +70,7 @@ Key resolution priority (same as MCP server):
 
 Card creation and funding use the **x402 protocol** — payments happen on-chain in USDC on Stellar. The transaction is built and signed locally, then sent via the x402 facilitator.
 
-```bash
-# View available tiers first
-asgcard pricing
-
-# Create a $25 card
-asgcard card:create -a 25 -n "My AI Agent" -e agent@example.com
-
-# Fund an existing card
-asgcard card:fund card_abc123 -a 50
-```
-
-Available amounts: $10, $25, $50, $100, $200, $500.
+Card issuance: **$10**. Top-up fee: **3.5%**. Any amount from $5 to $5,000.
 
 ## Configuration
 

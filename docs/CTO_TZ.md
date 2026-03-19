@@ -44,7 +44,7 @@ Wallet-signed:
 Обязательные surface-методы:
 - `createCard(params)`
 - `fundCard(params)`
-- `getTiers()`
+- `getPricing()`
 - `health()`
 - `address`
 
@@ -128,11 +128,11 @@ Wallet-signed:
       "scheme": "exact",
       "network": "solana:mainnet",
       "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      "maxAmountRequired": "17200000",
+      "maxAmountRequired": "113500000",
       "payTo": "<TREASURY_PUBKEY>",
       "maxTimeoutSeconds": 300,
-      "resource": "/cards/create/tier/10",
-      "description": "Create ASG Card with $10 load"
+      "resource": "/cards/create/tier/100",
+      "description": "Create ASG Card with $100 load"
     }
   ]
 }
@@ -155,7 +155,7 @@ Wallet-signed:
     "authorization": {
       "from": "<AGENT_PUBKEY>",
       "to": "<TREASURY_PUBKEY>",
-      "value": "17200000"
+      "value": "113500000"
     },
     "txHash": "<SOLANA_TX_SIGNATURE>"
   }
@@ -240,23 +240,13 @@ Headers:
 
 ## 9. Цены и тарифы (v1 baseline)
 
-Держать синхронно с `GET /pricing` и docs:
+Единая модель:
+- **$10** — выпуск карты (one-time card fee)
+- **3.5%** — комиссия на каждое пополнение
+- Диапазон: $5–$5,000
 
-Create tiers:
-- 10 -> 17.20
-- 25 -> 32.50
-- 50 -> 58.00
-- 100 -> 110.00
-- 200 -> 214.00
-- 500 -> 522.00
-
-Fund tiers:
-- 10 -> 14.20
-- 25 -> 29.50
-- 50 -> 55.00
-- 100 -> 107.00
-- 200 -> 211.00
-- 500 -> 519.00
+> Пример: Создание карты с $100 → $100 + $10 + $3.50 = **$113.50 USDC**
+> Пополнение $200 → $200 + $7.00 = **$207 USDC**
 
 ## 10. Нефункциональные требования
 

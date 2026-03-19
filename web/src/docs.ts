@@ -1,8 +1,10 @@
 import './docs.css';
 import {
   fetchLivePricingData,
-  type CreationTierPrice as CreationTier,
-  type FundingTierPrice as FundingTier,
+  calcCreationCost,
+  calcFundingCost,
+  DEFAULT_PRICING,
+  type DynamicPricingData,
 } from './lib/pricing';
 
 // ============================================================
@@ -109,17 +111,13 @@ const NAV: NavItem[] = [
 // Pricing data — source of truth synced with api/src/config/pricing.ts
 // ============================================================
 // Live pricing state — populated from GET /pricing on load.
-let creationTiers: CreationTier[] = [];
-let fundingTiers: FundingTier[] = [];
-let pricingLoaded = false;
+let pricingData: DynamicPricingData = DEFAULT_PRICING;
 
 async function fetchLivePricing(): Promise<void> {
   const livePricingData = await fetchLivePricingData();
   if (!livePricingData) return;
 
-  creationTiers = livePricingData.creationTiers;
-  fundingTiers = livePricingData.fundingTiers;
-  pricingLoaded = true;
+  pricingData = livePricingData.pricing;
 }
 
 // ============================================================
@@ -291,7 +289,7 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
             <tr><th>Field</th><th>Type</th><th>Values</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values"><code>10 | 25 | 50 | 100 | 200 | 500</code></td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values">Any amount $5–$5,000</td></tr>
             <tr><td data-label="Field"><code>nameOnCard</code></td><td data-label="Type"><code>string</code></td><td data-label="Values">Name embossed on card</td></tr>
             <tr><td data-label="Field"><code>email</code></td><td data-label="Type"><code>string</code></td><td data-label="Values">Delivery email</td></tr>
           </tbody>
@@ -311,7 +309,7 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
             <tr><th>Field</th><th>Type</th><th>Values</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values"><code>10 | 25 | 50 | 100 | 200 | 500</code></td></tr>
+            <tr><td data-label="Field"><code>amount</code></td><td data-label="Type"><code>number</code></td><td data-label="Values">Any amount $5–$5,000</td></tr>
             <tr><td data-label="Field"><code>cardId</code></td><td data-label="Type"><code>string</code></td><td data-label="Values">UUID of existing card</td></tr>
           </tbody>
         </table>
@@ -321,8 +319,8 @@ console.log(card.details); // { cardNumber, cvv, expiry, \u2026 }`, 'typescript'
   cardId: 'card-uuid',
 });`, 'typescript')}
 
-      <h4 class="docs-method-sig"><code>client.getTiers(): Promise&lt;TierResponse&gt;</code></h4>
-      <p>Get pricing tiers and fee breakdown (no payment required).</p>
+      <h4 class="docs-method-sig"><code>client.getPricing(): Promise&lt;PricingResponse&gt;</code></h4>
+      <p>Get pricing info: card $10, top-up 3.5% (no payment required).</p>
 
       <h4 class="docs-method-sig"><code>client.health(): Promise&lt;HealthResponse&gt;</code></h4>
       <p>Check if the ASG Card API is reachable.</p>
@@ -525,14 +523,14 @@ function renderMCPServer(): string {
           </thead>
           <tbody>
             <tr><td data-label="Tool"><code>get_wallet_status</code></td><td data-label="Description"><strong>Use FIRST</strong> — wallet address, USDC balance, readiness</td><td data-label="Auth">None</td></tr>
-            <tr><td data-label="Tool"><code>create_card</code></td><td data-label="Description">Create a virtual MasterCard with a specified tier (10–500 USD)</td><td data-label="Auth">x402</td></tr>
+            <tr><td data-label="Tool"><code>create_card</code></td><td data-label="Description">Create a virtual MasterCard ($5–$5,000)</td><td data-label="Auth">x402</td></tr>
             <tr><td data-label="Tool"><code>fund_card</code></td><td data-label="Description">Add funds to an existing card</td><td data-label="Auth">x402</td></tr>
             <tr><td data-label="Tool"><code>list_cards</code></td><td data-label="Description">List all cards owned by the wallet</td><td data-label="Auth">Wallet</td></tr>
             <tr><td data-label="Tool"><code>get_card</code></td><td data-label="Description">Get card summary (balance, status)</td><td data-label="Auth">Wallet</td></tr>
             <tr><td data-label="Tool"><code>get_card_details</code></td><td data-label="Description">Retrieve PAN, CVV, expiry</td><td data-label="Auth">Wallet + Nonce</td></tr>
             <tr><td data-label="Tool"><code>freeze_card</code></td><td data-label="Description">Temporarily block all transactions</td><td data-label="Auth">Wallet</td></tr>
             <tr><td data-label="Tool"><code>unfreeze_card</code></td><td data-label="Description">Re-enable a frozen card</td><td data-label="Auth">Wallet</td></tr>
-            <tr><td data-label="Tool"><code>get_pricing</code></td><td data-label="Description">View pricing tiers and fees</td><td data-label="Auth">None</td></tr>
+            <tr><td data-label="Tool"><code>get_pricing</code></td><td data-label="Description">View pricing (card $10, top-up 3.5%)</td><td data-label="Auth">None</td></tr>
           </tbody>
         </table>
       </div>
@@ -612,7 +610,7 @@ asgcard card:create -a 10 -n "AGENT ALPHA" -e agent@example.com`, 'bash')}
             <tr><td data-label="Command"><code>asgcard card:fund &lt;id&gt;</code></td><td data-label="Description">Top up an existing card</td></tr>
             <tr><td data-label="Command"><code>asgcard card:freeze &lt;id&gt;</code></td><td data-label="Description">Freeze a card</td></tr>
             <tr><td data-label="Command"><code>asgcard card:unfreeze &lt;id&gt;</code></td><td data-label="Description">Unfreeze a card</td></tr>
-            <tr><td data-label="Command"><code>asgcard pricing</code></td><td data-label="Description">View pricing and fee tiers</td></tr>
+            <tr><td data-label="Command"><code>asgcard pricing</code></td><td data-label="Description">View pricing (card $10, top-up 3.5%)</td></tr>
             <tr><td data-label="Command"><code>asgcard health</code></td><td data-label="Description">Check API health status</td></tr>
           </tbody>
         </table>
@@ -641,15 +639,15 @@ function renderAuthentication(): string {
       ${codeBlock(`{
   "x402Version": 2,
   "resource": {
-    "url": "https://api.asgcard.dev/cards/create/tier/10",
-    "description": "Create ASG Card with $10 load",
+    "url": "https://api.asgcard.dev/cards/create/tier/100",
+    "description": "Create ASG Card with $100 load",
     "mimeType": "application/json"
   },
   "accepts": [{
     "scheme": "exact",
     "network": "stellar:pubnet",
     "asset": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
-    "amount": "172000000",
+    "amount": "1135000000",
     "payTo": "GAHYHA55RTD2J4LAVJILTNHWMF2H2YVK5QXLQT3CHCJSVET3VRWPOCW6",
     "maxTimeoutSeconds": 300,
     "extra": { "areFeesSponsored": true }
@@ -733,72 +731,41 @@ const response = await fetch('https://api.asgcard.dev/cards', {
   `;
 }
 
-function renderPricingRows(): { creationRows: string; fundingRows: string } {
-  const loadingRow = (cols: number) =>
-    `<tr><td colspan="${cols}" style="text-align:center;color:rgba(255,255,255,0.3);padding:1.5rem;font-size:13px;">Loading pricing from <code>GET /pricing</code>\u2026</td></tr>`;
-
-  const creationRows = creationTiers.length
-    ? creationTiers.map(t =>
-      `<tr>
-        <td data-label="Load">${fmtUsd(t.loadAmount)}</td>
-        <td data-label="Issuance">${fmtUsd(t.issuanceFee)}</td>
-        <td data-label="Top-Up">${fmtUsd(t.topUpFee)}</td>
-        <td data-label="Service">${fmtUsd(t.serviceFee)}</td>
-        <td data-label="Total"><strong>${fmtUsd(t.totalCost)}</strong></td>
-        <td data-label="Endpoint"><code>${t.endpoint}</code></td>
-      </tr>`
-    ).join('')
-    : loadingRow(6);
-
-  const fundingRows = fundingTiers.length
-    ? fundingTiers.map(t =>
-      `<tr>
-        <td data-label="Fund">${fmtUsd(t.fundAmount)}</td>
-        <td data-label="Top-Up">${fmtUsd(t.topUpFee)}</td>
-        <td data-label="Service">${fmtUsd(t.serviceFee)}</td>
-        <td data-label="Total"><strong>${fmtUsd(t.totalCost)}</strong></td>
-        <td data-label="Endpoint"><code>${t.endpoint}</code></td>
-      </tr>`
-    ).join('')
-    : loadingRow(5);
-
-  return { creationRows, fundingRows };
-}
-
 function renderPricing(): string {
-  const { creationRows, fundingRows } = renderPricingRows();
+  const p = pricingData;
+  const exampleAmount = 100;
+  const exampleTotal = calcCreationCost(exampleAmount, p);
+  const topUpExample = 200;
+  const topUpTotal = calcFundingCost(topUpExample, p);
 
   return `
     <section id="pricing" aria-label="Pricing">
       <h2>Pricing</h2>
+
       <div class="docs-callout docs-callout-tip" id="pricing-source-note">
-        Pricing is served by <code>GET /pricing</code> and reflected in the tables below.
+        <strong>Simple, transparent, no hidden fees.</strong>
       </div>
-      <p>All amounts are in USD. 1 USDC = 10,000,000 atomic units (Stellar uses 7 decimal places).</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:2rem 0;">
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#14F195;margin-bottom:0.25rem;">${fmtUsd(p.cardFee)}</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);">one-time card issuance</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#14F195;margin-bottom:0.25rem;">${p.topUpPercent}%</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);">on every top-up</div>
+        </div>
+      </div>
+
+      <p style="color:rgba(255,255,255,0.6);font-size:14px;">That's it. Load any amount from ${fmtUsd(p.minAmount)} to ${fmtUsd(p.maxAmount)}.</p>
 
       <h3 id="card-creation">Card Creation</h3>
-      <p>Creating a new virtual card includes the card load amount plus fees.</p>
-      <div class="docs-table-wrap">
-        <table class="docs-table" id="creation-pricing-table">
-          <thead>
-            <tr><th>Load</th><th>Issuance Fee</th><th>TopUp Fee</th><th>ASG Fee</th><th>Total</th><th>Endpoint</th></tr>
-          </thead>
-          <tbody>${creationRows}</tbody>
-        </table>
-      </div>
+      <p>Load ${fmtUsd(exampleAmount)} onto a new card — you pay <strong>${fmtUsd(exampleTotal)} USDC</strong> total.</p>
 
       <hr class="docs-divider" />
 
       <h3 id="card-funding">Card Funding</h3>
-      <p>Adding funds to an existing card — no issuance fee.</p>
-      <div class="docs-table-wrap">
-        <table class="docs-table" id="funding-pricing-table">
-          <thead>
-            <tr><th>Fund Amount</th><th>TopUp Fee</th><th>ASG Fee</th><th>Total</th><th>Endpoint</th></tr>
-          </thead>
-          <tbody>${fundingRows}</tbody>
-        </table>
-      </div>
+      <p>Top up ${fmtUsd(topUpExample)} later — just <strong>${fmtUsd(topUpTotal)} USDC</strong>. No card fee on top-ups.</p>
     </section>
   `;
 }
@@ -830,28 +797,14 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/pricing</code>
         </div>
-        <p>Returns full pricing breakdown for all creation and funding tiers.</p>
+        <p>Returns current pricing: $10 card issuance, 3.5% top-up fee.</p>
         <strong>Response 200:</strong>
         ${codeBlock(`{
-  "creation": {
-    "tiers": [{
-      "loadAmount": 10,
-      "totalCost": 17.2,
-      "issuanceFee": 3.0,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/create/tier/10"
-    }]
-  },
-  "funding": {
-    "tiers": [{
-      "fundAmount": 10,
-      "totalCost": 14.2,
-      "topUpFee": 2.2,
-      "ourFee": 2.0,
-      "endpoint": "/cards/fund/tier/10"
-    }]
-  }
+  "cardFee": 10,
+  "topUpPercent": 3.5,
+  "minAmount": 5,
+  "maxAmount": 5000,
+  "description": "$10 card issuance + 3.5% top-up fee"
 }`, 'json')}
       </div>
 
@@ -860,31 +813,14 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/tiers</code>
         </div>
-        <p>Returns available tiers with endpoints and detailed fee breakdowns.</p>
+        <p>Alias for <code>/pricing</code>. Returns the same pricing info.</p>
         <strong>Response 200:</strong>
         ${codeBlock(`{
-  "creation": [{
-    "loadAmount": 10,
-    "totalCost": 17.2,
-    "endpoint": "/cards/create/tier/10",
-    "breakdown": {
-      "cardLoad": 10,
-      "issuanceFee": 3,
-      "topUpFee": 2.2,
-      "ourFee": 2,
-      "buffer": 0
-    }
-  }],
-  "funding": [{
-    "fundAmount": 10,
-    "totalCost": 14.2,
-    "endpoint": "/cards/fund/tier/10",
-    "breakdown": {
-      "fundAmount": 10,
-      "topUpFee": 2.2,
-      "ourFee": 2
-    }
-  }]
+  "cardFee": 10,
+  "topUpPercent": 3.5,
+  "minAmount": 5,
+  "maxAmount": 5000,
+  "description": "$10 card issuance + 3.5% top-up fee"
 }`, 'json')}
       </div>
 
@@ -898,8 +834,8 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-post">POST</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/create/tier/:amount</code>
         </div>
-        <p>Create a new virtual card loaded with the specified tier amount.</p>
-        <p><strong>Available tiers:</strong> <code>10</code>, <code>25</code>, <code>50</code>, <code>100</code>, <code>200</code>, <code>500</code></p>
+        <p>Create a new virtual card loaded with the specified amount ($5–$5,000). Cost = $10 card fee + 3.5% of amount.</p>
+        <p><strong>Amount range:</strong> <code>$5</code> – <code>$5,000</code></p>
         <strong>Request body:</strong>
         <div class="docs-table-wrap">
           <table class="docs-table">
@@ -921,7 +857,7 @@ function renderEndpoints(): string {
     "createdAt": "2026-02-11T14:00:00.000Z"
   },
   "payment": {
-    "amountCharged": 17.2,
+    "amountCharged": 20.35,
     "txHash": "<stellar_tx_hash>",
     "network": "stellar"
   },
@@ -1529,26 +1465,5 @@ if (burger && sidebar && overlayEl) {
   });
 }
 
-// ── Fetch live pricing and update tables ──
-fetchLivePricing().then(() => {
-  const creationTbody = document.querySelector('#creation-pricing-table tbody');
-  const fundingTbody = document.querySelector('#funding-pricing-table tbody');
-  const pricingSourceNote = document.getElementById('pricing-source-note');
-
-  if (!pricingLoaded) {
-    const unavailableRow = (cols: number) =>
-      `<tr><td colspan="${cols}" style="text-align:center;color:rgba(255,255,255,0.38);padding:1.5rem;font-size:13px;">Live pricing is temporarily unavailable. Please refresh in a few seconds.</td></tr>`;
-    if (creationTbody) creationTbody.innerHTML = unavailableRow(6);
-    if (fundingTbody) fundingTbody.innerHTML = unavailableRow(5);
-    if (pricingSourceNote) {
-      pricingSourceNote.classList.remove('docs-callout-tip');
-      pricingSourceNote.classList.add('docs-callout-info');
-      pricingSourceNote.textContent = 'Pricing is sourced from GET /pricing. If tables are empty, DNS or API propagation may still be in progress.';
-    }
-    return;
-  }
-
-  const { creationRows, fundingRows } = renderPricingRows();
-  if (creationTbody) creationTbody.innerHTML = creationRows;
-  if (fundingTbody) fundingTbody.innerHTML = fundingRows;
-});
+// ── Fetch live pricing (updates pricingData for any future re-renders) ──
+fetchLivePricing();

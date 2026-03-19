@@ -5,7 +5,7 @@ import { query } from "../../db/db";
 import { appLogger } from "../../utils/logger";
 import { AuditService } from "../authz/auditService";
 import { cardService } from "../../services/cardService";
-import { FUNDING_TIERS } from "../../config/pricing";
+import { CARD_FEE, TOPUP_RATE, MIN_AMOUNT, MAX_AMOUNT } from "../../config/pricing";
 import { CryptoBotClient } from "../payments/cryptoBot";
 
 export const miniappRouter = Router();
@@ -278,7 +278,13 @@ miniappRouter.post("/card-status", async (req, res) => {
 // ── GET /fund-tiers ────────────────────────────────────────
 
 miniappRouter.get("/fund-tiers", async (_req, res) => {
-    res.json({ tiers: FUNDING_TIERS });
+    res.json({
+        model: "dynamic",
+        cardFee: CARD_FEE,
+        topUpPercent: TOPUP_RATE * 100,
+        minAmount: MIN_AMOUNT,
+        maxAmount: MAX_AMOUNT,
+    });
 });
 
 // ── GET /payment-status/:intentId ─────────────────────────

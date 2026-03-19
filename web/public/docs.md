@@ -32,7 +32,7 @@ asgcard install --client cursor     # Cursor
 ### 2. Fund your wallet
 
 Send USDC on Stellar to the public key shown by `onboard`.
-Minimum: $17.20 USDC (for $10 card tier).
+Minimum: ~$15.53 USDC (for $5 card + $10 issuance + 3.5%).
 
 ### 3. Check wallet status
 
@@ -65,7 +65,7 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `card:fund <id>` | Yes | Fund existing card (x402 payment) |
 | `card:freeze <id>` | Yes | Freeze a card |
 | `card:unfreeze <id>` | Yes | Unfreeze a card |
-| `pricing` | No | View pricing tiers |
+| `pricing` | No | View pricing (card $10, top-up 3.5%) |
 | `health` | No | API health check |
 
 ## MCP Server Tools (9)
@@ -82,12 +82,12 @@ The MCP server (`@asgcard/mcp-server`) reads your key from `~/.asgcard/wallet.js
 | `get_card_details` | Get PAN, CVV, expiry (rate-limited 5/hour) |
 | `freeze_card` | Temporarily freeze a card |
 | `unfreeze_card` | Re-enable frozen card |
-| `get_pricing` | View tier pricing |
+| `get_pricing` | View pricing (card $10, top-up 3.5%) |
 
 ### Recommended Agent Flow
 
 1. `get_wallet_status` → verify wallet is funded
-2. `get_pricing` → see available tiers and costs
+2. `get_pricing` → see pricing (card $10, top-up 3.5%)
 3. `create_card` → issue virtual card (USDC payment happens on-chain)
 4. `list_cards` / `get_card` / `get_card_details` → manage cards
 5. `fund_card` → top up when needed
@@ -121,39 +121,27 @@ Base URL: `https://api.asgcard.dev`
 | ------ | ---- | ---- | ----------- |
 | GET | `/health` | None | Health check |
 | GET | `/pricing` | None | Full pricing breakdown |
-| GET | `/cards/tiers` | None | Tier details with endpoints |
+| GET | `/cards/tiers` | None | Alias for `/pricing` |
 | GET | `/supported` | None | x402 capabilities |
-| POST | `/cards/create/tier/:amount` | x402 | Create card (10/25/50/100/200/500) |
-| POST | `/cards/fund/tier/:amount` | x402 | Fund card |
+| POST | `/cards/create/tier/:amount` | x402 | Create card ($5–$5,000) |
+| POST | `/cards/fund/tier/:amount` | x402 | Fund card ($5–$5,000) |
 | GET | `/cards` | Wallet sig | List cards |
 | GET | `/cards/:cardId` | Wallet sig | Get card |
 | GET | `/cards/:cardId/details` | Wallet sig | Get card details (PAN, CVV) |
 | POST | `/cards/:cardId/freeze` | Wallet sig | Freeze card |
 | POST | `/cards/:cardId/unfreeze` | Wallet sig | Unfreeze card |
 
-## Pricing (from api/src/config/pricing.ts)
+## Pricing
 
-### Card Creation
+**Simple, transparent, no hidden fees.**
 
-| Load | Total Cost (USDC) | Endpoint |
-| ---- | :---------------: | -------- |
-| $10 | $17.20 | `/cards/create/tier/10` |
-| $25 | $32.50 | `/cards/create/tier/25` |
-| $50 | $58.00 | `/cards/create/tier/50` |
-| $100 | $110.00 | `/cards/create/tier/100` |
-| $200 | $214.00 | `/cards/create/tier/200` |
-| $500 | $522.00 | `/cards/create/tier/500` |
+- **$10** one-time card issuance
+- **3.5%** on every top-up
 
-### Card Funding
+That's it. Load any amount from $5 to $5,000.
 
-| Fund | Total Cost (USDC) | Endpoint |
-| ---- | :---------------: | -------- |
-| $10 | $14.20 | `/cards/fund/tier/10` |
-| $25 | $29.50 | `/cards/fund/tier/25` |
-| $50 | $55.00 | `/cards/fund/tier/50` |
-| $100 | $107.00 | `/cards/fund/tier/100` |
-| $200 | $211.00 | `/cards/fund/tier/200` |
-| $500 | $519.00 | `/cards/fund/tier/500` |
+> Example: load $100 onto a new card → you pay **$113.50 USDC** total.
+> Top up $200 later → just **$207 USDC**.
 
 Live pricing: `GET https://api.asgcard.dev/pricing`
 
@@ -169,14 +157,14 @@ All CLI and MCP errors follow a remediation-first pattern:
 
 | Code | When |
 | ---- | ---- |
-| `400` | Unsupported tier, invalid body |
+| `400` | Invalid amount or body |
 | `401` | Invalid wallet auth or X-Payment proof |
 | `402` | x402 challenge (no X-Payment header) |
 | `403` | Details access revoked by card owner |
 | `404` | Card not found |
 | `409` | Nonce replay detected |
 | `429` | Rate limit exceeded |
-| `503` | Provider capacity unavailable — issuer cannot fund requested tier. Retry after the period specified in `retryAfter`. |
+| `503` | Provider capacity unavailable. Retry after the period specified in `retryAfter`. |
 
 ## Payment Protocol
 
@@ -190,7 +178,7 @@ All CLI and MCP errors follow a remediation-first pattern:
 
 - **Merchant refunds**: Standard MasterCard merchant refunds to the card are supported. Refunds initiated by merchants are processed through the card network and credited to the card balance.
 - **Failed create/fund**: If a card creation or funding operation fails after payment acceptance, the case is handled operationally by ASG support. There is no self-serve refund mechanism. Contact support@asgcompute.dev with your transaction hash.
-- **Provider capacity (503)**: If the issuer cannot fund a requested tier, the API returns `503` before accepting any payment. No payment is taken and no refund is needed.
+- **Provider capacity (503)**: If the issuer cannot process the requested amount, the API returns `503` before accepting any payment. No payment is taken and no refund is needed.
 
 ## Support
 

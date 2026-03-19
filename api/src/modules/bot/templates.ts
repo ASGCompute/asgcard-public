@@ -195,8 +195,8 @@ export function faqMessage(): string {
         `<b>How do I fund my card?</b>\n` +
         `Use <code>client.fundCard({ amount: 25, cardId: 'uuid' })</code> to top up an existing card.\n\n` +
         `<b>What are the fees?</b>\n` +
-        `Issuance: $3 (one-time). Top-up: $2.20–$12 based on amount. ASG service fee: $2–$7. ` +
-        `Full breakdown at <a href="https://asgcard.dev/docs#pricing">asgcard.dev/docs#pricing</a>.\n\n` +
+        `$10 card issuance (one-time) + 3.5% on every top-up. That's it! ` +
+        `Details at <a href="https://asgcard.dev/docs#pricing">asgcard.dev/docs#pricing</a>.\n\n` +
         `<b>How does x402 payment work?</b>\n` +
         `You send a request → get a 402 challenge → pay USDC on Stellar → retry with X-Payment proof. ` +
         `The SDK handles this automatically.\n\n` +

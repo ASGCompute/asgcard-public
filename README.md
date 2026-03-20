@@ -51,6 +51,7 @@ graph TB
 | `/mcp-server` | `@asgcard/mcp-server` MCP server (11 tools) |
 | `/web` | Marketing website (asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
+| `/stellar-mpp-payments-skill` | Community-facing Stellar MPP skill scaffold with installer, references, and examples |
 
 ## Quick Start — First Card
 
@@ -132,6 +133,8 @@ npx @asgcard/cli install --client codex    # or claude, cursor
 The CLI bundles a product-owned `asgcard` skill that is installed automatically during `asgcard onboard` to `~/.agents/skills/asgcard/`.
 
 For custom autonomous agents and raw LLM pipelines, the [x402-payments-skill](https://github.com/ASGCompute/x402-payments-skill) teaches agents how to pay via x402 natively on Stellar.
+
+For MPP-specific community work, see `stellar-mpp-payments-skill/` in this repo. It mirrors the same distribution model with a dedicated `SKILL.md`, installer, and seller/client examples for Stellar MPP.
 
 ## Pricing
 

@@ -1,0 +1,19 @@
+{
+  "name": "stellar-mpp-client",
+  "version": "1.0.0",
+  "description": "Example client that pays a Stellar MPP endpoint automatically",
+  "type": "module",
+  "scripts": {
+    "start": "tsx client.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.6.1",
+    "mppx": "^0.4.7",
+    "stellar-mpp-sdk": "github:stellar-experimental/stellar-mpp-sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.0"
+  }
+}

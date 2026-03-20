@@ -148,14 +148,21 @@ document.addEventListener('DOMContentLoaded', () => {
   app.innerHTML = `
     <div class="ap-container">
       <header class="ap-header">
-        <h1>🔒 Payment Approval</h1>
-        <p class="ap-subtitle">ASG Card — Stripe Machine Payments</p>
+        <div class="ap-brand">
+          <div class="ap-logo">A</div>
+          <span class="ap-brand-name">ASG Card</span>
+        </div>
+        <p class="ap-subtitle">Payment approval request</p>
+        <div class="ap-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Secured by Stripe
+        </div>
       </header>
 
       <div id="error-msg" class="ap-error" style="display:none"></div>
 
       <div id="step-loading" class="ap-card">
-        <p class="ap-loading">Loading payment request...</p>
+        <p class="ap-loading">Loading request details</p>
       </div>
 
       <div id="step-details" class="ap-card" style="display:none">
@@ -164,13 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="ap-row"><span class="ap-label">Amount</span><span id="info-amount" class="ap-value ap-amount"></span></div>
           <div class="ap-row"><span class="ap-label">Description</span><span id="info-desc" class="ap-value"></span></div>
           <div class="ap-row"><span class="ap-label">Requester</span><span id="info-email" class="ap-value"></span></div>
-          <div class="ap-row"><span class="ap-label">Card Name</span><span id="info-name" class="ap-value"></span></div>
+          <div class="ap-row"><span class="ap-label">Card name</span><span id="info-name" class="ap-value"></span></div>
           <div class="ap-row"><span class="ap-label">Created</span><span id="info-created" class="ap-value"></span></div>
           <div class="ap-row"><span class="ap-label">Expires in</span><span id="info-expires" class="ap-value"></span></div>
         </div>
         <div class="ap-actions">
-          <button id="btn-approve" class="ap-btn ap-btn-approve">✅ Approve & Pay</button>
-          <button id="btn-reject" class="ap-btn ap-btn-reject">❌ Reject</button>
+          <button id="btn-approve" class="ap-btn ap-btn-approve">Approve & Pay</button>
+          <button id="btn-reject" class="ap-btn ap-btn-reject">Decline</button>
         </div>
       </div>
 
@@ -179,30 +186,38 @@ document.addEventListener('DOMContentLoaded', () => {
         <p id="payment-info" class="ap-payment-info"></p>
         <div id="stripe-element-container" class="ap-stripe-mount"></div>
         <div id="payment-error" class="ap-error" style="display:none"></div>
-        <button id="btn-pay" class="ap-btn ap-btn-approve">💳 Pay Now</button>
+        <button id="btn-pay" class="ap-btn ap-btn-approve">Pay now</button>
       </div>
 
       <div id="step-done" class="ap-card" style="display:none">
         <div class="ap-success">
-          <h2>✅ Payment Approved</h2>
-          <p id="done-msg">The card has been created. The agent will receive the result.</p>
+          <div class="ap-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2>Payment Complete</h2>
+          <p id="done-msg">The virtual card has been created. The requesting agent will receive the card details automatically.</p>
           <p id="done-card-id" class="ap-card-id"></p>
         </div>
       </div>
 
       <div id="step-rejected" class="ap-card" style="display:none">
         <div class="ap-rejected">
-          <h2>❌ Request Rejected</h2>
-          <p>This payment request has been rejected. The agent will be notified.</p>
+          <div class="ap-rejected-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <h2>Request Declined</h2>
+          <p>This payment request has been declined. The requesting agent will be notified.</p>
         </div>
       </div>
 
       <div id="step-already-processed" class="ap-card" style="display:none">
         <div class="ap-info-box">
-          <h2 id="already-title">Request Already Processed</h2>
+          <h2 id="already-title">Already Processed</h2>
           <p id="already-msg">This payment request has already been handled.</p>
         </div>
       </div>
+
+      <div class="ap-footer">ASG Card &times; Stripe Machine Payments Protocol</div>
     </div>
   `;
 
@@ -268,9 +283,9 @@ function showNonPendingState(status: string) {
   if (status === 'approved' || status === 'completed') {
     showStep('step-already-processed');
     const set = (id: string, val: string) => { const el = $(id); if (el) el.textContent = val; };
-    set('already-title', status === 'completed' ? '✅ Already Completed' : '⏳ Already Approved');
+    set('already-title', status === 'completed' ? 'Already Completed' : 'Already Approved');
     set('already-msg', status === 'completed'
-      ? 'This payment request has already been completed and the card was created.'
+      ? 'This payment request has been completed and the card was created.'
       : 'This payment request has been approved and is awaiting payment completion.');
   } else if (status === 'rejected') {
     showStep('step-rejected');
@@ -287,7 +302,7 @@ async function handleApprove() {
   hideError();
 
   const btn = $('btn-approve') as HTMLButtonElement | null;
-  if (btn) { btn.disabled = true; btn.textContent = 'Approving...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Approving…'; }
 
   try {
     // Step 1: Approve the request
@@ -300,7 +315,7 @@ async function handleApprove() {
     if (!approveRes.ok) {
       const err = await approveRes.json().catch(() => ({ error: `HTTP ${approveRes.status}` }));
       showError(err.error || 'Approval failed');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve & Pay'; }
       return;
     }
 
@@ -322,7 +337,7 @@ async function handleApprove() {
     if (challengeRes.status !== 402) {
       const err = await challengeRes.json().catch(() => ({ error: `Unexpected ${challengeRes.status}` }));
       showError(err.error || 'Failed to initiate payment');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve & Pay'; }
       return;
     }
 
@@ -330,14 +345,14 @@ async function handleApprove() {
     const wwwAuth = challengeRes.headers.get('WWW-Authenticate');
     if (!wwwAuth) {
       showError('Server returned 402 but no payment challenge. Contact support.');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve & Pay'; }
       return;
     }
 
     const challenge = parseMppChallenge(wwwAuth);
     if (!challenge) {
       showError('Could not parse payment challenge. Contact support.');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve & Pay'; }
       return;
     }
 
@@ -352,7 +367,7 @@ async function handleApprove() {
 
     if (amountCents <= 0) {
       showError('Invalid payment amount in challenge. Contact support.');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve & Pay'; }
       return;
     }
 
@@ -374,7 +389,7 @@ async function handleReject() {
   if (!confirm('Are you sure you want to reject this payment request?')) return;
 
   const btn = $('btn-reject') as HTMLButtonElement | null;
-  if (btn) { btn.disabled = true; btn.textContent = 'Rejecting...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Declining…'; }
 
   try {
     const res = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}`, {
@@ -386,14 +401,14 @@ async function handleReject() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
       showError(err.error || 'Rejection failed');
-      if (btn) { btn.disabled = false; btn.textContent = '❌ Reject'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
       return;
     }
 
     showStep('step-rejected');
   } catch (err) {
     showError(`Rejection failed: ${err instanceof Error ? err.message : String(err)}`);
-    if (btn) { btn.disabled = false; btn.textContent = '❌ Reject'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Decline'; }
   }
 }
 
@@ -434,12 +449,12 @@ async function handlePay() {
   hideError();
 
   const btn = $('btn-pay') as HTMLButtonElement | null;
-  if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
 
   const showPayError = (msg: string) => {
     const el = $('payment-error');
     if (el) { el.textContent = msg; el.style.display = 'block'; }
-    if (btn) { btn.disabled = false; btn.textContent = '💳 Pay Now'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Pay now'; }
   };
 
   try {
@@ -455,7 +470,7 @@ async function handlePay() {
     if (pmError || !paymentMethod) { showPayError(pmError?.message || 'Failed to create payment method'); return; }
 
     // 3. Create SPT via approval-scoped endpoint
-    if (btn) btn.textContent = 'Creating payment token...';
+    if (btn) btn.textContent = 'Creating payment token…';
 
     const sptRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}/create-spt`, {
       method: 'POST',
@@ -481,7 +496,7 @@ async function handlePay() {
     const credential = buildMppCredential(currentChallenge, spt);
 
     // 5. Retry /approve/:id/complete WITH the credential
-    if (btn) btn.textContent = 'Creating card...';
+    if (btn) btn.textContent = 'Creating card…';
 
     const completeRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}/complete`, {
       method: 'POST',

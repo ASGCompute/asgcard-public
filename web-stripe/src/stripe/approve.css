@@ -1,4 +1,8 @@
-/* ── Approval Page Styles ─────────────────────────────────── */
+/* ── ASG Card × Stripe — Approval Page ──────────────────────── */
+/* Enterprise design: light/white cards, Stripe-blue accents,    */
+/* clean Inter typography, subtle depth.                          */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 *,
 *::before,
@@ -8,128 +12,239 @@
   padding: 0;
 }
 
+:root {
+  --bg: #f6f8fa;
+  --card-bg: #ffffff;
+  --card-border: #e1e4e8;
+  --text-primary: #1a1a2e;
+  --text-secondary: #586069;
+  --text-muted: #8b949e;
+  --accent: #635bff; /* Stripe indigo */
+  --accent-light: #7a73ff;
+  --accent-bg: rgba(99, 91, 255, 0.06);
+  --success: #0cce6b;
+  --success-bg: rgba(12, 206, 107, 0.08);
+  --danger: #e5534b;
+  --danger-bg: rgba(229, 83, 75, 0.06);
+  --border-radius: 12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+}
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #0a0a1a;
-  color: #e4e4ef;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 40px 16px;
-  background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+  padding: 48px 16px;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ── Container ─────────────────────────────────────────────── */
 .ap-container {
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
 }
 
+/* ── Header ────────────────────────────────────────────────── */
 .ap-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.ap-header h1 {
-  font-size: 1.5rem;
+.ap-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ap-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.ap-brand-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .ap-subtitle {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
+.ap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 12px;
+  background: var(--accent-bg);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.ap-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
 .ap-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius);
   padding: 28px;
   margin-bottom: 16px;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
 }
 
 .ap-card h2 {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #fff;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
+/* ── Status chip ───────────────────────────────────────────── */
+.ap-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ap-status-chip.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.ap-status-chip.secure {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+/* ── Loading ───────────────────────────────────────────────── */
 .ap-loading {
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 24px;
-}
-
-.ap-error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 12px;
-  padding: 12px 16px;
-  color: #fca5a5;
+  color: var(--text-muted);
+  padding: 32px 0;
   font-size: 0.9rem;
-  margin-bottom: 16px;
 }
 
-/* Details layout */
+.ap-loading::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--card-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  animation: ap-spin 0.8s linear infinite;
+}
+
+@keyframes ap-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+.ap-error {
+  background: var(--danger-bg);
+  border: 1px solid rgba(229, 83, 75, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* ── Details rows ──────────────────────────────────────────── */
 .ap-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   margin-bottom: 24px;
 }
 
 .ap-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f3;
+}
+
+.ap-row:last-child {
+  border-bottom: none;
 }
 
 .ap-label {
   font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .ap-value {
-  font-size: 0.95rem;
-  color: #e4e4ef;
+  font-size: 0.9rem;
+  color: var(--text-primary);
   font-weight: 500;
   text-align: right;
 }
 
 .ap-amount {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: #a78bfa;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
-/* Buttons */
+/* ── Buttons ───────────────────────────────────────────────── */
 .ap-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .ap-btn {
   flex: 1;
-  padding: 14px 20px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 12px;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  letter-spacing: -0.01em;
 }
 
 .ap-btn:disabled {
@@ -138,58 +253,154 @@ body {
 }
 
 .ap-btn-approve {
-  background: linear-gradient(135deg, #6366f1, #a855f7);
+  background: var(--accent);
   color: #fff;
 }
 
 .ap-btn-approve:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  background: var(--accent-light);
+  box-shadow: 0 2px 8px rgba(99, 91, 255, 0.25);
 }
 
 .ap-btn-reject {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #e1e4e8;
 }
 
 .ap-btn-reject:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
+  background: var(--danger-bg);
+  border-color: rgba(229, 83, 75, 0.3);
 }
 
-/* Stripe mount */
+/* ── Stripe mount ──────────────────────────────────────────── */
 .ap-stripe-mount {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: #fafbfc;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
   padding: 16px;
   margin: 16px 0;
   min-height: 60px;
 }
 
 .ap-payment-info {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
   margin-bottom: 8px;
+  line-height: 1.5;
 }
 
-/* Success/Rejected states */
-.ap-success, .ap-rejected, .ap-info-box {
+.ap-payment-amount-hero {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  padding: 8px 0 16px;
+  letter-spacing: -0.03em;
+}
+
+/* ── Success / Rejected / Processed states ─────────────────── */
+.ap-success,
+.ap-rejected,
+.ap-info-box {
   text-align: center;
   padding: 16px 0;
 }
 
 .ap-success h2 {
-  color: #4ade80;
+  color: var(--success);
+  font-size: 1.1rem;
+}
+
+.ap-success p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 .ap-rejected h2 {
-  color: #fca5a5;
+  color: var(--danger);
+  font-size: 1.1rem;
+}
+
+.ap-rejected p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.ap-info-box h2 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.ap-info-box p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 8px;
 }
 
 .ap-card-id {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 8px;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 12px;
+  padding: 6px 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.ap-success-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--success-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ap-success-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--success);
+}
+
+.ap-rejected-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--danger-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.ap-rejected-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--danger);
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.ap-footer {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  body {
+    padding: 24px 12px;
+  }
+
+  .ap-card {
+    padding: 20px;
+  }
 }

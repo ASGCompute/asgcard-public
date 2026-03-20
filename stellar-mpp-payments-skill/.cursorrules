@@ -1,0 +1,22 @@
+# Stellar MPP Payments Skill
+#
+# When the user asks about:
+# - machine payments protocol
+# - MPP or mppx
+# - paid APIs on Stellar
+# - Soroban SAC transfers for payments
+# - one-way payment channels on Stellar
+# - adapting a Stripe MPP flow to Stellar
+#
+# Read and follow:
+# - stellar-mpp-payments/SKILL.md
+#
+# Additional references:
+# - stellar-mpp-payments/references/charge.md
+# - stellar-mpp-payments/references/channel.md
+# - stellar-mpp-payments/references/packages.md
+# - stellar-mpp-payments/references/stripe-interop.md
+#
+# Example apps:
+# - examples/stellar-mpp-server/
+# - examples/stellar-mpp-client/

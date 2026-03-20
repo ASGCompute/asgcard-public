@@ -3,6 +3,10 @@
     {
       "source": "/api/stripe-beta/:path*",
       "destination": "https://api.asgcard.dev/stripe-beta/:path*"
+    },
+    {
+      "source": "/approve",
+      "destination": "/approve/index.html"
     }
   ]
 }

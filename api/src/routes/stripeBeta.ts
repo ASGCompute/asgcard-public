@@ -22,7 +22,7 @@
  * POST /stripe-beta/cards/:cardId/freeze
  * POST /stripe-beta/cards/:cardId/unfreeze
  */
-import { Router } from "express";
+import express, { Router } from "express";
 import { z } from "zod";
 import { env } from "../config/env";
 import { requireStripeSession } from "../middleware/stripeSession";
@@ -30,6 +30,15 @@ import { requireMppxPayment } from "../middleware/mppxPayment";
 import { requireAgentNonce } from "../middleware/agentDetailsMiddleware";
 import { cardService, HttpError } from "../services/cardService";
 import { createSession } from "../services/sessionService";
+import {
+  createPaymentRequest,
+  getPaymentRequest,
+  getPaymentRequestByToken,
+  approvePaymentRequest,
+  rejectPaymentRequest,
+  completePaymentRequest,
+  failPaymentRequest,
+} from "../services/paymentRequestService";
 import { appLogger } from "../utils/logger";
 import type { RequestHandler } from "express";
 
@@ -62,6 +71,13 @@ const sptProvisionSchema = z.object({
 
 const sessionCreateSchema = z.object({
   email: z.string().email(),
+});
+
+const paymentRequestCreateSchema = z.object({
+  amountUsd: z.number().min(5).max(5000),
+  description: z.string().max(500).optional(),
+  nameOnCard: z.string().min(1).optional(),
+  phone: z.string().optional(),
 });
 
 export const stripeBetaRouter = Router();
@@ -140,6 +156,200 @@ stripeBetaRouter.post("/session", async (req, res) => {
     res.status(500).json({ error: "Session creation failed" });
   }
 });
+
+// ── Owner approval endpoints (public — token auth) ──────────
+
+/**
+ * GET /stripe-beta/approve/:id
+ * Public approval page. Token in query string is the auth.
+ * Returns JSON with request details for the frontend to render.
+ */
+stripeBetaRouter.get("/approve/:id", requireStripeBetaEnabled, async (req, res) => {
+  const { id } = req.params;
+  const token = req.query.token as string;
+
+  if (!id || !token) {
+    res.status(400).json({ error: "Missing request ID or token" });
+    return;
+  }
+
+  try {
+    const pr = await getPaymentRequestByToken(id, token);
+    if (!pr) {
+      res.status(403).json({ error: "Invalid or expired approval link" });
+      return;
+    }
+
+    res.json({
+      requestId: pr.id,
+      status: pr.status,
+      amountUsd: pr.amountUsd,
+      description: pr.description,
+      email: pr.email,
+      nameOnCard: pr.nameOnCard,
+      phone: pr.phone,
+      createdAt: pr.createdAt,
+      expiresAt: pr.expiresAt,
+    });
+  } catch (err) {
+    appLogger.error({ err }, "[APPROVE] Get request failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /stripe-beta/approve/:id
+ * Owner approves or rejects a payment request.
+ * Body: { action: 'approve' | 'reject', token: string }
+ *
+ * On approve: triggers the card creation + MPP payment flow.
+ * The approval page frontend handles Stripe payment, then POSTs here
+ * with the SPT credential in the Authorization header.
+ */
+stripeBetaRouter.post(
+  "/approve/:id",
+  requireStripeBetaEnabled,
+  express.json(),
+  async (req, res) => {
+    const { id } = req.params;
+    const token = (req.body?.token || req.query.token) as string;
+    const action = (req.body?.action || "approve") as string;
+
+    if (!id || !token) {
+      res.status(400).json({ error: "Missing request ID or token" });
+      return;
+    }
+
+    try {
+      if (action === "reject") {
+        const ok = await rejectPaymentRequest(id, token);
+        if (!ok) {
+          res.status(400).json({ error: "Cannot reject — request not found, already processed, or expired" });
+          return;
+        }
+        res.json({ status: "rejected", requestId: id });
+        return;
+      }
+
+      // Action: approve
+      const pr = await getPaymentRequestByToken(id, token);
+      if (!pr || pr.status !== "pending") {
+        res.status(400).json({ error: "Cannot approve — request not found, already processed, or expired" });
+        return;
+      }
+
+      const ok = await approvePaymentRequest(id, token);
+      if (!ok) {
+        res.status(400).json({ error: "Approval failed — request may have expired" });
+        return;
+      }
+
+      // After approval, the owner will make a payment via Stripe.
+      // The card creation happens when the owner completes payment.
+      // Return the approved status — the frontend will proceed to payment.
+      res.json({
+        status: "approved",
+        requestId: id,
+        amountUsd: pr.amountUsd,
+        note: "Proceed to payment to complete the card creation.",
+      });
+    } catch (err) {
+      appLogger.error({ err, requestId: id }, "[APPROVE] Action failed");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+/**
+ * POST /stripe-beta/approve/:id/complete
+ * Called after owner completes Stripe payment.
+ * Body: { token, txHash, nameOnCard, email, phone, amount }
+ * Creates the card and marks the request as completed.
+ */
+stripeBetaRouter.post(
+  "/approve/:id/complete",
+  requireStripeBetaEnabled,
+  requireMppxPayment("create"),
+  async (req, res) => {
+    const { id } = req.params;
+    const token = (req.body?.token || req.query.token) as string;
+
+    if (!token) {
+      res.status(400).json({ error: "Missing approval token" });
+      return;
+    }
+
+    try {
+      const pr = await getPaymentRequestByToken(id, token);
+      if (!pr || pr.status !== "approved") {
+        res.status(400).json({ error: "Request not in approved state" });
+        return;
+      }
+
+      if (!req.paymentContext) {
+        res.status(500).json({ error: "Payment context missing" });
+        return;
+      }
+
+      const { amount, totalCostUsd, txHash } = req.paymentContext;
+
+      // Look up session to get managed wallet
+      const sessionRows = await import("../db/db").then(m =>
+        m.query<{ managed_wallet: string }>(
+          `SELECT managed_wallet FROM stripe_beta_sessions WHERE id = $1`,
+          [pr.sessionId]
+        )
+      );
+
+      if (sessionRows.length === 0) {
+        res.status(400).json({ error: "Session not found" });
+        return;
+      }
+
+      const walletAddress = sessionRows[0].managed_wallet;
+
+      const result = await cardService.createCard({
+        walletAddress,
+        nameOnCard: pr.nameOnCard || "ASG Card",
+        email: pr.email,
+        phone: pr.phone || undefined,
+        initialAmountUsd: amount,
+        amount,
+        chargedUsd: totalCostUsd,
+        txHash,
+        paymentRail: "stripe_mpp",
+        paymentReference: txHash,
+      });
+
+      await completePaymentRequest(id, result.card.cardId, txHash, {
+        success: result.success,
+        card: result.card,
+        payment: result.payment,
+      });
+
+      appLogger.info(
+        { requestId: id, cardId: result.card.cardId },
+        "[APPROVE] Payment request completed — card created"
+      );
+
+      res.status(201).json({
+        status: "completed",
+        requestId: id,
+        card: result.card,
+        payment: result.payment,
+      });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        await failPaymentRequest(id, error.message);
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      await failPaymentRequest(id, "Internal error");
+      appLogger.error({ err: error, requestId: id }, "[APPROVE] Complete failed");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 // ── Authenticated endpoints (session auth) ─────────────────
 // Beta gate + session auth applied to ALL mutation/management routes
@@ -502,3 +712,99 @@ stripeBetaRouter.post(
     }
   }
 );
+
+// ── Payment request routes (session-authenticated) ──────────
+
+const paymentRequestRouter = Router();
+
+/**
+ * POST /stripe-beta/payment-requests
+ * Agent creates a payment request for owner approval.
+ */
+paymentRequestRouter.post("/", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+
+  const parsed = paymentRequestCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid request body",
+      details: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+    });
+    return;
+  }
+
+  try {
+    const result = await createPaymentRequest({
+      sessionId: req.stripeSession.sessionId,
+      ownerId: req.stripeSession.ownerId,
+      email: req.stripeSession.email,
+      amountUsd: parsed.data.amountUsd,
+      description: parsed.data.description,
+      nameOnCard: parsed.data.nameOnCard,
+      phone: parsed.data.phone,
+    });
+
+    res.status(201).json({
+      status: "approval_required",
+      requestId: result.requestId,
+      approvalUrl: result.approvalUrl,
+      expiresAt: result.expiresAt,
+    });
+  } catch (err) {
+    appLogger.error({ err }, "[PAYMENT-REQUEST] Creation failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /stripe-beta/payment-requests/:id
+ * Agent polls payment request status.
+ */
+paymentRequestRouter.get("/:id", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+
+  try {
+    const pr = await getPaymentRequest(req.params.id, req.stripeSession.ownerId);
+    if (!pr) {
+      res.status(404).json({ error: "Payment request not found" });
+      return;
+    }
+
+    const response: Record<string, unknown> = {
+      requestId: pr.id,
+      status: pr.status,
+      amountUsd: pr.amountUsd,
+      description: pr.description,
+      createdAt: pr.createdAt,
+      expiresAt: pr.expiresAt,
+    };
+
+    if (pr.status === "completed" && pr.resultJson) {
+      response.card = pr.resultJson.card;
+      response.payment = pr.resultJson.payment;
+      response.cardId = pr.cardId;
+      response.completedAt = pr.completedAt;
+    }
+
+    if (pr.status === "failed" && pr.resultJson) {
+      response.error = pr.resultJson.error;
+    }
+
+    if (pr.status === "approved") {
+      response.approvedAt = pr.approvedAt;
+    }
+
+    res.json(response);
+  } catch (err) {
+    appLogger.error({ err }, "[PAYMENT-REQUEST] Get failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+stripeBetaRouter.use("/payment-requests", paymentRequestRouter);

@@ -1,0 +1,195 @@
+/* ── Approval Page Styles ─────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0a0a1a;
+  color: #e4e4ef;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+}
+
+.ap-container {
+  width: 100%;
+  max-width: 520px;
+}
+
+.ap-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.ap-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.ap-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ap-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 16px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.ap-card h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.ap-loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 24px;
+}
+
+.ap-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+/* Details layout */
+.ap-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ap-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.ap-value {
+  font-size: 0.95rem;
+  color: #e4e4ef;
+  font-weight: 500;
+  text-align: right;
+}
+
+.ap-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+/* Buttons */
+.ap-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.ap-btn {
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ap-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ap-btn-approve {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+}
+
+.ap-btn-approve:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}
+
+.ap-btn-reject {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ap-btn-reject:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Stripe mount */
+.ap-stripe-mount {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 16px 0;
+  min-height: 60px;
+}
+
+.ap-payment-info {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+/* Success/Rejected states */
+.ap-success, .ap-rejected, .ap-info-box {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.ap-success h2 {
+  color: #4ade80;
+}
+
+.ap-rejected h2 {
+  color: #fca5a5;
+}
+
+.ap-card-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 8px;
+}

@@ -111,6 +111,7 @@ const NAV: NavItem[] = [
   },
   { id: 'errors', label: 'Errors' },
   { id: 'rate-limits', label: 'Rate Limits' },
+  { id: 'stripe-mpp-flow', label: 'Stripe MPP Flow' },
   { id: 'architecture', label: 'Architecture' },
 ];
 
@@ -699,6 +700,32 @@ function renderAuthentication(): string {
 
       <hr class="docs-divider" />
 
+      <h3 id="stripe-mpp-flow">Stripe Machine Payments Flow</h3>
+      <p>The Stripe MPP flow is an <strong>owner-in-the-loop</strong> model. The agent creates a payment request, and a human owner approves and pays via Stripe.</p>
+
+      <h4>Step 1 — Create a session</h4>
+      ${codeBlock(`curl -X POST https://api.asgcard.dev/stripe-beta/session \\
+  -H "Content-Type: application/json" \\
+  -d '{"email": "owner@company.com"}'`, 'bash')}
+      <p>Response: <code>{"sessionId": "sess_abc123", ...}</code></p>
+
+      <h4>Step 2 — Create a payment request</h4>
+      ${codeBlock(`curl -X POST https://api.asgcard.dev/stripe-beta/payment-requests \\
+  -H "Content-Type: application/json" \\
+  -H "X-STRIPE-SESSION: sess_abc123" \\
+  -d '{"amountUsd": 100, "cardholderName": "AI Agent", "email": "owner@company.com"}'`, 'bash')}
+      <p>Response includes <code>status: "approval_required"</code> and an <code>approvalUrl</code>.</p>
+
+      <h4>Step 3 — Owner approves and pays</h4>
+      <p>The owner opens the <code>approvalUrl</code> (at <code>stripe.asgcard.dev/approve</code>), reviews the request, and completes payment via Stripe checkout.</p>
+
+      <h4>Step 4 — Agent polls for completion</h4>
+      ${codeBlock(`curl https://api.asgcard.dev/stripe-beta/payment-requests/pr_xyz789 \\
+  -H "X-STRIPE-SESSION: sess_abc123"`, 'bash')}
+      <p>When <code>status</code> changes to <code>completed</code>, the card is ready. Use <code>GET /stripe-beta/cards</code> to retrieve card details.</p>
+
+      <hr class="docs-divider" />
+
       <h3 id="wallet-signature">Wallet Signature — Free Endpoints</h3>
       <p>Wallet-signed endpoints (card management) require Ed25519 signature authentication.</p>
 
@@ -756,7 +783,7 @@ function renderPricing(): string {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:2rem 0;">
         <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;text-align:center;">
           <div style="font-size:28px;font-weight:700;color:#14F195;margin-bottom:0.25rem;">${fmtUsd(p.cardFee)}</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.5);">one-time card issuance</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);">one-time card creation<br><span style="font-size:11px;color:rgba(255,255,255,0.35);">(initial load optional)</span></div>
         </div>
         <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;text-align:center;">
           <div style="font-size:28px;font-weight:700;color:#14F195;margin-bottom:0.25rem;">${p.topUpPercent}%</div>

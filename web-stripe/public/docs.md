@@ -1,152 +1,126 @@
-# ASG Card — LLM-Friendly Documentation
+# ASG Card — Stripe Edition Documentation
 
-> USD MasterCard virtual cards for AI agents — pay via Stellar x402 (USDC) or Stripe Machine Payments
+> USD MasterCard virtual cards for AI agents — powered by Stripe Machine Payments Protocol
 
 ## Quick Links
 
-- Site: [asgcard.dev](https://asgcard.dev)
 - Stripe Edition: [stripe.asgcard.dev](https://stripe.asgcard.dev)
+- Stellar Edition: [asgcard.dev](https://asgcard.dev)
 - API: [api.asgcard.dev](https://api.asgcard.dev)
-- npm SDK: `@asgcard/sdk`
-- npm CLI: `@asgcard/cli`
-- npm MCP: `@asgcard/mcp-server`
-- Agent config: [asgcard.dev/agent.txt](https://asgcard.dev/agent.txt)
+- OpenAPI spec: [asgcard.dev/openapi.json](https://asgcard.dev/openapi.json)
 
-## Payment Rails
+## How It Works — Stripe MPP Flow
 
-ASG Card supports two payment rails. The card product is identical.
+The Stripe edition uses an **owner-in-the-loop** model:
 
-### Stellar Edition (x402)
+1. **Agent creates a session** → `POST /stripe-beta/session` with owner's email
+2. **Agent creates a payment request** → `POST /stripe-beta/payment-requests` with amount and card details
+3. **Agent receives `approval_required`** + `approvalUrl`
+4. **Owner opens approval page** at `stripe.asgcard.dev/approve` → reviews, approves, pays via Stripe
+5. **Agent polls status** → `GET /stripe-beta/payment-requests/:id` until `completed`
+6. **Card created** → agent retrieves card details
 
-Agent-autonomous. No human in the loop.
+No wallet, no USDC, no on-chain transactions. Payment is handled entirely via Stripe.
 
-1. Agent requests card → API returns 402 + USDC amount
-2. Agent signs Stellar USDC transfer via SDK
-3. x402 facilitator verifies and settles on-chain
-4. Card details returned in the response
+## Quickstart — First Card via Stripe
 
-Uses: SDK, CLI, MCP server.
-
-### Stripe Edition (MPP)
-
-Owner-in-the-loop. Agent creates request, human approves and pays.
-
-1. Agent creates payment request → API returns `approval_required` + `approvalUrl`
-2. Owner opens approval page at `stripe.asgcard.dev/approve`
-3. Owner reviews, approves, pays via Stripe
-4. Card created → agent polls until `completed`
-
-Uses: session-based auth (`X-STRIPE-SESSION`).
-
-## Quickstart — First Card in < 3 Minutes
-
-### 1. Install CLI and create wallet
+### 1. Create a session
 
 ```bash
-npx @asgcard/cli onboard -y
+curl -X POST https://api.asgcard.dev/stripe-beta/session \
+  -H "Content-Type: application/json" \
+  -d '{"email": "owner@company.com"}'
 ```
 
-Then install for your client:
+Response:
+```json
+{
+  "sessionId": "sess_abc123",
+  "expiresAt": "2026-03-21T..."
+}
+```
+
+### 2. Create a payment request
 
 ```bash
-asgcard install --client codex      # OpenAI Codex
-asgcard install --client claude     # Claude Code
-asgcard install --client cursor     # Cursor
+curl -X POST https://api.asgcard.dev/stripe-beta/payment-requests \
+  -H "Content-Type: application/json" \
+  -H "X-STRIPE-SESSION: sess_abc123" \
+  -d '{
+    "amountUsd": 100,
+    "cardholderName": "AI Agent",
+    "email": "owner@company.com"
+  }'
 ```
 
-### 2. Fund your wallet
+Response:
+```json
+{
+  "id": "pr_xyz789",
+  "status": "approval_required",
+  "approvalUrl": "https://stripe.asgcard.dev/approve/pr_xyz789",
+  "totalCharge": 113.50
+}
+```
 
-Send USDC on Stellar to the public key shown by `onboard`.
-Minimum: $10 USDC (card creation fee). Initial card load is optional.
+### 3. Owner approves and pays
 
-### 3. Create your first card
+The owner opens the `approvalUrl` in their browser, reviews the request, and pays via Stripe checkout.
+
+### 4. Agent polls for completion
 
 ```bash
-npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+curl https://api.asgcard.dev/stripe-beta/payment-requests/pr_xyz789 \
+  -H "X-STRIPE-SESSION: sess_abc123"
 ```
 
-## CLI Commands
+When `status` is `completed`, the card is created and available.
 
-| Command | Auth Required | Description |
-| ------- | :-----------: | ----------- |
-| `wallet create` | No | Generate new Stellar keypair |
-| `wallet import [key]` | No | Import existing Stellar secret key |
-| `wallet info` | Yes | Show address, USDC balance, deposit info |
-| `install --client <c>` | No | Configure MCP for codex/claude/cursor |
-| `onboard [-y]` | No | Full onboarding: wallet + MCP + skill |
-| `doctor` | No | Diagnose setup (key, API, RPC, balance) |
-| `cards` | Yes | List all cards |
-| `card <id>` | Yes | Get card summary |
-| `card:details <id>` | Yes | Get sensitive card info (PAN, CVV) |
-| `card:create` | Yes | Create virtual card (x402 payment) |
-| `card:fund <id>` | Yes | Fund existing card (x402 payment) |
-| `card:freeze <id>` | Yes | Freeze a card |
-| `card:unfreeze <id>` | Yes | Unfreeze a card |
-| `pricing` | No | View pricing ($10 card creation, 3.5% on loads) |
-| `health` | No | API health check |
+### 5. Retrieve card details
 
-## MCP Server Tools (11)
+```bash
+curl https://api.asgcard.dev/stripe-beta/cards \
+  -H "X-STRIPE-SESSION: sess_abc123"
+```
 
-The MCP server reads your key from `~/.asgcard/wallet.json` automatically.
-
-| Tool | Description |
-| ---- | ----------- |
-| `get_wallet_status` | Check wallet address, USDC balance (use FIRST) |
-| `create_card` | Create virtual MasterCard ($5–$5,000, pays USDC via x402) |
-| `fund_card` | Top up existing card |
-| `list_cards` | List all wallet cards |
-| `get_card` | Get card summary by ID |
-| `get_card_details` | Get PAN, CVV, expiry (rate-limited 5/hour) |
-| `freeze_card` | Temporarily freeze card |
-| `unfreeze_card` | Re-enable frozen card |
-| `get_pricing` | View pricing ($10 card creation, 3.5% on loads) |
-| `get_transactions` | Card transaction history |
-| `get_balance` | Live card balance |
-
-## API Endpoints
+## API Endpoints — Stripe MPP
 
 Base URL: `https://api.asgcard.dev`
 
-### Public
+### Session Management
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| POST | `/stripe-beta/session` | Create managed session (requires enrolled email) |
+
+### Payment Requests
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| POST | `/stripe-beta/payment-requests` | Create payment request (amount 0 = card-only $10, or $5–$5,000) |
+| GET | `/stripe-beta/payment-requests/:id` | Poll request status |
+
+### Approval Flow
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/stripe-beta/approve/:id` | Get approval page data |
+| POST | `/stripe-beta/approve/:id` | Approve or reject request |
+| POST | `/stripe-beta/approve/:id/complete` | Complete payment (MPP credential) |
+
+### Card Management
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/stripe-beta/cards` | List session's cards |
+| GET | `/stripe-beta/cards/:id/details` | Card details (PAN, CVV, expiry — nonce required) |
+
+### Public Endpoints
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
 | GET | `/health` | Health check |
 | GET | `/pricing` | Full pricing breakdown |
-| GET | `/cards/tiers` | Alias for `/pricing` |
-| GET | `/supported` | x402 capabilities |
-
-### Stellar x402 (Payment Required)
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| POST | `/cards/create/tier/:amount` | Create card (amount 0 = card-only, or $5–$5,000 with load) |
-| POST | `/cards/fund/tier/:amount` | Fund card ($5–$5,000) |
-
-### Wallet Signed
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/cards` | List cards |
-| GET | `/cards/:cardId` | Get card |
-| GET | `/cards/:cardId/details` | Get PAN, CVV (nonce required) |
-| GET | `/cards/:cardId/transactions` | Transaction history |
-| GET | `/cards/:cardId/balance` | Live balance |
-| POST | `/cards/:cardId/freeze` | Freeze card |
-| POST | `/cards/:cardId/unfreeze` | Unfreeze card |
-
-### Stripe MPP (Beta)
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| POST | `/stripe-beta/session` | Create managed session |
-| POST | `/stripe-beta/payment-requests` | Create payment request |
-| GET | `/stripe-beta/payment-requests/:id` | Poll request status |
-| GET | `/stripe-beta/approve/:id` | Get approval page data |
-| POST | `/stripe-beta/approve/:id` | Approve or reject |
-| POST | `/stripe-beta/approve/:id/complete` | Complete payment (MPP credential) |
-| GET | `/stripe-beta/cards` | List session's cards |
-| GET | `/stripe-beta/cards/:id/details` | Card details (nonce required) |
 
 ## Pricing
 
@@ -165,22 +139,26 @@ Live pricing: `GET https://api.asgcard.dev/pricing`
 
 ## Authentication
 
-- **Stellar edition**: Wallet signature (Ed25519) + x402 payments
 - **Stripe edition**: Session-based (`X-STRIPE-SESSION` header)
-- **No API keys**: Authentication is wallet-based or session-based
+- All endpoints under `/stripe-beta/*` require a valid session
+- Sessions are created with an enrolled email address
 
 ## Error Handling
 
 | Code | When |
 | ---- | ---- |
 | `400` | Invalid amount or body |
-| `401` | Invalid wallet auth or X-Payment proof |
-| `402` | x402 challenge |
-| `403` | Details access revoked |
-| `404` | Card not found |
+| `401` | Invalid or missing session |
+| `402` | Payment required (Stellar x402 only) |
+| `404` | Request or card not found |
 | `409` | Nonce replay detected |
 | `429` | Rate limit exceeded |
 | `503` | Provider capacity unavailable |
+
+## Also Available: Stellar Edition
+
+For fully autonomous agent flows (no human approval needed), see the [Stellar edition](https://asgcard.dev/docs).
+The Stellar edition uses x402 with USDC on Stellar — agents pay directly on-chain.
 
 ## Support
 

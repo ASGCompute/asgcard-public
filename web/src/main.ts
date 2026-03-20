@@ -38,19 +38,19 @@ const FEATURES = [
   },
   {
     icon: '🔐',
-    title: 'x402 Protocol Native',
-    description: 'Built on the HTTP 402 standard. Agents pay at the protocol layer — no middleware, no wrappers.',
+    title: 'Two Payment Rails',
+    description: 'Stellar x402 for fully autonomous agents. Stripe Machine Payments for owner-approved flows. Same card, same API.',
   },
   {
     icon: '🤖',
     title: 'Agent-First API',
-    description: 'Designed for autonomous agents. No human-in-the-loop. Deterministic, stateless, fast.',
+    description: 'Designed for AI agents. Autonomous via x402 or human-in-the-loop via Stripe MPP. Deterministic and fast.',
   },
 ]
 
 const STEPS = [
   { num: 1, title: 'Send a Request', desc: 'Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.', hint: 'POST /cards/create/tier/:amount' },
-  { num: 2, title: 'Pay', desc: 'The server responds 402 with payment details. Your x402 client auto-pays the exact amount — USDC on Stellar or card via Stripe MPP.', hint: '402 → X-Payment → retry' },
+  { num: 2, title: 'Pay', desc: 'Via Stellar x402: auto-pay USDC on-chain. Via Stripe MPP: owner approves and pays via Stripe checkout. Same result.', hint: 'x402 → auto-pay · Stripe → owner approval' },
   { num: 3, title: 'Receive Card Details', desc: 'Card number, CVV, expiry, and billing address returned instantly in the response body.', hint: '201 { cardNumber, cvv, expiry }' },
   { num: 4, title: 'Start Spending', desc: 'Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.', hint: '/cards/:cardId/freeze · /cards/:cardId/unfreeze' },
 ]
@@ -221,7 +221,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <div class="space-y-7 animate-slide-up">
             <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-xs font-medium text-asg-green tracking-wide">
               <span class="w-1.5 h-1.5 rounded-full bg-asg-green"></span>
-              Powered by x402 on chain
+              x402 + Stripe MPP
             </div>
 
             <h1 class="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.08] tracking-[-0.03em] text-white">

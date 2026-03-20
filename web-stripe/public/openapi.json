@@ -106,8 +106,8 @@
         "tags": [
           "x402"
         ],
-        "summary": "Create a virtual card ($5–$5,000)",
-        "description": "x402 payment flow. Clients receive HTTP 402 with a payment challenge (stellar:pubnet, exact scheme), then retry with X-PAYMENT header containing signed Stellar transaction. The 201 response includes a `detailsEnvelope` with full PAN, CVV, expiry, billing address, and one-time-access metadata (agent-first model). PAN/CVV are never logged or exposed in metrics.",
+        "summary": "Create a virtual card (amount 0 = card-only $10, or $5–$5,000 with load)",
+        "description": "x402 payment flow. Amount 0 creates a card with no initial load ($10 flat fee). Amount $5–$5,000 creates a card with initial load ($10 + amount + 3.5%). Clients receive HTTP 402 with a payment challenge, then retry with X-PAYMENT header. The 201 response includes a `detailsEnvelope` with full PAN, CVV, expiry, billing address.",
         "operationId": "createCardByTier",
         "parameters": [
           {
@@ -116,9 +116,9 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 0
             },
-            "description": "Amount in USD ($5–$5,000)"
+            "description": "Amount in USD (0 = card-only, or $5–$5,000 for card+load)"
           }
         ],
         "requestBody": {
@@ -154,7 +154,7 @@
           "x402"
         ],
         "summary": "Fund an existing card ($5–$5,000)",
-        "description": "This endpoint participates in the x402 payment flow.",
+        "description": "This endpoint participates in the x402 payment flow. Minimum $5, maximum $5,000.",
         "operationId": "fundCardByTier",
         "parameters": [
           {
@@ -163,7 +163,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 5
             },
             "description": "Amount in USD ($5–$5,000)"
           }

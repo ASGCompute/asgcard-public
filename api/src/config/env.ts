@@ -11,7 +11,7 @@ const logLevel = z.enum(["debug", "info", "warn", "error"]).default("info");
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
-  API_VERSION: z.string().default("0.3.1"),
+  API_VERSION: z.string().default("0.4.0-beta.1"),
   NODE_ENV: nodeEnv,
   LOG_LEVEL: logLevel,
 
@@ -77,6 +77,12 @@ const envSchema = z.object({
   // ── Agent Details (REALIGN: nonce + anti-replay for card details) ──
   AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("true"),
   DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),
+
+  // ── Stripe MPP Beta ──────────────────────────────────────
+  STRIPE_MPP_BETA_ENABLED: z.enum(["true", "false"]).default("false"),
+  STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses
+  STRIPE_SECRET_KEY: z.string().optional(),       // sk_live_... or sk_test_...
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),   // whsec_...
 });
 
 // ── Fail-fast startup validation ──────────────────────────

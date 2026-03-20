@@ -24,6 +24,7 @@ export default defineConfig({
                 wirex: resolve(__dirname, 'wirex/index.html'),
                 cypher: resolve(__dirname, 'cypher/index.html'),
                 miniapp: resolve(__dirname, 'miniapp/index.html'),
+                stripe: resolve(__dirname, 'stripe/index.html'),
             },
         },
     },

@@ -31,10 +31,11 @@ export class PostgresCardRepository implements CardRepository {
 
         const rows = await query<CardRow>(
             `INSERT INTO cards
-               (card_id, wallet_address, name_on_card, email, phone, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, false, $9, $10)
+               (card_id, wallet_address, name_on_card, email, phone, balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four, payment_rail, payment_reference, issuer_provider)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, false, $9, $10, $11, $12, $13)
              RETURNING card_id, wallet_address, name_on_card, email, phone,
                        balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
+                       payment_rail, payment_reference, issuer_provider,
                        created_at, updated_at`,
             [
                 cardId,
@@ -46,7 +47,10 @@ export class PostgresCardRepository implements CardRepository {
                 input.initialAmountUsd,
                 detailsEncrypted,
                 input.fourPaymentsId || null,
-                last4
+                last4,
+                input.paymentRail || "stellar_x402",
+                input.paymentReference || null,
+                input.issuerProvider || "4payments"
             ]
         );
 
@@ -57,6 +61,7 @@ export class PostgresCardRepository implements CardRepository {
         const rows = await query<CardRow>(
             `SELECT card_id, wallet_address, name_on_card, email, phone,
                     balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
+                    payment_rail, payment_reference, issuer_provider,
                     created_at, updated_at
              FROM cards
              WHERE card_id = $1`,
@@ -70,6 +75,7 @@ export class PostgresCardRepository implements CardRepository {
         const rows = await query<CardRow>(
             `SELECT card_id, wallet_address, name_on_card, email, phone,
                     balance, initial_amount, status, details_encrypted, details_revoked, four_payments_id, last_four,
+                    payment_rail, payment_reference, issuer_provider,
                     created_at, updated_at
              FROM cards
              WHERE wallet_address = $1
@@ -197,6 +203,9 @@ export class PostgresCardRepository implements CardRepository {
             updatedAt: row.updated_at.toISOString(),
             details,
             fourPaymentsId: row.four_payments_id || undefined,
+            paymentRail: (row.payment_rail || "stellar_x402") as "stellar_x402" | "stripe_mpp",
+            paymentReference: row.payment_reference || undefined,
+            issuerProvider: row.issuer_provider || "4payments",
             detailsRevoked: row.details_revoked,
             lastFour: row.last_four || undefined,
         } as StoredCard & { detailsRevoked: boolean; lastFour?: string };
@@ -217,6 +226,9 @@ interface CardRow {
     details_revoked: boolean;
     four_payments_id: string | null;
     last_four: string | null;
+    payment_rail: string | null;
+    payment_reference: string | null;
+    issuer_provider: string | null;
     created_at: Date;
     updated_at: Date;
 }

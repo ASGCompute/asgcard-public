@@ -27,4 +27,7 @@ export interface StoredCard {
   updatedAt: string;
   details: CardDetails;
   fourPaymentsId?: string;
+  paymentRail?: "stellar_x402" | "stripe_mpp";
+  paymentReference?: string;
+  issuerProvider?: string;
 }

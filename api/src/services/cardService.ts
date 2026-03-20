@@ -45,7 +45,11 @@ class CardService {
     amount: number;
     chargedUsd: number;
     txHash: string;
+    paymentRail?: "stellar_x402" | "stripe_mpp";
+    paymentReference?: string;
   }) {
+    const rail = input.paymentRail || "stellar_x402";
+    const reference = input.paymentReference || input.txHash;
     const fp = getFourPaymentsClient();
 
     // Generate our own external ID for tracking
@@ -144,6 +148,9 @@ class CardService {
       txHash: input.txHash,
       details: cardDetails,
       fourPaymentsId: fpCard.id,
+      paymentRail: rail,
+      paymentReference: reference,
+      issuerProvider: "4payments",
     });
 
     // Step 5: Upsert wallet profile — always save email+phone for all callers
@@ -175,8 +182,11 @@ class CardService {
       },
       payment: {
         amountCharged: input.chargedUsd,
+        reference,
+        rail,
+        // Legacy field for backward compat with existing SDK/CLI consumers
         txHash: input.txHash,
-        network: "stellar" as const,
+        network: rail === "stellar_x402" ? "stellar" as const : undefined,
       },
       details: cardDetails,
     };
@@ -236,6 +246,7 @@ class CardService {
       throw new HttpError(500, "Card not found after balance update");
     }
 
+    const fundRail = (card.paymentRail || "stellar_x402") as "stellar_x402" | "stripe_mpp";
     const result = {
       success: true,
       cardId: card.cardId,
@@ -243,8 +254,11 @@ class CardService {
       newBalance: refreshed.balance,
       payment: {
         amountCharged: input.chargedUsd,
+        reference: input.txHash,
+        rail: fundRail,
+        // Legacy field for backward compat
         txHash: input.txHash,
-        network: "stellar",
+        network: fundRail === "stellar_x402" ? "stellar" as const : undefined,
       },
     };
 

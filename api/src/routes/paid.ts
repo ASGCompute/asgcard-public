@@ -36,7 +36,9 @@ paidRouter.post("/create/tier/:amount", requireX402Payment("create"), async (req
       initialAmountUsd: req.paymentContext.amount,
       amount: req.paymentContext.amount,
       chargedUsd: req.paymentContext.totalCostUsd,
-      txHash: req.paymentContext.txHash
+      txHash: req.paymentContext.txHash,
+      paymentRail: "stellar_x402",
+      paymentReference: req.paymentContext.txHash,
     });
 
     // REALIGN-001/002: Agent-first — unified contract (detailsEnvelope only, no flat details leak)

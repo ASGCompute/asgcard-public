@@ -23,7 +23,12 @@ import { WalletClient } from "./wallet-client.js";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";
-const MIN_CARD_COST_USDC = 15.18;
+// Pricing constants (must match api/src/config/pricing.ts)
+const CARD_FEE = 10;
+const TOPUP_RATE = 0.035;
+const PRICING_MIN = 5;
+const PRICING_MAX = 5000;
+const MIN_CARD_COST_USDC = Math.round((PRICING_MIN + CARD_FEE + PRICING_MIN * TOPUP_RATE) * 100) / 100; // $15.18
 
 async function getUsdcBalance(publicKey: string): Promise<number> {
   try {
@@ -56,7 +61,7 @@ export interface ServerConfig {
   rpcUrl?: string;
 }
 
-const VALID_AMOUNTS = [10, 25, 50, 100, 200, 500] as const;
+
 
 export function createASGCardServer(config: ServerConfig): McpServer {
   const apiUrl = config.apiUrl ?? "https://api.asgcard.dev";
@@ -76,7 +81,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: "asgcard",
-    version: "0.3.0",
+    version: "0.3.3",
   });
 
   // ── Tool 0: get_wallet_status ─────────────────────────────
@@ -136,15 +141,18 @@ export function createASGCardServer(config: ServerConfig): McpServer {
     "Create a new virtual debit card. Pays on-chain with USDC via x402 protocol — fully autonomous, no human intervention needed. Returns card details (PAN, CVV, expiry) in the response.",
     {
       amount: z
-        .enum(["10", "25", "50", "100", "200", "500"])
-        .describe("Card load amount in USD ($5–$5,000)"),
+        .string()
+        .describe("Card load amount in USD. Any amount from $5 to $5,000."),
       nameOnCard: z.string().min(1).describe("Name to print on the virtual card"),
       email: z.string().email().describe("Email address for card notifications"),
       phone: z.string().min(1).describe("Phone number for cardholder registration, e.g. +1234567890"),
     },
     async ({ amount, nameOnCard, email, phone }) => {
       try {
-        const numericAmount = Number(amount) as (typeof VALID_AMOUNTS)[number];
+        const numericAmount = Number(amount);
+        if (!Number.isFinite(numericAmount) || numericAmount < PRICING_MIN || numericAmount > PRICING_MAX) {
+          return remediationError("Invalid amount", `Amount must be between $${PRICING_MIN} and $${PRICING_MAX}`, "Use get_pricing to see valid amounts.");
+        }
         const result = await sdkClient.createCard({
           amount: numericAmount,
           nameOnCard,
@@ -181,13 +189,16 @@ export function createASGCardServer(config: ServerConfig): McpServer {
     "Fund an existing card with additional USDC. Pays on-chain via x402 protocol — fully autonomous.",
     {
       amount: z
-        .enum(["10", "25", "50", "100", "200", "500"])
-        .describe("Fund amount in USD ($5–$5,000)"),
+        .string()
+        .describe("Fund amount in USD. Any amount from $5 to $5,000."),
       cardId: z.string().min(1).describe("The card ID to fund"),
     },
     async ({ amount, cardId }) => {
       try {
-        const numericAmount = Number(amount) as (typeof VALID_AMOUNTS)[number];
+        const numericAmount = Number(amount);
+        if (!Number.isFinite(numericAmount) || numericAmount < PRICING_MIN || numericAmount > PRICING_MAX) {
+          return remediationError("Invalid amount", `Amount must be between $${PRICING_MIN} and $${PRICING_MAX}`, "Use get_pricing to see valid amounts.");
+        }
         const result = await sdkClient.fundCard({
           amount: numericAmount,
           cardId,

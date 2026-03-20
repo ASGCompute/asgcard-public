@@ -13,28 +13,26 @@ publicRouter.get("/health", (_req, res) => {
   });
 });
 
-publicRouter.get("/pricing", (_req, res) => {
-  res.json({
-    cardFee: CARD_FEE,
-    topUpPercent: Math.round(TOPUP_RATE * 1000) / 10,
-    minAmount: MIN_AMOUNT,
-    maxAmount: MAX_AMOUNT,
-    description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%.`,
-    endpoints: {
-      create: "POST /cards/create/tier/:amount",
-      fund: "POST /cards/fund/tier/:amount",
-    },
-  });
-});
-
-publicRouter.get("/cards/tiers", (_req, res) => {
-  res.json({
+function pricingPayload() {
+  return {
     cardFee: CARD_FEE,
     topUpPercent: Math.round(TOPUP_RATE * 1000) / 10,
     minAmount: MIN_AMOUNT,
     maxAmount: MAX_AMOUNT,
     description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%. Any amount $${MIN_AMOUNT}–$${MAX_AMOUNT}.`,
-  });
+    endpoints: {
+      create: "POST /cards/create/tier/:amount",
+      fund: "POST /cards/fund/tier/:amount",
+    },
+  };
+}
+
+publicRouter.get("/pricing", (_req, res) => {
+  res.json(pricingPayload());
+});
+
+publicRouter.get("/cards/tiers", (_req, res) => {
+  res.json(pricingPayload());
 });
 
 publicRouter.get("/supported", async (_req, res) => {

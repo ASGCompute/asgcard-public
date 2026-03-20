@@ -4,6 +4,7 @@ export interface PaymentContext {
   atomicAmount: string;
   amount: number;
   totalCostUsd: number;
+  paymentRail?: "stellar_x402" | "stripe_mpp";
 }
 
 export interface WalletContext {

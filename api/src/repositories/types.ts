@@ -12,6 +12,9 @@ export interface CreateCardInput {
     txHash: string;
     details: CardDetails;
     fourPaymentsId?: string;
+    paymentRail?: "stellar_x402" | "stripe_mpp";
+    paymentReference?: string;
+    issuerProvider?: string;
 }
 
 export interface CardRepository {

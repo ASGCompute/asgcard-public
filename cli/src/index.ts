@@ -44,11 +44,14 @@ const CONFIG_DIR = join(homedir(), ".asgcard");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 const WALLET_FILE = join(CONFIG_DIR, "wallet.json");
 const SKILL_DIR = join(homedir(), ".agents", "skills", "asgcard");
-const VERSION = "0.2.0";
+const VERSION = "0.3.3";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";
-const MIN_CARD_COST_USDC = 15.53; // $5 card: $5 + $10 + 3.5%
+// Pricing constants (must match api/src/config/pricing.ts)
+const CARD_FEE = 10;
+const TOPUP_RATE = 0.035;
+const MIN_CARD_COST_USDC = Math.round((5 + CARD_FEE + 5 * TOPUP_RATE) * 100) / 100; // $15.18
 
 // ── Config persistence ──────────────────────────────────────
 
@@ -706,7 +709,7 @@ If wallet has insufficient USDC:
 - All payments are in USDC on Stellar via x402 protocol
 - Card details are returned immediately on creation (agent-first model)
 - Wallet uses Stellar Ed25519 keypair — private key must stay local
-- Minimum card cost is ~$15.53 USDC (for $5 card + $10 issuance + 3.5%)
+- Minimum card cost is ~$${MIN_CARD_COST_USDC} USDC (for $5 card + $10 issuance + 3.5%)
 `;
         writeFileSync(join(SKILL_DIR, "SKILL.md"), skillContent);
         console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
@@ -1129,7 +1132,7 @@ program
       });
 
       const result = await client.createCard({
-        amount: Number(options.amount) as 10 | 25 | 50 | 100 | 200 | 500,
+        amount: Number(options.amount),
         nameOnCard: options.name,
         email: options.email,
         phone: options.phone,
@@ -1194,7 +1197,7 @@ program
       });
 
       const result = await client.fundCard({
-        amount: Number(options.amount) as 10 | 25 | 50 | 100 | 200 | 500,
+        amount: Number(options.amount),
         cardId: id,
       });
 

@@ -8,6 +8,10 @@
     {
       "source": "/api/health",
       "destination": "https://api.asgcard.dev/health"
+    },
+    {
+      "source": "/api/stripe-beta/:path*",
+      "destination": "https://api.asgcard.dev/stripe-beta/:path*"
     }
   ]
 }

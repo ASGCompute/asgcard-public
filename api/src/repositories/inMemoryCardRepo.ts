@@ -18,6 +18,9 @@ export class InMemoryCardRepository implements CardRepository {
             updatedAt: new Date().toISOString(),
             details: input.details,
             fourPaymentsId: input.fourPaymentsId,
+            paymentRail: input.paymentRail || "stellar_x402",
+            paymentReference: input.paymentReference,
+            issuerProvider: input.issuerProvider || "4payments",
         };
 
         this.cards.set(card.cardId, card);

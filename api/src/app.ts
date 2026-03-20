@@ -53,6 +53,13 @@ export const createApp = async () => {
     // Note: startup notification removed — fires on every Vercel cold start
   }
 
+  // ── Stripe MPP Beta (feature-flagged) ────────────────────
+  if (env.STRIPE_MPP_BETA_ENABLED === "true") {
+    const { stripeBetaRouter } = await import("./routes/stripeBeta");
+    app.use("/stripe-beta", stripeBetaRouter);
+    appLogger.info("[APP] Stripe MPP beta enabled → /stripe-beta/*");
+  }
+
   app.use((_req, res) => {
     res.status(404).json({ error: "Not Found" });
   });

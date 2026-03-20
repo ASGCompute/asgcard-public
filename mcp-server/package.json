@@ -1,6 +1,6 @@
 {
   "name": "@asgcard/mcp-server",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "MCP Server for ASG Card — give AI agents autonomous virtual card management via x402",
   "type": "module",
   "main": "dist/index.js",

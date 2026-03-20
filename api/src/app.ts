@@ -12,7 +12,13 @@ import { httpLogger, appLogger } from "./utils/logger";
 export const createApp = async () => {
   const app = express();
 
-  app.use(cors());
+  app.use(cors({
+    exposedHeaders: [
+      "WWW-Authenticate",   // MPP 402 challenge header
+      "X-Payment-Receipt",  // MPP 201 receipt header
+      "X-Request-Id",       // request tracing
+    ],
+  }));
   app.use(httpLogger);
 
   // Webhook route needs raw body for HMAC — mount BEFORE json parser

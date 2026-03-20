@@ -1,0 +1,81 @@
+# ASG Card — Agent Configuration
+# https://asgcard.dev/agent.txt
+
+name: ASG Card
+description: Virtual MasterCard cards for AI agents, powered by x402 on Stellar
+url: https://asgcard.dev
+api: https://api.asgcard.dev
+docs: https://asgcard.dev/docs.md
+
+# Authentication
+auth: stellar-wallet
+auth_method: Ed25519 signature (Stellar keypair)
+key_storage: ~/.asgcard/wallet.json (auto-resolved by MCP server)
+no_api_keys: true
+
+# Packages
+sdk: npm install @asgcard/sdk
+cli: npx @asgcard/cli
+mcp: npx @asgcard/mcp-server
+
+# Onboarding
+onboard_command: npx @asgcard/cli onboard -y
+install_codex: npx @asgcard/cli install --client codex
+install_claude: npx @asgcard/cli install --client claude
+install_cursor: npx @asgcard/cli install --client cursor
+
+# MCP Tools (9 total)
+mcp_tools:
+  - get_wallet_status: Check wallet address, USDC balance, and readiness (use FIRST)
+  - create_card: Create virtual MasterCard ($5–$5,000, pays USDC via x402)
+  - fund_card: Top up existing card
+  - list_cards: List all wallet cards
+  - get_card: Get card summary
+  - get_card_details: Get PAN, CVV, expiry (rate-limited 5/hr)
+  - freeze_card: Temporarily freeze card
+  - unfreeze_card: Re-enable frozen card
+  - get_pricing: View pricing (card $10, top-up 3.5%)
+
+# Recommended Agent Flow
+agent_flow:
+  1. get_wallet_status → verify wallet is funded
+  2. get_pricing → see pricing
+  3. create_card → issue virtual card
+  4. list_cards / get_card → manage cards
+  5. fund_card → top up when needed
+
+# API Endpoints (base: https://api.asgcard.dev)
+endpoints:
+  public:
+    - GET /health
+    - GET /pricing
+    - GET /cards/tiers
+    - GET /supported
+  paid_x402:
+    - POST /cards/create/tier/:amount ($5–$5,000)
+    - POST /cards/fund/tier/:amount ($5–$5,000)
+  wallet_signed:
+    - GET /cards
+    - GET /cards/:cardId
+    - GET /cards/:cardId/details
+    - POST /cards/:cardId/freeze
+    - POST /cards/:cardId/unfreeze
+
+# Pricing
+pricing:
+  card_issuance: $10 (one-time)
+  top_up_fee: 3.5%
+  amount_range: $5–$5,000
+  example_create: Load $100 → $113.50 USDC total
+  example_fund: Top up $200 → $207 USDC
+
+# Payment
+payment_protocol: x402
+payment_network: stellar:pubnet
+payment_currency: USDC
+payment_fees: sponsored (zero gas cost)
+
+# Support
+discord: https://discord.gg/asgcompute
+github: https://github.com/asgcompute/asgcard
+email: support@asgcompute.dev

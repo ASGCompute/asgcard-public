@@ -44,7 +44,7 @@ const CONFIG_DIR = join(homedir(), ".asgcard");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 const WALLET_FILE = join(CONFIG_DIR, "wallet.json");
 const SKILL_DIR = join(homedir(), ".agents", "skills", "asgcard");
-const VERSION = "0.3.3";
+const VERSION = "0.5.0";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";

@@ -40,7 +40,7 @@ function getStripe(): Stripe {
     if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
     stripeClient = new Stripe(key, {
       apiVersion: "2025-03-31.basil" as Stripe.LatestApiVersion,
-      appInfo: { name: "asgcard", version: "0.3.3" },
+      appInfo: { name: "asgcard", version: "0.5.0" },
     });
   }
   return stripeClient;

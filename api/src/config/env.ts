@@ -82,7 +82,8 @@ const envSchema = z.object({
   STRIPE_MPP_BETA_ENABLED: z.enum(["true", "false"]).default("false"),
   STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses
   STRIPE_SECRET_KEY: z.string().optional(),       // sk_live_... or sk_test_...
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),   // whsec_...
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),   // pk_live_... or pk_test_...
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),    // whsec_... (P1: not wired yet)
 });
 
 // ── Fail-fast startup validation ──────────────────────────

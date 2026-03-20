@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import crypto from "node:crypto";
 import { StrKey } from "@stellar/stellar-sdk";
 import nacl from "tweetnacl";
 import { query } from "../db/db";
@@ -43,6 +44,35 @@ const decodeSignature = (signatureStr: string): Uint8Array => {
   throw new Error("Signature must be base64 (preferred) or base58 encoded");
 };
 
+/**
+ * Verify signature based on auth mode.
+ *
+ * - "raw" (default): CLI/MCP detached ed25519 sign of message bytes
+ * - "message": Freighter SEP-0043 signMessage — ed25519 sign of
+ *   SHA256("Stellar Signed Message:\n" + message)
+ */
+function verifySignature(
+  mode: string,
+  messageStr: string,
+  signature: Uint8Array,
+  pubkeyBytes: Uint8Array
+): boolean {
+  if (mode === "message") {
+    // Freighter SEP-0043: sign(SHA256(prefix + message))
+    const prefix = "Stellar Signed Message:\n";
+    const payload = Buffer.concat([
+      Buffer.from(prefix, "utf8"),
+      Buffer.from(messageStr, "utf8"),
+    ]);
+    const hash = crypto.createHash("sha256").update(payload).digest();
+    return nacl.sign.detached.verify(new Uint8Array(hash), signature, pubkeyBytes);
+  }
+
+  // Raw mode (CLI/SDK/MCP): sign(message_bytes) — no prefix, no hash
+  const message = new TextEncoder().encode(messageStr);
+  return nacl.sign.detached.verify(message, signature, pubkeyBytes);
+}
+
 export const requireWalletAuth: RequestHandler = (req, res, next) => {
   const address = req.header("X-WALLET-ADDRESS");
   const signatureEncoded = req.header("X-WALLET-SIGNATURE");
@@ -74,13 +104,10 @@ export const requireWalletAuth: RequestHandler = (req, res, next) => {
 
     const pubkeyBytes = StrKey.decodeEd25519PublicKey(address);
     const signature = decodeSignature(signatureEncoded);
-
-    // Dual-mode auth: "raw" (CLI/SDK/MCP default) or "message" (browser wallets)
-    // Both currently use the same message format + detached verify.
-    // The header signals browser context for future per-wallet adaptations.
     const authMode = req.header("X-WALLET-AUTH-MODE") || "raw";
-    const message = new TextEncoder().encode(`asgcard-auth:${timestamp}`);
-    const verified = nacl.sign.detached.verify(message, signature, pubkeyBytes);
+    const messageStr = `asgcard-auth:${timestamp}`;
+
+    const verified = verifySignature(authMode, messageStr, signature, pubkeyBytes);
 
     if (!verified) {
       res.status(401).json({ error: "Invalid wallet signature" });

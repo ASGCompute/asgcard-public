@@ -1,11 +1,12 @@
 /**
- * Stripe MPP Payment Middleware
+ * Stripe MPP Payment Middleware — Docs-Aligned
  *
- * Mirrors x402.ts pattern for Stripe Machine Payments Protocol:
- *   - No X-PAYMENT header → 402 with stripe_mpp challenge
- *   - Has X-PAYMENT header → validate SPT, create PaymentIntent, attach paymentContext
+ * Simplified 402 challenge + X-STRIPE-SPT credential flow.
  *
- * Usage: requireStripeMPPPayment("create") or requireStripeMPPPayment("fund")
+ * - No X-STRIPE-SPT header → 402 with payment requirements
+ * - Has X-STRIPE-SPT: spt_xxx → create PaymentIntent via SPT → attach paymentContext
+ *
+ * No custom protocol layer. No base64 credential parsing.
  */
 import type { Request, Response, NextFunction } from "express";
 import { env } from "../config/env";
@@ -14,46 +15,10 @@ import {
   calcFundingCost,
   isValidAmount,
 } from "../config/pricing";
-import {
-  parseSPTCredential,
-  createPaymentIntentFromSPT,
-} from "../services/stripeService";
+import { createPaymentIntentWithSPT } from "../services/stripeService";
 import { appLogger } from "../utils/logger";
 
 type StripePurpose = "create" | "fund";
-
-/**
- * Build a 402 challenge for Stripe MPP.
- * Returns payment requirements with scheme="stripe_mpp".
- */
-const buildStripeChallenge = (
-  req: Request,
-  amount: number,
-  totalCostUsd: number,
-  purpose: StripePurpose
-) => ({
-  x402Version: 2,
-  resource: {
-    url: `https://${req.get("host")}${req.originalUrl}`,
-    description:
-      purpose === "create"
-        ? `Create ASG Card with $${amount} load via Stripe`
-        : `Fund ASG Card with $${amount} via Stripe`,
-    mimeType: "application/json",
-  },
-  accepts: [
-    {
-      scheme: "stripe_mpp",
-      amount: Math.round(totalCostUsd * 100).toString(), // cents
-      currency: "usd",
-      maxTimeoutSeconds: 300,
-      extra: {
-        description: `ASG Card ${purpose}: $${amount} load`,
-        paymentRail: "stripe_mpp",
-      },
-    },
-  ],
-});
 
 export const requireStripeMPPPayment = (purpose: StripePurpose) => {
   return async (
@@ -61,7 +26,7 @@ export const requireStripeMPPPayment = (purpose: StripePurpose) => {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    // ── Extract amount from body or params ──
+    // ── Extract amount from body ──
     const amount =
       typeof req.body?.amount === "number"
         ? req.body.amount
@@ -80,38 +45,45 @@ export const requireStripeMPPPayment = (purpose: StripePurpose) => {
         : calcFundingCost(amount);
     const totalCostCents = Math.round(totalCostUsd * 100);
 
-    // ── Check for X-PAYMENT header ──
-    const paymentHeader =
-      req.header("X-PAYMENT") ?? req.header("X-Payment");
+    // ── Check for X-STRIPE-SPT header ──
+    const sptId = req.header("X-STRIPE-SPT");
 
-    if (!paymentHeader) {
-      // No credential — return 402 challenge
+    if (!sptId) {
+      // No SPT — return 402 with payment requirements
       appLogger.info(
-        { purpose, amount, totalCostUsd },
-        "[STRIPE-MPP] Returning 402 challenge"
+        { purpose, amount, totalCostCents },
+        "[STRIPE-MPP] Returning 402 payment required"
       );
-      res.status(402).json(buildStripeChallenge(req, amount, totalCostUsd, purpose));
-      return;
-    }
-
-    // ── Parse SPT credential ──
-    const spt = parseSPTCredential(paymentHeader);
-
-    if (!spt) {
-      res.status(401).json({
-        error: "Invalid X-PAYMENT header: expected Stripe MPP credential",
+      res.status(402).json({
+        status: 402,
+        paymentRequired: {
+          amount: totalCostCents,
+          currency: "usd",
+          description: purpose === "create"
+            ? `Create ASG Card with $${amount} load`
+            : `Fund ASG Card with $${amount}`,
+          stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || "",
+        },
       });
       return;
     }
 
-    // ── Create PaymentIntent from SPT ──
+    // ── Validate SPT ID format ──
+    if (!sptId.startsWith("spt_") || sptId.length < 10) {
+      res.status(400).json({
+        error: "Invalid X-STRIPE-SPT header: expected Stripe SPT ID (spt_xxx)",
+      });
+      return;
+    }
+
+    // ── Create PaymentIntent with SPT (docs-aligned) ──
     appLogger.info(
-      { purpose, amount, tokenPrefix: spt.token.substring(0, 8) },
-      "[STRIPE-MPP] Processing SPT credential"
+      { purpose, amount, sptPrefix: sptId.substring(0, 12) },
+      "[STRIPE-MPP] Processing SPT"
     );
 
-    const result = await createPaymentIntentFromSPT(
-      spt,
+    const result = await createPaymentIntentWithSPT(
+      sptId,
       totalCostCents,
       `ASG Card ${purpose}: $${amount} load`
     );
@@ -129,11 +101,6 @@ export const requireStripeMPPPayment = (purpose: StripePurpose) => {
     }
 
     // ── Success: attach payment context ──
-    appLogger.info(
-      { piId: result.paymentIntentId, amount, purpose },
-      "[STRIPE-MPP] Payment verified"
-    );
-
     req.paymentContext = {
       payer: req.walletContext?.address ?? "",
       txHash: result.paymentIntentId,

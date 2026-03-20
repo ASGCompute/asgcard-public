@@ -3,12 +3,12 @@
  *
  * POST /stripe-beta/create
  *
- * Flow (production MPP):
+ * Flow (docs-aligned MPP):
  *   1. Wallet auth (X-WALLET-ADDRESS, X-WALLET-SIGNATURE, X-WALLET-TIMESTAMP)
  *   2. Beta gate (feature flag + allowlist)
  *   3. Stripe MPP payment middleware:
- *      - No X-PAYMENT → 402 with stripe_mpp challenge
- *      - Has X-PAYMENT → validate SPT, create PaymentIntent, attach paymentContext
+ *      - No X-STRIPE-SPT → 402 with paymentRequired (amount, currency, publishableKey)
+ *      - Has X-STRIPE-SPT → create PaymentIntent via shared_payment_granted_token → paymentContext
  *   4. Create card via cardService
  *   5. Return card details
  */
@@ -38,7 +38,7 @@ stripeBetaRouter.use(requireStripeBeta);
  * Create a card via Stripe MPP beta flow.
  *
  * Body: { nameOnCard, email, phone?, amount }
- * Headers: X-PAYMENT (SPT credential, optional — triggers 402 if absent)
+ * Headers: X-STRIPE-SPT (SPT ID, optional — triggers 402 if absent)
  */
 stripeBetaRouter.post(
   "/create",

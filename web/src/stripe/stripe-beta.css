@@ -561,24 +561,39 @@ body {
   border-radius: 4px;
 }
 
-/* ── SPT Section ─────────────────────────────────────────────── */
-.sb-spt-section {
+/* ── Stripe Payment Section ──────────────────────────────────── */
+.sb-stripe-section {
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid var(--sb-border);
 }
 
-.sb-spt-section h3 {
+.sb-stripe-section h3 {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: var(--sb-warning);
+  color: var(--sb-stripe-purple-light);
 }
 
-.sb-spt-section p {
+.sb-stripe-section p {
   font-size: 14px;
   color: var(--sb-text-secondary);
   margin-bottom: 16px;
+}
+
+.sb-stripe-element {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  margin-bottom: 20px;
+  min-height: 60px;
+  transition: border-color 0.2s ease;
+}
+
+.sb-stripe-element:focus-within {
+  border-color: var(--sb-stripe-purple);
+  box-shadow: 0 0 0 3px var(--sb-stripe-purple-glow);
 }
 
 /* ── Error States ────────────────────────────────────────────── */

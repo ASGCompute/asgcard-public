@@ -2,9 +2,9 @@
  * ASG Card × Stripe Machine Payments — Beta Surface
  *
  * Entrypoint for stripe.asgcard.dev
- * 3-step onboarding flow:
- *   1. Connect Stellar wallet (Freighter)
- *   2. Submit card details → receive 402 challenge → input SPT → retry
+ * 3-step flow (docs-aligned):
+ *   1. Connect Stellar wallet (Freighter SEP-0043 signMessage)
+ *   2. Submit card details → receive 402 → Stripe.js payment → grant SPT → retry
  *   3. View card result
  */
 
@@ -19,19 +19,43 @@ interface WalletState {
   signMessage: (message: string) => Promise<string>;
 }
 
+interface PaymentRequired {
+  amount: number;       // cents
+  currency: string;
+  description: string;
+  stripePublishableKey: string;
+}
+
 interface CardResult {
   cardId: string;
   status: string;
   balance: number;
-  cardNumber?: string;
-  cvv?: string;
-  expiryMonth?: string;
-  expiryYear?: string;
 }
 
 // ── State ───────────────────────────────────────────────────────
 let wallet: WalletState | null = null;
-let currentStep = 0;
+let currentPaymentRequired: PaymentRequired | null = null;
+let stripeInstance: unknown = null;
+let stripeElements: unknown = null;
+
+// ── Stripe.js Types (loaded via CDN) ────────────────────────────
+declare const Stripe: (key: string) => {
+  elements: (opts?: Record<string, unknown>) => {
+    create: (type: string, opts?: Record<string, unknown>) => {
+      mount: (selector: string) => void;
+      unmount: () => void;
+    };
+    submit: () => Promise<{ error?: { message: string } }>;
+  };
+  createPaymentMethod: (opts: Record<string, unknown>) => Promise<{
+    paymentMethod?: { id: string };
+    error?: { message: string };
+  }>;
+  createToken: (type: string, opts: Record<string, unknown>) => Promise<{
+    token?: { id: string };
+    error?: { message: string };
+  }>;
+};
 
 // ── Analytics ───────────────────────────────────────────────────
 async function trackEvent(event: string) {
@@ -45,19 +69,30 @@ async function trackEvent(event: string) {
 }
 
 // ── Freighter Detection ─────────────────────────────────────────
-function getFreighter(): { requestAccess: () => Promise<string>; getPublicKey: () => Promise<string>; signMessage: (msg: string, opts: { networkPassphrase: string }) => Promise<string> } | null {
+interface FreighterAPI {
+  requestAccess: () => Promise<string>;
+  getPublicKey: () => Promise<string>;
+  signMessage: (msg: string, opts: { networkPassphrase: string }) => Promise<{ signedMessage: string; signerAddress: string }>;
+}
+
+function getFreighter(): FreighterAPI | null {
   const w = window as unknown as Record<string, unknown>;
-  if (w.freighterApi) return w.freighterApi as ReturnType<typeof getFreighter>;
-  if (w.freighter) return w.freighter as ReturnType<typeof getFreighter>;
+  if (w.freighterApi) return w.freighterApi as FreighterAPI;
+  if (w.freighter) return w.freighter as FreighterAPI;
   return null;
 }
 
-// ── Wallet Auth Headers ─────────────────────────────────────────
+// ── Wallet Auth Headers (Freighter SEP-0043) ────────────────────
 async function buildAuthHeaders(): Promise<Record<string, string>> {
   if (!wallet) throw new Error('Wallet not connected');
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const message = `asgcard-auth:${timestamp}`;
+
+  // Freighter signMessage applies SEP-0043:
+  // SHA256("Stellar Signed Message:\n" + message) then ed25519 sign
+  // Returns { signedMessage: base64 }
   const signature = await wallet.signMessage(message);
+
   return {
     'X-WALLET-ADDRESS': wallet.address,
     'X-WALLET-SIGNATURE': signature,
@@ -70,7 +105,6 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 function $(id: string): HTMLElement | null { return document.getElementById(id); }
 
 function setStep(step: number) {
-  currentStep = step;
   for (let i = 1; i <= 3; i++) {
     const el = $(`step-${i}`);
     if (el) {
@@ -78,8 +112,7 @@ function setStep(step: number) {
       el.classList.toggle('completed', i < step);
     }
   }
-  const indicators = document.querySelectorAll('.sb-step-indicator');
-  indicators.forEach((el, idx) => {
+  document.querySelectorAll('.sb-step-indicator').forEach((el, idx) => {
     el.classList.toggle('active', idx + 1 === step);
     el.classList.toggle('completed', idx + 1 < step);
   });
@@ -87,10 +120,7 @@ function setStep(step: number) {
 
 function showError(containerId: string, message: string) {
   const el = $(containerId);
-  if (el) {
-    el.innerHTML = `<div class="sb-error">${message}</div>`;
-    el.style.display = 'block';
-  }
+  if (el) { el.innerHTML = `<div class="sb-error">${message}</div>`; el.style.display = 'block'; }
 }
 
 function hideError(containerId: string) {
@@ -107,7 +137,6 @@ function render() {
     <div class="sb-glow"></div>
     <div class="sb-container">
 
-      <!-- Header -->
       <header class="sb-header sb-animate">
         <a href="/" class="sb-logo">
           <div class="sb-logo-icon">A</div>
@@ -116,7 +145,6 @@ function render() {
         <span class="sb-badge">Stripe Beta</span>
       </header>
 
-      <!-- Hero -->
       <section class="sb-hero sb-animate sb-animate-delay-1">
         <div class="sb-hero-eyebrow">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -128,13 +156,12 @@ function render() {
         <p>Same card product. Same wallet ownership. Different payment rail.</p>
       </section>
 
-      <!-- Step Indicators -->
       <div class="sb-progress sb-animate sb-animate-delay-2">
-        <div class="sb-step-indicator" id="ind-1"><span>1</span> Connect Wallet</div>
+        <div class="sb-step-indicator"><span>1</span> Connect Wallet</div>
         <div class="sb-step-divider"></div>
-        <div class="sb-step-indicator" id="ind-2"><span>2</span> Pay via Stripe</div>
+        <div class="sb-step-indicator"><span>2</span> Pay via Stripe</div>
         <div class="sb-step-divider"></div>
-        <div class="sb-step-indicator" id="ind-3"><span>3</span> Receive Card</div>
+        <div class="sb-step-indicator"><span>3</span> Receive Card</div>
       </div>
 
       <!-- Step 1: Wallet Connect -->
@@ -151,10 +178,10 @@ function render() {
         </button>
       </section>
 
-      <!-- Step 2: Card Details + Payment -->
+      <!-- Step 2: Card Details + Stripe Payment -->
       <section class="sb-step-panel" id="step-2">
         <h2>Create Your Card</h2>
-        <p>Enter card details and complete payment via Stripe MPP.</p>
+        <p>Enter card details and complete payment via Stripe.</p>
         <form id="card-form" class="sb-form">
           <div class="sb-field">
             <label for="f-amount">Amount ($)</label>
@@ -174,24 +201,21 @@ function render() {
           </div>
           <div id="error-2" style="display:none"></div>
           <button type="submit" class="sb-cta-btn" id="btn-submit">
-            Create Card
+            Continue to Payment
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </button>
         </form>
 
-        <!-- SPT Input (shown after 402) -->
-        <div id="spt-section" style="display:none" class="sb-spt-section">
-          <h3>Payment Required</h3>
-          <p id="spt-challenge-info"></p>
-          <div class="sb-field">
-            <label for="f-spt">Stripe Payment Token (SPT)</label>
-            <input type="text" id="f-spt" placeholder="Paste your SPT token here" />
-          </div>
-          <div id="error-spt" style="display:none"></div>
+        <!-- Stripe Payment Section (shown after 402) -->
+        <div id="stripe-payment-section" style="display:none" class="sb-stripe-section">
+          <h3>Complete Payment</h3>
+          <p id="payment-info"></p>
+          <div id="stripe-element-container" class="sb-stripe-element"></div>
+          <div id="error-payment" style="display:none"></div>
           <button class="sb-cta-btn" id="btn-pay">
-            Submit Payment
+            Pay & Create Card
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
@@ -205,7 +229,6 @@ function render() {
         <div id="card-result" class="sb-card-result"></div>
       </section>
 
-      <!-- Stellar Edition Link -->
       <section class="sb-stellar-link sb-animate sb-animate-delay-4">
         <h3>Looking for the Stellar edition?</h3>
         <p>The original ASG Card flow with x402 payments on Stellar is still fully available.</p>
@@ -217,7 +240,6 @@ function render() {
         </a>
       </section>
 
-      <!-- Disclaimer -->
       <footer class="sb-disclaimer sb-animate sb-animate-delay-5">
         <strong>Beta Disclaimer</strong> — This is a beta surface for testing
         Stripe Machine Payments Protocol integration with ASG Card.
@@ -230,17 +252,14 @@ function render() {
     </div>
   `;
 
-  // ── Wire events ──
   $('btn-connect')?.addEventListener('click', handleConnect);
   $('card-form')?.addEventListener('submit', handleCardSubmit);
-  $('btn-pay')?.addEventListener('click', handleSPTSubmit);
-
+  $('btn-pay')?.addEventListener('click', handleStripePayment);
   setStep(1);
 }
 
 // ── Step 1: Wallet Connect ──────────────────────────────────────
 
-// Saved form data for retry after SPT
 let savedFormData: { amount: number; nameOnCard: string; email: string; phone: string } | null = null;
 
 async function handleConnect() {
@@ -262,10 +281,10 @@ async function handleConnect() {
     wallet = {
       address: pubKey,
       signMessage: async (msg: string) => {
-        const signed = await freighter.signMessage(msg, {
+        const result = await freighter.signMessage(msg, {
           networkPassphrase: 'Public Global Stellar Network ; September 2015'
         });
-        return signed;
+        return result.signedMessage;
       }
     };
 
@@ -287,13 +306,13 @@ async function handleConnect() {
   }
 }
 
-// ── Step 2: Card Form Submit ────────────────────────────────────
+// ── Step 2a: Card Form Submit → 402 Challenge ───────────────────
 async function handleCardSubmit(e: Event) {
   e.preventDefault();
   if (!wallet) return;
   hideError('error-2');
 
-  const amount = Number((($('f-amount') as HTMLInputElement)?.value));
+  const amount = Number(($('f-amount') as HTMLInputElement)?.value);
   const nameOnCard = ($('f-name') as HTMLInputElement)?.value?.trim();
   const email = ($('f-email') as HTMLInputElement)?.value?.trim();
   const phone = ($('f-phone') as HTMLInputElement)?.value?.trim() || '';
@@ -311,32 +330,27 @@ async function handleCardSubmit(e: Event) {
   try {
     const authHeaders = await buildAuthHeaders();
 
+    // Request without SPT → expect 402
     const res = await fetch(`${API_BASE}/stripe-beta/create`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders,
-      },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ nameOnCard, email, phone: phone || undefined, amount }),
     });
 
     if (res.status === 402) {
-      // Show SPT input
-      const challenge = await res.json();
-      const accepts = challenge.accepts?.[0];
-      const info = $('spt-challenge-info');
-      if (info && accepts) {
-        const amountUsd = (Number(accepts.amount) / 100).toFixed(2);
-        info.textContent = `Payment of $${amountUsd} USD required via Stripe MPP. Paste your SPT token below.`;
-      }
-      const sptSection = $('spt-section');
-      if (sptSection) sptSection.style.display = 'block';
-      const form = $('card-form') as HTMLFormElement | null;
-      if (form) form.style.display = 'none';
+      const data = await res.json();
+      const pr = data.paymentRequired as PaymentRequired;
 
-      trackEvent('402_challenge_received');
+      if (!pr?.stripePublishableKey) {
+        showError('error-2', 'Server returned 402 but no Stripe key. Contact support.');
+        return;
+      }
+
+      currentPaymentRequired = pr;
+      initStripeElements(pr);
+      trackEvent('402_received');
     } else if (res.status === 201) {
-      // Direct success (shouldn't happen without SPT, but handle gracefully)
+      // Unexpected direct success — show it
       const data = await res.json();
       showCardResult(data);
     } else {
@@ -346,36 +360,94 @@ async function handleCardSubmit(e: Event) {
   } catch (err) {
     showError('error-2', `Request failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Create Card'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Continue to Payment'; }
   }
 }
 
-// ── Step 2b: SPT Submit ─────────────────────────────────────────
-async function handleSPTSubmit() {
-  if (!wallet || !savedFormData) return;
-  hideError('error-spt');
-
-  const sptToken = ($('f-spt') as HTMLInputElement)?.value?.trim();
-  if (!sptToken) {
-    showError('error-spt', 'Please enter your SPT token.');
+// ── Step 2b: Initialize Stripe.js Elements ──────────────────────
+function initStripeElements(pr: PaymentRequired) {
+  // Load Stripe.js if not already loaded
+  if (typeof Stripe === 'undefined') {
+    showError('error-2', 'Stripe.js not loaded. Please refresh the page.');
     return;
   }
+
+  stripeInstance = Stripe(pr.stripePublishableKey);
+  const stripe = stripeInstance as ReturnType<typeof Stripe>;
+  stripeElements = stripe.elements({
+    mode: 'payment',
+    amount: pr.amount,
+    currency: pr.currency,
+  });
+
+  const elements = stripeElements as ReturnType<ReturnType<typeof Stripe>['elements']>;
+  const paymentElement = elements.create('payment');
+  paymentElement.mount('#stripe-element-container');
+
+  // Show payment section, hide form
+  const form = $('card-form') as HTMLFormElement | null;
+  if (form) form.style.display = 'none';
+  const paymentSection = $('stripe-payment-section');
+  if (paymentSection) paymentSection.style.display = 'block';
+
+  const info = $('payment-info');
+  if (info) {
+    const amountUsd = (pr.amount / 100).toFixed(2);
+    info.textContent = `Payment of $${amountUsd} ${pr.currency.toUpperCase()} required for: ${pr.description}`;
+  }
+}
+
+// ── Step 2c: Complete Stripe Payment → Create SPT → Retry ───────
+async function handleStripePayment() {
+  if (!wallet || !savedFormData || !stripeInstance || !stripeElements || !currentPaymentRequired) return;
+  hideError('error-payment');
 
   const btn = $('btn-pay') as HTMLButtonElement | null;
   if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
 
   try {
+    const stripe = stripeInstance as ReturnType<typeof Stripe>;
+    const elements = stripeElements as ReturnType<ReturnType<typeof Stripe>['elements']>;
+
+    // 1. Submit the Stripe Elements form to validate
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      showError('error-payment', submitError.message);
+      return;
+    }
+
+    // 2. Create PaymentMethod from the Element
+    const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({
+      elements,
+    });
+
+    if (pmError || !paymentMethod) {
+      showError('error-payment', pmError?.message || 'Failed to create payment method');
+      return;
+    }
+
+    // 3. Create SharedPaymentToken granting our merchant access to this PM
+    //    In production, the SPT is created client-side via Stripe.js:
+    //    stripe.createToken('shared_payment_granted', { payment_method: pm.id, ... })
+    const { token, error: sptError } = await stripe.createToken('shared_payment_granted', {
+      payment_method: paymentMethod.id,
+      usage_limit: { amount: currentPaymentRequired.amount, currency: 'usd' },
+    });
+
+    if (sptError || !token) {
+      showError('error-payment', sptError?.message || 'Failed to create payment token');
+      return;
+    }
+
+    // 4. Retry the card creation request with the SPT
     const authHeaders = await buildAuthHeaders();
     const { amount, nameOnCard, email, phone } = savedFormData;
-
-    // Encode SPT as base64 JSON credential
-    const credential = btoa(JSON.stringify({ token: sptToken, amountCents: Math.round(amount * 100), currency: 'usd' }));
 
     const res = await fetch(`${API_BASE}/stripe-beta/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-PAYMENT': credential,
+        'X-STRIPE-SPT': token.id,
         ...authHeaders,
       },
       body: JSON.stringify({ nameOnCard, email, phone: phone || undefined, amount }),
@@ -387,12 +459,12 @@ async function handleSPTSubmit() {
       trackEvent('card_created');
     } else {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      showError('error-spt', err.error || `Payment failed: ${res.status}`);
+      showError('error-payment', err.error || `Payment failed: ${res.status}`);
     }
   } catch (err) {
-    showError('error-spt', `Payment failed: ${err instanceof Error ? err.message : String(err)}`);
+    showError('error-payment', `Payment failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit Payment'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Pay & Create Card'; }
   }
 }
 

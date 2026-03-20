@@ -393,3 +393,335 @@ body {
 .sb-animate-delay-3 { animation-delay: 0.3s; }
 .sb-animate-delay-4 { animation-delay: 0.4s; }
 .sb-animate-delay-5 { animation-delay: 0.5s; }
+
+/* ── Step Progress Indicators ────────────────────────────────── */
+.sb-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 40px;
+}
+
+.sb-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sb-text-muted);
+  padding: 8px 16px;
+  border-radius: 100px;
+  transition: all 0.3s ease;
+}
+
+.sb-step-indicator span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--sb-border);
+  transition: all 0.3s ease;
+}
+
+.sb-step-indicator.active {
+  color: var(--sb-text);
+}
+
+.sb-step-indicator.active span {
+  background: var(--sb-stripe-gradient);
+  border-color: transparent;
+  color: white;
+}
+
+.sb-step-indicator.completed {
+  color: var(--sb-success);
+}
+
+.sb-step-indicator.completed span {
+  background: rgba(48, 209, 88, 0.15);
+  border-color: var(--sb-success);
+  color: var(--sb-success);
+}
+
+.sb-step-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--sb-border);
+  flex-shrink: 0;
+}
+
+/* ── Step Panels ─────────────────────────────────────────────── */
+.sb-step-panel {
+  display: none;
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius);
+  padding: 40px 32px;
+  margin-bottom: 40px;
+  animation: sb-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.sb-step-panel.active {
+  display: block;
+}
+
+.sb-step-panel h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.sb-step-panel > p {
+  color: var(--sb-text-secondary);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+/* ── Forms ────────────────────────────────────────────────────── */
+.sb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sb-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sb-field input {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-sm);
+  color: var(--sb-text);
+  font-size: 15px;
+  font-family: var(--sb-font);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.sb-field input:focus {
+  border-color: var(--sb-stripe-purple);
+  box-shadow: 0 0 0 3px var(--sb-stripe-purple-glow);
+}
+
+.sb-field input::placeholder {
+  color: var(--sb-text-muted);
+}
+
+/* ── Wallet Status ───────────────────────────────────────────── */
+.sb-wallet-connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(48, 209, 88, 0.08);
+  border: 1px solid rgba(48, 209, 88, 0.2);
+  border-radius: var(--sb-radius-sm);
+  font-size: 14px;
+  color: var(--sb-success);
+  margin-bottom: 20px;
+}
+
+.sb-wallet-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sb-success);
+  animation: sb-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sb-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.sb-wallet-connected code {
+  font-family: var(--sb-mono);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── SPT Section ─────────────────────────────────────────────── */
+.sb-spt-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--sb-border);
+}
+
+.sb-spt-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--sb-warning);
+}
+
+.sb-spt-section p {
+  font-size: 14px;
+  color: var(--sb-text-secondary);
+  margin-bottom: 16px;
+}
+
+/* ── Error States ────────────────────────────────────────────── */
+.sb-error {
+  padding: 12px 16px;
+  background: rgba(255, 69, 58, 0.08);
+  border: 1px solid rgba(255, 69, 58, 0.2);
+  border-radius: var(--sb-radius-sm);
+  color: #ff453a;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.sb-error a {
+  color: #ff7a73;
+  text-decoration: underline;
+}
+
+/* ── Card Result Display ─────────────────────────────────────── */
+.sb-card-display {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sb-card-vis {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #0d0d1a 100%);
+  border: 1px solid rgba(99, 91, 255, 0.3);
+  border-radius: 16px;
+  padding: 32px 28px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.sb-card-vis::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(99, 91, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sb-card-chip {
+  width: 44px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #d4af37 0%, #c5a028 50%, #d4af37 100%);
+  margin-bottom: 24px;
+}
+
+.sb-card-pan {
+  font-family: var(--sb-mono);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sb-card-meta {
+  display: flex;
+  gap: 32px;
+  font-size: 14px;
+}
+
+.sb-card-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sb-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sb-card-badge {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.02em;
+}
+
+.sb-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.sb-card-info code {
+  font-family: var(--sb-mono);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sb-card-warning {
+  padding: 12px 16px;
+  background: rgba(255, 159, 10, 0.08);
+  border: 1px solid rgba(255, 159, 10, 0.2);
+  border-radius: var(--sb-radius-sm);
+  color: var(--sb-warning);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Button States ───────────────────────────────────────────── */
+.sb-cta-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sb-progress {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sb-step-divider {
+    display: none;
+  }
+  .sb-step-panel {
+    padding: 28px 20px;
+  }
+  .sb-card-pan {
+    font-size: 18px;
+  }
+}
+

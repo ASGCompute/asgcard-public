@@ -74,6 +74,11 @@ export const requireWalletAuth: RequestHandler = (req, res, next) => {
 
     const pubkeyBytes = StrKey.decodeEd25519PublicKey(address);
     const signature = decodeSignature(signatureEncoded);
+
+    // Dual-mode auth: "raw" (CLI/SDK/MCP default) or "message" (browser wallets)
+    // Both currently use the same message format + detached verify.
+    // The header signals browser context for future per-wallet adaptations.
+    const authMode = req.header("X-WALLET-AUTH-MODE") || "raw";
     const message = new TextEncoder().encode(`asgcard-auth:${timestamp}`);
     const verified = nacl.sign.detached.verify(message, signature, pubkeyBytes);
 

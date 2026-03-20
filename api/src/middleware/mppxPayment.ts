@@ -15,6 +15,7 @@ import {
   calcCreationCost,
   calcFundingCost,
   isValidAmount,
+  isValidCreateAmount,
 } from "../config/pricing";
 import {
   createChallenge,
@@ -63,10 +64,14 @@ export const requireMppxPayment = (purpose: StripePurpose) => {
         ? req.body.amount
         : Number(req.params.amount);
 
-    if (!isValidAmount(amount)) {
+    const amountValidator = purpose === "create" ? isValidCreateAmount : isValidAmount;
+    if (!amountValidator(amount)) {
+      const msg = purpose === "create"
+        ? "Invalid amount. Must be 0 (card-only) or between $5 and $5,000."
+        : "Invalid amount. Must be between $5 and $5,000.";
       res
         .status(400)
-        .json({ error: "Invalid amount. Must be between $5 and $5,000." });
+        .json({ error: msg });
       return;
     }
 
@@ -88,7 +93,7 @@ export const requireMppxPayment = (purpose: StripePurpose) => {
         },
         description:
           purpose === "create"
-            ? `Create ASG Card with $${amount} load`
+            ? (amount > 0 ? `Create ASG Card with $${amount} load` : `Create ASG Card ($10 issuance)`)
             : `Fund ASG Card with $${amount}`,
       },
       secretKey

@@ -51,7 +51,7 @@ const HORIZON_URL = "https://horizon.stellar.org";
 // Pricing constants (must match api/src/config/pricing.ts)
 const CARD_FEE = 10;
 const TOPUP_RATE = 0.035;
-const MIN_CARD_COST_USDC = Math.round((5 + CARD_FEE + 5 * TOPUP_RATE) * 100) / 100; // $15.18
+const MIN_CREATE_COST = CARD_FEE; // $10 flat card creation (initial load optional)
 
 // ── Config persistence ──────────────────────────────────────
 
@@ -246,7 +246,7 @@ walletCmd
     console.log(chalk.dim("   Saved to:   ") + chalk.dim(WALLET_FILE));
     console.log();
     console.log(chalk.bold("⚡ Next steps:\n"));
-    console.log(chalk.dim("   1. Fund your wallet with at least ") + chalk.green(`$${MIN_CARD_COST_USDC} USDC`) + chalk.dim(" on Stellar"));
+    console.log(chalk.dim("   1. Fund your wallet with at least ") + chalk.green(`$${MIN_CREATE_COST} USDC`) + chalk.dim(" on Stellar"));
     console.log(chalk.dim("      Send USDC to: ") + chalk.cyan(kp.publicKey()));
     console.log(chalk.dim("   2. Check your balance: ") + chalk.cyan("asgcard wallet info"));
     console.log(chalk.dim("   3. Create your first card: ") + chalk.cyan("asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890"));
@@ -344,11 +344,12 @@ walletCmd
       if (balance === -1) {
         console.log(chalk.dim("   USDC Balance:   ") + chalk.yellow("Could not fetch (Horizon API error)"));
       } else {
-        const balanceColor = balance >= MIN_CARD_COST_USDC ? chalk.green : chalk.red;
-        console.log(chalk.dim("   USDC Balance:   ") + balanceColor(`$${balance.toFixed(2)}`));
+        const balanceColor = balance >= MIN_CREATE_COST ? chalk.green : chalk.red;
+        console.log(chalk.dim("   USDC Balance:  ") + balanceColor(`$${balance.toFixed(2)} USDC`));
+        console.log();
       }
 
-      console.log(chalk.dim("   Min Required:   ") + chalk.dim(`$${MIN_CARD_COST_USDC} USDC (for $5 card + $10 issuance + 3.5%)`));
+      console.log(chalk.dim("   Min Required:   ") + chalk.dim(`$${MIN_CREATE_COST} USDC (card creation fee, initial load optional)`));
       console.log();
 
       if (!funded) {
@@ -356,9 +357,10 @@ walletCmd
         console.log(chalk.dim("   To activate your account, send at least 1 XLM + USDC to:"));
         console.log(chalk.cyan(`   ${pubKey}`));
         console.log(chalk.dim("\n   Then add a USDC trustline and deposit USDC."));
-      } else if (balance < MIN_CARD_COST_USDC) {
+      } else if (balance < MIN_CREATE_COST) {
         console.log(chalk.yellow("⚠ Insufficient USDC for card creation.\n"));
-        console.log(chalk.dim("   Deposit at least ") + chalk.green(`$${MIN_CARD_COST_USDC} USDC`) + chalk.dim(" to your wallet:"));
+        console.log();
+        console.log(chalk.dim("   Deposit at least ") + chalk.green(`$${MIN_CREATE_COST} USDC`) + chalk.dim(" to your wallet:"));
         console.log(chalk.cyan(`   ${pubKey}`));
         console.log(chalk.dim("\n   USDC on Stellar: ") + chalk.dim("asset code USDC, issuer " + USDC_ISSUER.slice(0, 8) + "..."));
       } else {
@@ -709,7 +711,7 @@ If wallet has insufficient USDC:
 - All payments are in USDC on Stellar via x402 protocol
 - Card details are returned immediately on creation (agent-first model)
 - Wallet uses Stellar Ed25519 keypair — private key must stay local
-- Minimum card cost is ~$${MIN_CARD_COST_USDC} USDC (for $5 card + $10 issuance + 3.5%)
+- Card creation costs $${MIN_CREATE_COST} USDC (flat fee, initial load optional)
 `;
         writeFileSync(join(SKILL_DIR, "SKILL.md"), skillContent);
         console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
@@ -740,12 +742,12 @@ If wallet has insufficient USDC:
       if (balance === -1) {
         console.log(chalk.yellow("  ⚠ Could not check balance (Horizon API error)"));
         console.log(chalk.dim("     Check manually: ") + chalk.cyan("asgcard wallet info"));
-      } else if (balance >= MIN_CARD_COST_USDC) {
+      } else if (balance >= MIN_CREATE_COST) {
         console.log(chalk.green("  ✅ Wallet funded!") + chalk.dim(` Balance: $${balance.toFixed(2)} USDC`));
         console.log(chalk.bold("\n  🎉 Ready! Create your first card:\n"));
         console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890\n"));
       } else {
-        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CARD_COST_USDC} for minimum card)`));
+        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CREATE_COST} for card creation)`));
         console.log(chalk.bold("\n  📥 Next step: Fund your wallet\n"));
         console.log(chalk.dim("     Send USDC on Stellar to:"));
         console.log(chalk.cyan(`     ${kp.publicKey()}\n`));
@@ -872,10 +874,10 @@ program
         const balance = await getUsdcBalance(kp.publicKey());
         if (balance === -1) {
           console.log(chalk.dim("  USDC Balance:     ") + chalk.yellow("⚠ Could not fetch"));
-        } else if (balance >= MIN_CARD_COST_USDC) {
+        } else if (balance >= MIN_CREATE_COST) {
           console.log(chalk.dim("  USDC Balance:     ") + chalk.green(`✅ $${balance.toFixed(2)}`));
         } else {
-          console.log(chalk.dim("  USDC Balance:     ") + chalk.red(`❌ $${balance.toFixed(2)} (need $${MIN_CARD_COST_USDC} for $5 min card)`));
+          console.log(chalk.dim("  USDC Balance:     ") + chalk.red(`❌ $${balance.toFixed(2)} (need $${MIN_CREATE_COST} for card creation)`));
           allGood = false;
         }
       } catch {

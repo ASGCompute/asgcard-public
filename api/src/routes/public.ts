@@ -19,7 +19,8 @@ function pricingPayload() {
     topUpPercent: Math.round(TOPUP_RATE * 1000) / 10,
     minAmount: MIN_AMOUNT,
     maxAmount: MAX_AMOUNT,
-    description: `Card issuance $${CARD_FEE}. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}%. Any amount $${MIN_AMOUNT}–$${MAX_AMOUNT}.`,
+    initialLoadOptional: true,
+    description: `Card creation $${CARD_FEE} flat. Initial load optional. Top-up fee ${(TOPUP_RATE * 100).toFixed(1)}% on any load $${MIN_AMOUNT}–$${MAX_AMOUNT}.`,
     endpoints: {
       create: "POST /cards/create/tier/:amount",
       fund: "POST /cards/fund/tier/:amount",

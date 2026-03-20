@@ -52,7 +52,7 @@ endpoints:
     - GET /cards/tiers
     - GET /supported
   paid_x402:
-    - POST /cards/create/tier/:amount ($5–$5,000)
+    - POST /cards/create/tier/:amount (0 = card-only, or $5–$5,000 with load)
     - POST /cards/fund/tier/:amount ($5–$5,000)
   wallet_signed:
     - GET /cards
@@ -74,7 +74,7 @@ endpoints:
 
 # Pricing (same on both rails)
 pricing:
-  card_issuance: $10 (one-time)
+  card_creation: $10 flat (initial load optional)
   top_up_fee: 3.5%
   amount_range: $5–$5,000
   example_create: Load $100 → $113.50 total

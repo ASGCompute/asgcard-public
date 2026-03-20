@@ -151,12 +151,12 @@ npx @asgcard/cli install --client codex    # or claude, cursor
 
 **Simple, transparent, no hidden fees.**
 
-- **$10** one-time card issuance
+- **$10** flat card creation (no initial load required)
 - **3.5%** on every top-up
 
 That's it. Load any amount from $5 to $5,000.
 
-> Load $100 onto a new card → **$113.50** total. Top up $200 later → just **$207**.
+> Create card with no load → **$10**. Create card loaded with $100 → **$113.50**. Top up $200 later → just **$207**.
 > Same pricing on both Stellar and Stripe rails.
 
 ## API Endpoints

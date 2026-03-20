@@ -92,15 +92,19 @@ class CardService {
     // Step 1: Issue card via 4payments
     let fpCard: FPCardIssued;
     try {
-      fpCard = await fp.issueCard({
+      const issueParams: Parameters<typeof fp.issueCard>[0] = {
         externalId,
         firstName,
         lastName,
         email: profileEmail,
         phone: profilePhone,
         label: `ASG ${input.nameOnCard}`.slice(0, 50),
-        initialBalance: input.initialAmountUsd,
-      });
+      };
+      // Only set initialBalance when loading funds
+      if (input.initialAmountUsd > 0) {
+        issueParams.initialBalance = input.initialAmountUsd;
+      }
+      fpCard = await fp.issueCard(issueParams);
     } catch (error) {
       if (error instanceof FourPaymentsError) {
         console.error("[4payments] issueCard failed:", error.statusCode, error.responseBody);
@@ -110,7 +114,7 @@ class CardService {
     }
 
     // Step 2: Top up with initial amount (if card was issued without initialBalance)
-    if (fpCard.cardBalance < input.initialAmountUsd) {
+    if (input.initialAmountUsd > 0 && fpCard.cardBalance < input.initialAmountUsd) {
       try {
         await fp.topUpCard(fpCard.id, input.initialAmountUsd, externalId);
       } catch (error) {

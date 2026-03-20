@@ -804,14 +804,14 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-get">GET</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/pricing</code>
         </div>
-        <p>Returns current pricing: $10 card issuance, 3.5% top-up fee.</p>
+        <p>Returns current pricing: $10 flat card creation, 3.5% on loads. Initial load optional.</p>
         <strong>Response 200:</strong>
         ${codeBlock(`{
   "cardFee": 10,
   "topUpPercent": 3.5,
   "minAmount": 5,
   "maxAmount": 5000,
-  "description": "$10 card issuance + 3.5% top-up fee"
+  "description": "$10 flat card creation. Initial load optional. 3.5% on loads."
 }`, 'json')}
       </div>
 
@@ -827,7 +827,7 @@ function renderEndpoints(): string {
   "topUpPercent": 3.5,
   "minAmount": 5,
   "maxAmount": 5000,
-  "description": "$10 card issuance + 3.5% top-up fee"
+  "description": "$10 flat card creation. Initial load optional. 3.5% on loads."
 }`, 'json')}
       </div>
 
@@ -841,7 +841,7 @@ function renderEndpoints(): string {
           <span class="docs-badge docs-badge-post">POST</span>
           <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/cards/create/tier/:amount</code>
         </div>
-        <p>Create a new virtual card loaded with the specified amount ($5–$5,000). Cost = $10 card fee + 3.5% of amount.</p>
+        <p>Create a new virtual card. Amount 0 = card-only ($10 flat fee). Amount $5–$5,000 = card with initial load ($10 + amount + 3.5%).</p>
         <p><strong>Amount range:</strong> <code>$5</code> – <code>$5,000</code></p>
         <strong>Request body:</strong>
         <div class="docs-table-wrap">

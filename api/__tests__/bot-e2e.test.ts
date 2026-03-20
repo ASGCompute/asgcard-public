@@ -22,6 +22,45 @@ vi.mock("../src/utils/crypto", () => ({
     parseEncryptionKey: vi.fn(() => Buffer.alloc(32)),
 }));
 
+// Mock 4payments client — prevents real API calls
+vi.mock("../src/services/fourPaymentsClient", () => {
+    class MockFourPaymentsError extends Error {
+        statusCode: number;
+        responseBody: string;
+        constructor(statusCode: number, body: string) {
+            super(`4payments API error: ${statusCode} — ${body}`);
+            this.statusCode = statusCode;
+            this.responseBody = body;
+        }
+    }
+    const mockClient = {
+        issueCard: vi.fn(async (params: any) => ({
+            id: `fp_card_${Date.now()}`,
+            status: "active",
+            cardBalance: params.initialBalance ?? 0,
+            externalId: params.externalId,
+            cardNumber: "4111111111111111",
+            cardCVC: "123",
+            cardExpire: "12/2029",
+            last4: "1111",
+            brand: "mastercard",
+        })),
+        topUpCard: vi.fn(async () => ({ success: true })),
+        getSensitiveInfo: vi.fn(async () => ({
+            cardNumber: "4111111111111111",
+            cvv: "123",
+            expiryMonth: 12,
+            expiryYear: 2029,
+        })),
+        freezeCard: vi.fn(async () => ({ success: true })),
+        unfreezeCard: vi.fn(async () => ({ success: true })),
+    };
+    return {
+        getFourPaymentsClient: vi.fn(() => mockClient),
+        FourPaymentsError: MockFourPaymentsError,
+    };
+});
+
 // Mock DB layer
 const mockQueryResults: Record<string, unknown[]> = {};
 
@@ -454,8 +493,9 @@ describe("6. REALIGN: Agent-first details access & owner revocation", () => {
             walletAddress: "G_AGENT_WALLET",
             nameOnCard: "AI Agent",
             email: "agent@asg.dev",
+            phone: "+15551234567",
             initialAmountUsd: 25,
-            tierAmount: 25,
+            amount: 25,
             chargedUsd: 26,
             txHash: "tx123"
         });
@@ -512,8 +552,9 @@ describe("6. REALIGN: Agent-first details access & owner revocation", () => {
             walletAddress: "G_OWNER",
             nameOnCard: "AI Agent",
             email: "agent@asg.dev",
+            phone: "+15551234567",
             initialAmountUsd: 25,
-            tierAmount: 25,
+            amount: 25,
             chargedUsd: 26,
             txHash: "tx123"
         });

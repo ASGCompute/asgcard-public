@@ -57,7 +57,7 @@ asgcard install --client cursor     # Cursor
 ### 2. Fund your wallet
 
 Send USDC on Stellar to the public key shown by `onboard`.
-Minimum: ~$15.53 USDC (for $5 card + $10 issuance + 3.5%).
+Minimum: $10 USDC (card creation fee). Initial card load is optional.
 
 ### 3. Create your first card
 
@@ -82,7 +82,7 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `card:fund <id>` | Yes | Fund existing card (x402 payment) |
 | `card:freeze <id>` | Yes | Freeze a card |
 | `card:unfreeze <id>` | Yes | Unfreeze a card |
-| `pricing` | No | View pricing (card $10, top-up 3.5%) |
+| `pricing` | No | View pricing ($10 card creation, 3.5% on loads) |
 | `health` | No | API health check |
 
 ## MCP Server Tools (11)
@@ -99,7 +99,7 @@ The MCP server reads your key from `~/.asgcard/wallet.json` automatically.
 | `get_card_details` | Get PAN, CVV, expiry (rate-limited 5/hour) |
 | `freeze_card` | Temporarily freeze card |
 | `unfreeze_card` | Re-enable frozen card |
-| `get_pricing` | View pricing (card $10, top-up 3.5%) |
+| `get_pricing` | View pricing ($10 card creation, 3.5% on loads) |
 | `get_transactions` | Card transaction history |
 | `get_balance` | Live card balance |
 
@@ -120,7 +120,7 @@ Base URL: `https://api.asgcard.dev`
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| POST | `/cards/create/tier/:amount` | Create card ($5–$5,000) |
+| POST | `/cards/create/tier/:amount` | Create card (amount 0 = card-only, or $5–$5,000 with load) |
 | POST | `/cards/fund/tier/:amount` | Fund card ($5–$5,000) |
 
 ### Wallet Signed
@@ -152,12 +152,13 @@ Base URL: `https://api.asgcard.dev`
 
 **Simple, transparent, no hidden fees.**
 
-- **$10** one-time card issuance
-- **3.5%** on every top-up
+- **$10** one-time card creation (no initial load required)
+- **3.5%** on every load/top-up
 
 Load any amount from $5 to $5,000. Same pricing on both Stellar and Stripe rails.
 
-> Example: load $100 onto a new card → **$113.50** total.
+> Example: create card with no load → **$10**. Then top up $100 → **$103.50**.
+> Or: create card with $100 load → **$113.50** total.
 > Top up $200 later → just **$207**.
 
 Live pricing: `GET https://api.asgcard.dev/pricing`

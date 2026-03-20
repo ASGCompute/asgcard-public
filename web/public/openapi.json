@@ -64,7 +64,7 @@
         "tags": [
           "public"
         ],
-        "summary": "Get pricing ($10 card issuance + 3.5% top-up)",
+        "summary": "Get pricing ($10 flat card creation, 3.5% on loads)",
         "operationId": "getPricing",
         "responses": {
           "200": {
@@ -643,7 +643,7 @@
           "cardFee": {
             "type": "number",
             "example": 10,
-            "description": "One-time card issuance fee in USD"
+            "description": "One-time card creation fee in USD"
           },
           "topUpPercent": {
             "type": "number",
@@ -660,7 +660,7 @@
           },
           "description": {
             "type": "string",
-            "example": "$10 card issuance + 3.5% top-up fee"
+            "example": "$10 flat card creation. Initial load optional. 3.5% on loads."
           }
         }
       },

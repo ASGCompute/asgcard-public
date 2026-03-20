@@ -28,7 +28,7 @@ const CARD_FEE = 10;
 const TOPUP_RATE = 0.035;
 const PRICING_MIN = 5;
 const PRICING_MAX = 5000;
-const MIN_CARD_COST_USDC = Math.round((PRICING_MIN + CARD_FEE + PRICING_MIN * TOPUP_RATE) * 100) / 100; // $15.18
+const MIN_CREATE_COST = CARD_FEE; // $10 flat card creation (initial load optional)
 
 async function getUsdcBalance(publicKey: string): Promise<number> {
   try {
@@ -96,13 +96,13 @@ export function createASGCardServer(config: ServerConfig): McpServer {
         const publicKey = kp.publicKey();
         const balance = await getUsdcBalance(publicKey);
 
-        const isReady = balance >= MIN_CARD_COST_USDC;
+        const isReady = balance >= MIN_CREATE_COST;
 
         const status: Record<string, unknown> = {
           publicKey,
           network: "stellar:pubnet",
           usdcBalance: balance === -1 ? "error_fetching" : balance.toFixed(2),
-          minimumRequired: MIN_CARD_COST_USDC,
+          minimumRequired: MIN_CREATE_COST,
           readyForCardCreation: isReady,
           depositAddress: publicKey,
           usdcAsset: `USDC:${USDC_ISSUER}`,
@@ -112,7 +112,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           if (balance === -1) {
             status.nextStep = "Could not fetch balance from Stellar Horizon. Check network connectivity and try again.";
           } else if (balance === 0) {
-            status.nextStep = `Wallet has zero USDC. Send at least $${MIN_CARD_COST_USDC} USDC on Stellar to ${publicKey}. After funding, use create_card to issue your first virtual card.`;
+            status.nextStep = `Wallet has zero USDC. Send at least $${MIN_CREATE_COST} USDC on Stellar to ${publicKey}. After funding, use create_card to issue your first virtual card.`;
           } else {
             status.nextStep = `Current balance $${balance.toFixed(2)} is below minimum card cost. Send more USDC to ${publicKey}.`;
           }

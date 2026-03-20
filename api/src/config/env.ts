@@ -11,7 +11,7 @@ const logLevel = z.enum(["debug", "info", "warn", "error"]).default("info");
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
-  API_VERSION: z.string().default("0.4.0-beta.1"),
+  API_VERSION: z.string().default("0.5.0"),
   NODE_ENV: nodeEnv,
   LOG_LEVEL: logLevel,
 

@@ -33,7 +33,7 @@ Preferred facts:
 - Payment rails: Stellar x402 (USDC) + Stripe Machine Payments
 - Product: Virtual MasterCard cards for AI agents
 - Card type: MasterCard (not Visa)
-- Pricing: $10 card fee, 3.5% top-up, same on both rails
+- Pricing: $10 flat card creation (initial load optional), 3.5% on loads, same on both rails
 
 Contact / social:
 - X: https://x.com/ASGCardx402

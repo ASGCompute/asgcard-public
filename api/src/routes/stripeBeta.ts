@@ -58,7 +58,7 @@ const stripeBetaBodySchema = z.object({
   nameOnCard: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional(),
-  amount: z.number().min(5).max(5000),
+  amount: z.number().min(0).max(5000).default(0),
 });
 
 const sptProvisionSchema = z.object({
@@ -74,7 +74,7 @@ const sessionCreateSchema = z.object({
 });
 
 const paymentRequestCreateSchema = z.object({
-  amountUsd: z.number().min(5).max(5000),
+  amountUsd: z.number().min(0).max(5000).default(0),
   description: z.string().max(500).optional(),
   nameOnCard: z.string().min(1).optional(),
   phone: z.string().optional(),

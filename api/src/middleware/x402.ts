@@ -5,6 +5,7 @@ import {
   calcCreationCost,
   calcFundingCost,
   isValidAmount,
+  isValidCreateAmount,
   toAtomicUsdc
 } from "../config/pricing";
 import { paymentService } from "../services/paymentService";
@@ -114,8 +115,12 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
 
     const amount = Number(req.params.amount);
 
-    if (!isValidAmount(amount)) {
-      res.status(400).json({ error: "Invalid amount. Must be between $5 and $5,000." });
+    const amountValidator = purpose === "create" ? isValidCreateAmount : isValidAmount;
+    if (!amountValidator(amount)) {
+      const msg = purpose === "create"
+        ? "Invalid amount. Must be 0 (card-only) or between $5 and $5,000."
+        : "Invalid amount. Must be between $5 and $5,000.";
+      res.status(400).json({ error: msg });
       return;
     }
 
@@ -128,34 +133,37 @@ export const requireX402Payment = (purpose: PaidPurpose) => {
     // ── Issuer capacity precheck (before 402 challenge) ─────
     if (!paymentHeader) {
       const requiredIssuerAmount = amount; // the load/fund amount the issuer must cover
-      const balanceResult = await checkIssuerBalance(requiredIssuerAmount);
+      // Skip issuer balance check for card-only creation (no load to cover)
+      if (amount > 0) {
+        const balanceResult = await checkIssuerBalance(requiredIssuerAmount);
 
-      if (!balanceResult.sufficient) {
-        const metricType = balanceResult.error
-          ? "issuer_balance_check_failed" as const
-          : "issuer_insufficient_funds" as const;
+        if (!balanceResult.sufficient) {
+          const metricType = balanceResult.error
+            ? "issuer_balance_check_failed" as const
+            : "issuer_insufficient_funds" as const;
 
-        emitMetric({
-          eventType: metricType,
-          latencyMs: elapsed(),
-          metadata: {
-            purpose,
-            amount,
-            availableBalance: balanceResult.availableBalance ?? null,
-            requiredAmount: requiredIssuerAmount,
-            ...(balanceResult.error ? { error: balanceResult.error.substring(0, 200) } : {}),
-          },
-        });
-
-        res.status(503)
-          .set("Retry-After", "60")
-          .json({
-            error: "Service temporarily unavailable",
-            reason: "provider_capacity",
-            message: `The $${amount} amount is temporarily unavailable due to provider capacity. Please retry later.`,
-            retryAfter: 60,
+          emitMetric({
+            eventType: metricType,
+            latencyMs: elapsed(),
+            metadata: {
+              purpose,
+              amount,
+              availableBalance: balanceResult.availableBalance ?? null,
+              requiredAmount: requiredIssuerAmount,
+              ...(balanceResult.error ? { error: balanceResult.error.substring(0, 200) } : {}),
+            },
           });
-        return;
+
+          res.status(503)
+            .set("Retry-After", "60")
+            .json({
+              error: "Service temporarily unavailable",
+              reason: "provider_capacity",
+              message: `The $${amount} amount is temporarily unavailable due to provider capacity. Please retry later.`,
+              retryAfter: 60,
+            });
+          return;
+        }
       }
 
       // Issuer has capacity — issue standard 402 challenge

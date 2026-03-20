@@ -34,7 +34,7 @@ const FEATURES = [
   {
     icon: '⚡',
     title: 'Sub-Second Issuance',
-    description: 'Card details returned in the same HTTP response. No polling, no webhooks, no waiting.',
+    description: 'Via Stellar x402: card details returned in the same HTTP response. Via Stripe MPP: card created after owner approval.',
   },
   {
     icon: '🔐',
@@ -51,7 +51,7 @@ const FEATURES = [
 const STEPS = [
   { num: 1, title: 'Send a Request', desc: 'Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.', hint: 'POST /cards/create/tier/:amount' },
   { num: 2, title: 'Pay', desc: 'Via Stellar x402: auto-pay USDC on-chain. Via Stripe MPP: owner approves and pays via Stripe checkout. Same result.', hint: 'x402 → auto-pay · Stripe → owner approval' },
-  { num: 3, title: 'Receive Card Details', desc: 'Card number, CVV, expiry, and billing address returned instantly in the response body.', hint: '201 { cardNumber, cvv, expiry }' },
+  { num: 3, title: 'Receive Card Details', desc: 'Stellar x402: card number, CVV, expiry returned instantly in the response. Stripe MPP: card created after owner approves and pays.', hint: '201 { cardNumber, cvv, expiry }' },
   { num: 4, title: 'Start Spending', desc: 'Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.', hint: '/cards/:cardId/freeze · /cards/:cardId/unfreeze' },
 ]
 

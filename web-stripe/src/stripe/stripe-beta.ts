@@ -329,14 +329,22 @@ async function handleFormSubmit(e: Event) {
       }
 
       const body = await res.json().catch(() => ({}));
-      const amountCents = challenge.request
-        ? parseInt(String((challenge.request as unknown as Record<string, string>).amount ??
-            (typeof challenge.request === 'string' ? new URLSearchParams(challenge.request).get('amount') : '0')
-          ), 10)
-        : 0;
+
+      // challenge.request is { amount: "2500", currency: "usd" } (object, not URL string)
+      let amountCents = 0;
+      if (challenge.request && typeof challenge.request === 'object') {
+        amountCents = parseInt(String((challenge.request as Record<string, string>).amount || '0'), 10);
+      } else if (typeof challenge.request === 'string') {
+        // Fallback for URL-encoded format: amount=2500&currency=usd
+        const raw = new URLSearchParams(challenge.request).get('amount') || '0';
+        amountCents = parseInt(raw.replace(/"/g, ''), 10);
+      }
+      if (!amountCents && (body as Record<string, unknown>).amount) {
+        amountCents = Number((body as Record<string, unknown>).amount) || 0;
+      }
 
       currentChallenge = challenge;
-      currentChallengeAmountCents = amountCents || (body as Record<string, unknown>).amount as number || 0;
+      currentChallengeAmountCents = amountCents;
 
       await fetchPublishableKeyAndInitElements(challenge);
       trackEvent('402_challenge_received');

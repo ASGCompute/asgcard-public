@@ -80,10 +80,14 @@ const envSchema = z.object({
 
   // ── Stripe MPP Beta ──────────────────────────────────────
   STRIPE_MPP_BETA_ENABLED: z.enum(["true", "false"]).default("false"),
-  STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses
+  STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses (legacy)
   STRIPE_SECRET_KEY: z.string().optional(),       // sk_live_... or sk_test_...
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),   // pk_live_... or pk_test_...
   MPP_SECRET_KEY: z.string().optional(),           // HMAC key for MPP challenge binding
+
+  // ── Stripe Managed Identity ─────────────────────────────
+  STRIPE_SESSIONS_KEY: z.string().optional(),              // base64-encoded 32 bytes for session secret encryption
+  STRIPE_BETA_EMAIL_ALLOWLIST: z.string().optional(),      // comma-separated emails for beta enrollment
 });
 
 // ── Fail-fast startup validation ──────────────────────────

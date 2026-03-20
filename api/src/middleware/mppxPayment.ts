@@ -260,7 +260,7 @@ export const requireMppxPayment = (purpose: StripePurpose) => {
 
       // ── Success: attach payment context + receipt header ──
       req.paymentContext = {
-        payer: req.walletContext?.address ?? "",
+        payer: req.stripeSession?.managedWalletAddress ?? req.walletContext?.address ?? "",
         txHash: pi.id,
         atomicAmount: totalCostCents.toString(),
         amount,

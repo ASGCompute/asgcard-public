@@ -1,21 +1,23 @@
 /**
- * Stripe MPP Beta — Official MPP Contract Tests (beta ON)
+ * Stripe MPP Beta — Session-Auth MPP Contract Tests (beta ON)
  *
- * Tests the official Machine Payments Protocol (MPP) transport:
+ * Tests the managed-identity flow:
+ *   - Session creation via POST /stripe-beta/session
  *   - 402 with WWW-Authenticate: Payment <challenge>
+ *   - Session auth via X-STRIPE-SESSION header
  *   - Retry with Authorization: Payment <credential> containing SPT
  *   - HMAC-bound challenge verification
- *   - Freighter (SEP-0043) auth + MPP challenge
  *   - Happy path: valid credential → 201 card created
  */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
 import crypto from "node:crypto";
-import nacl from "tweetnacl";
-import { StrKey, Keypair } from "@stellar/stellar-sdk";
 
-// ── Mock env with beta enabled + MPP key ────────────────────────
+// NOTE: vi.mock factories are hoisted — cannot reference top-level variables.
+// Use hardcoded test values instead.
+
+// ── Mock env with beta enabled + MPP key + session key ──────────
 vi.mock("../src/config/env", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../src/config/env")>();
   return {
@@ -24,8 +26,11 @@ vi.mock("../src/config/env", async (importOriginal) => {
       STRIPE_MPP_BETA_ENABLED: "true",
       STRIPE_PUBLISHABLE_KEY: "pk_test_dummy_for_tests",
       STRIPE_SECRET_KEY: "sk_test_dummy_for_tests",
-      STRIPE_BETA_ALLOWLIST: "",  // empty = allow all
+      STRIPE_BETA_ALLOWLIST: "",  // empty = allow all wallets
+      STRIPE_BETA_EMAIL_ALLOWLIST: "",  // empty = allow all emails
       MPP_SECRET_KEY: "test-mpp-secret-key-for-hmac-challenges-32chars!",
+      // 32 random bytes base64 — hardcoded to avoid hoisting issues
+      STRIPE_SESSIONS_KEY: "dGVzdC1zZXNzaW9uLWtleS1mb3ItdW5pdC10ZXN0cyE=",
     },
   };
 });
@@ -60,6 +65,31 @@ vi.mock("stripe", () => {
     },
   };
 });
+
+// Mock sessionService — deterministic session creation
+// Deterministic session values for testing
+const mockSessionKey = "sk_sess_test_mock_key_abc123def456";
+const mockManagedWallet = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUV";
+
+vi.mock("../src/services/sessionService", () => ({
+  createSession: vi.fn().mockResolvedValue({
+    sessionId: "sess_test_" + Date.now(),
+    ownerId: "owner_test_" + Date.now(),
+    sessionKey: mockSessionKey,
+    managedWalletAddress: mockManagedWallet,
+  }),
+  validateSession: vi.fn().mockImplementation(async (key: string) => {
+    if (key === mockSessionKey) {
+      return {
+        sessionId: "sess_test_validated",
+        ownerId: "owner_test_validated",
+        email: "test@asgcard.dev",
+        managedWalletAddress: mockManagedWallet,
+      };
+    }
+    return null;
+  }),
+}));
 
 // Mock cardService — return a mock card without calling the real issuer
 vi.mock("../src/services/cardService", () => {
@@ -102,44 +132,6 @@ vi.mock("../src/services/cardService", () => {
 
 import { createApp } from "../src/app";
 
-// ── Test Helpers ────────────────────────────────────────────────
-
-const testKeypair = Keypair.random();
-const testPubKey = testKeypair.publicKey();
-
-function fullSecretKey(): Uint8Array {
-  const full = Buffer.alloc(64);
-  full.set(testKeypair.rawSecretKey(), 0);
-  full.set(StrKey.decodeEd25519PublicKey(testPubKey), 32);
-  return new Uint8Array(full);
-}
-
-function buildRawAuthHeaders(): Record<string, string> {
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const msg = `asgcard-auth:${timestamp}`;
-  const sig = nacl.sign.detached(new TextEncoder().encode(msg), fullSecretKey());
-  return {
-    "X-WALLET-ADDRESS": testPubKey,
-    "X-WALLET-SIGNATURE": Buffer.from(sig).toString("base64"),
-    "X-WALLET-TIMESTAMP": timestamp,
-  };
-}
-
-function buildFreighterAuthHeaders(): Record<string, string> {
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const msg = `asgcard-auth:${timestamp}`;
-  const prefix = "Stellar Signed Message:\n";
-  const payload = Buffer.concat([Buffer.from(prefix, "utf8"), Buffer.from(msg, "utf8")]);
-  const hash = crypto.createHash("sha256").update(payload).digest();
-  const sig = nacl.sign.detached(new Uint8Array(hash), fullSecretKey());
-  return {
-    "X-WALLET-ADDRESS": testPubKey,
-    "X-WALLET-SIGNATURE": Buffer.from(sig).toString("base64"),
-    "X-WALLET-TIMESTAMP": timestamp,
-    "X-WALLET-AUTH-MODE": "message",
-  };
-}
-
 // ── MPP credential builder (matches the protocol spec) ──────────
 
 interface MppChallengeWire {
@@ -178,31 +170,40 @@ let app: Express;
 beforeAll(async () => { app = await createApp(); });
 
 // ═════════════════════════════════════════════════════════════════
-// 1. Auth Gate
+// 1. Session Auth Gate
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — Auth", () => {
-  it("POST /stripe-beta/create without wallet auth → 401", async () => {
+describe("Stripe Beta ON — Session Auth", () => {
+  it("POST /stripe-beta/create without X-STRIPE-SESSION → 401", async () => {
     const res = await request(app)
       .post("/stripe-beta/create")
       .set("Content-Type", "application/json")
       .send({ nameOnCard: "Test", email: "t@t.com", amount: 25 });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe("Missing wallet authentication headers");
+    expect(res.body.error).toContain("STRIPE-SESSION");
+  });
+
+  it("POST /stripe-beta/create with invalid session → 401", async () => {
+    const res = await request(app)
+      .post("/stripe-beta/create")
+      .set("X-STRIPE-SESSION", "sk_sess_invalid_bogus_key")
+      .set("Content-Type", "application/json")
+      .send({ nameOnCard: "Test", email: "t@t.com", amount: 25 });
+
+    expect(res.status).toBe(401);
   });
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 2. Raw Auth → 402 Official MPP Challenge
+// 2. Session → 402 Official MPP Challenge
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — 402 Official MPP Challenge", () => {
-  it("POST with auth + no credential → 402 with WWW-Authenticate: Payment", async () => {
-    const headers = buildRawAuthHeaders();
+describe("Stripe Beta ON — 402 Official MPP Challenge (Session Auth)", () => {
+  it("POST with valid session + no credential → 402 with WWW-Authenticate: Payment", async () => {
     const res = await request(app)
       .post("/stripe-beta/create")
-      .set(headers)
+      .set("X-STRIPE-SESSION", mockSessionKey)
       .set("Content-Type", "application/json")
       .send({ nameOnCard: "Test Agent", email: "test@asgcard.dev", amount: 25 });
 
@@ -221,7 +222,7 @@ describe("Stripe Beta ON — 402 Official MPP Challenge", () => {
     expect(challenge!.method).toBe("stripe");
     expect(challenge!.intent).toBe("charge");
 
-    // Body is RFC 9457 Problem Details (not custom paymentRequired JSON)
+    // Body is RFC 9457 Problem Details
     expect(res.body.type).toBe("https://mpp.dev/errors/payment-required");
     expect(res.body.status).toBe(402);
     expect(res.body.challengeId).toBeDefined();
@@ -229,40 +230,14 @@ describe("Stripe Beta ON — 402 Official MPP Challenge", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 3. Freighter Auth (SEP-0043) → 402 MPP Challenge
-// ═════════════════════════════════════════════════════════════════
-
-describe("Stripe Beta ON — Freighter Auth → MPP Challenge", () => {
-  it("POST with Freighter signMessage auth + no credential → 402", async () => {
-    const headers = buildFreighterAuthHeaders();
-    const res = await request(app)
-      .post("/stripe-beta/create")
-      .set(headers)
-      .set("Content-Type", "application/json")
-      .send({ nameOnCard: "Browser User", email: "browser@asgcard.dev", amount: 50 });
-
-    expect(res.status).toBe(402);
-
-    const wwwAuth = res.headers["www-authenticate"];
-    expect(wwwAuth).toBeDefined();
-    expect(wwwAuth).toMatch(/^Payment\s+/i);
-
-    const challenge = parseMppChallenge(wwwAuth);
-    expect(challenge).not.toBeNull();
-    expect(challenge!.method).toBe("stripe");
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════
-// 4. Malformed Credential → 402
+// 3. Malformed Credential → 402
 // ═════════════════════════════════════════════════════════════════
 
 describe("Stripe Beta ON — Malformed Credential", () => {
   it("POST with invalid Authorization: Payment → 402 malformed", async () => {
-    const headers = buildRawAuthHeaders();
     const res = await request(app)
       .post("/stripe-beta/create")
-      .set(headers)
+      .set("X-STRIPE-SESSION", mockSessionKey)
       .set("Authorization", "Payment invalid_base64_garbage!!!")
       .set("Content-Type", "application/json")
       .send({ nameOnCard: "Test", email: "test@test.com", amount: 25 });
@@ -278,14 +253,11 @@ describe("Stripe Beta ON — Malformed Credential", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 5. Tampered Challenge (wrong HMAC) → 402
+// 4. Tampered Challenge (wrong HMAC) → 402
 // ═════════════════════════════════════════════════════════════════
 
 describe("Stripe Beta ON — Invalid HMAC", () => {
   it("POST with credential containing tampered challenge → 402", async () => {
-    const headers = buildRawAuthHeaders();
-
-    // Build a fake challenge with wrong HMAC ID
     const fakeChallenge: MppChallengeWire = {
       id: "fake_hmac_id_not_generated_by_server",
       realm: "asgcard.dev",
@@ -298,7 +270,7 @@ describe("Stripe Beta ON — Invalid HMAC", () => {
 
     const res = await request(app)
       .post("/stripe-beta/create")
-      .set(headers)
+      .set("X-STRIPE-SESSION", mockSessionKey)
       .set("Authorization", credential)
       .set("Content-Type", "application/json")
       .send({ nameOnCard: "Test", email: "test@test.com", amount: 25 });
@@ -310,19 +282,18 @@ describe("Stripe Beta ON — Invalid HMAC", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 6. Happy Path — Valid Credential → 201
+// 5. Happy Path — Valid Credential → 201
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — Happy Path (Official MPP)", () => {
-  it("GET 402 challenge → build credential → retry → 201 card created", async () => {
+describe("Stripe Beta ON — Happy Path (Session Auth + MPP)", () => {
+  it("402 challenge → build credential → retry → 201 card created", async () => {
     const amount = 25;
     const body = { nameOnCard: "Agent Alpha", email: "alpha@asgcard.dev", amount };
 
-    // Step 1: GET the 402 challenge
-    const headers1 = buildRawAuthHeaders();
+    // Step 1: GET the 402 challenge with session auth
     const res1 = await request(app)
       .post("/stripe-beta/create")
-      .set(headers1)
+      .set("X-STRIPE-SESSION", mockSessionKey)
       .set("Content-Type", "application/json")
       .send(body);
 
@@ -336,11 +307,10 @@ describe("Stripe Beta ON — Happy Path (Official MPP)", () => {
     // Step 2: Build credential with valid SPT
     const credential = buildMppCredential(challenge!, "spt_valid_test_token_123");
 
-    // Step 3: Retry with Authorization: Payment header
-    const headers2 = buildRawAuthHeaders();
+    // Step 3: Retry with Authorization: Payment header + session auth
     const res2 = await request(app)
       .post("/stripe-beta/create")
-      .set(headers2)
+      .set("X-STRIPE-SESSION", mockSessionKey)
       .set("Authorization", credential)
       .set("Content-Type", "application/json")
       .send(body);
@@ -361,5 +331,34 @@ describe("Stripe Beta ON — Happy Path (Official MPP)", () => {
     expect(receipt.method).toBe("stripe");
     expect(receipt.status).toBe("success");
     expect(receipt.reference).toMatch(/^pi_from_/);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════
+// 6. Session Creation
+// ═════════════════════════════════════════════════════════════════
+
+describe("Stripe Beta ON — Session Creation", () => {
+  it("POST /stripe-beta/session with valid email → 201 with sessionKey", async () => {
+    const res = await request(app)
+      .post("/stripe-beta/session")
+      .set("Content-Type", "application/json")
+      .send({ email: "test@asgcard.dev" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.sessionKey).toBeDefined();
+    expect(res.body.sessionId).toBeDefined();
+    expect(res.body.ownerId).toBeDefined();
+    expect(res.body.managedWalletAddress).toBeDefined();
+    expect(res.body.note).toContain("sessionKey");
+  });
+
+  it("POST /stripe-beta/session without email → 400", async () => {
+    const res = await request(app)
+      .post("/stripe-beta/session")
+      .set("Content-Type", "application/json")
+      .send({});
+
+    expect(res.status).toBe(400);
   });
 });

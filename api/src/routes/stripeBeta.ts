@@ -1,25 +1,49 @@
 /**
- * Stripe MPP Beta — Route Handler
+ * Stripe MPP Beta — Route Handler (Managed Identity Edition)
  *
- * POST /stripe-beta/create
- *   - Wallet auth → beta gate → MPP payment → card creation
+ * POST /stripe-beta/session
+ *   - Create beta session (email → managed wallet → session key)
+ *
+ * GET  /stripe-beta/config
+ *   - Public config (Stripe publishable key + beta status)
  *
  * POST /stripe-beta/create-spt
- *   - SPT provisioning endpoint for the MPP client flow
- *   - Takes { paymentMethod, amount, currency, networkId, expiresAt }
- *   - Returns { spt: "spt_xxx" }
+ *   - SPT provisioning (requires session auth)
  *
- * Protocol: MPP spec (https://mpp.dev)
- * Headers: Authorization: Payment <credential> (not X-STRIPE-SPT)
+ * POST /stripe-beta/create
+ *   - Card creation via MPP flow (requires session auth + payment)
+ *
+ * GET  /stripe-beta/cards
+ * GET  /stripe-beta/cards/:cardId
+ * GET  /stripe-beta/cards/:cardId/details
+ * GET  /stripe-beta/cards/:cardId/balance
+ * GET  /stripe-beta/cards/:cardId/transactions
+ * POST /stripe-beta/cards/:cardId/fund
+ * POST /stripe-beta/cards/:cardId/freeze
+ * POST /stripe-beta/cards/:cardId/unfreeze
  */
 import { Router } from "express";
 import { z } from "zod";
 import { env } from "../config/env";
-import { requireWalletAuth } from "../middleware/walletAuth";
-import { requireStripeBeta } from "../middleware/stripeBeta";
+import { requireStripeSession } from "../middleware/stripeSession";
 import { requireMppxPayment } from "../middleware/mppxPayment";
+import { requireAgentNonce } from "../middleware/agentDetailsMiddleware";
 import { cardService, HttpError } from "../services/cardService";
+import { createSession } from "../services/sessionService";
 import { appLogger } from "../utils/logger";
+import type { RequestHandler } from "express";
+
+/** Beta kill-switch — blocks all Stripe routes when beta is off */
+const requireStripeBetaEnabled: RequestHandler = (_req, res, next) => {
+  if (env.STRIPE_MPP_BETA_ENABLED !== "true") {
+    res.status(503).json({
+      error: "Stripe MPP beta is not currently available",
+      retryAfter: 3600,
+    });
+    return;
+  }
+  next();
+};
 
 const stripeBetaBodySchema = z.object({
   nameOnCard: z.string().min(1),
@@ -36,13 +60,17 @@ const sptProvisionSchema = z.object({
   expiresAt: z.number().int().optional(),
 });
 
+const sessionCreateSchema = z.object({
+  email: z.string().email(),
+});
+
 export const stripeBetaRouter = Router();
+
+// ── Public endpoints (no auth) ────────────────────────────
 
 /**
  * GET /stripe-beta/config
- *
- * Public config endpoint — provides the Stripe publishable key
- * and beta status. No auth required (frontend needs this before login).
+ * Public config — Stripe publishable key + beta status.
  */
 stripeBetaRouter.get("/config", (_req, res) => {
   res.json({
@@ -51,16 +79,76 @@ stripeBetaRouter.get("/config", (_req, res) => {
   });
 });
 
-// Apply auth + beta guard to all mutation routes
-stripeBetaRouter.use(requireWalletAuth);
-stripeBetaRouter.use(requireStripeBeta);
+/**
+ * POST /stripe-beta/session
+ * Create a beta session. Returns the raw session key once.
+ * Email allowlist gate applied here.
+ */
+stripeBetaRouter.post("/session", async (req, res) => {
+  if (env.STRIPE_MPP_BETA_ENABLED !== "true") {
+    res.status(503).json({ error: "Stripe beta is not currently available" });
+    return;
+  }
+
+  const parsed = sessionCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid request body",
+      details: parsed.error.issues.map(
+        (i) => `${i.path.join(".")}: ${i.message}`
+      ),
+    });
+    return;
+  }
+
+  const { email } = parsed.data;
+
+  // Email allowlist gate
+  const allowlist = env.STRIPE_BETA_EMAIL_ALLOWLIST;
+  if (allowlist) {
+    const allowed = allowlist
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (allowed.length > 0 && !allowed.includes(email.toLowerCase())) {
+      appLogger.info({ email: email.substring(0, 3) + "***" }, "[SESSION] Email not in beta allowlist");
+      res.status(403).json({
+        error: "This email is not enrolled in the Stripe beta",
+      });
+      return;
+    }
+  }
+
+  try {
+    const result = await createSession(email);
+
+    appLogger.info(
+      { sessionId: result.sessionId, ownerId: result.ownerId },
+      "[SESSION] Beta session created"
+    );
+
+    res.status(201).json({
+      sessionId: result.sessionId,
+      ownerId: result.ownerId,
+      sessionKey: result.sessionKey,
+      managedWalletAddress: result.managedWalletAddress,
+      note: "Store this sessionKey securely. It will not be shown again.",
+    });
+  } catch (err) {
+    appLogger.error({ err }, "[SESSION] Session creation failed");
+    res.status(500).json({ error: "Session creation failed" });
+  }
+});
+
+// ── Authenticated endpoints (session auth) ─────────────────
+// Beta gate + session auth applied to ALL mutation/management routes
+
+stripeBetaRouter.use(requireStripeBetaEnabled, requireStripeSession);
 
 /**
  * POST /stripe-beta/create-spt
- *
- * SPT provisioning endpoint for MPP client flow.
- * The client's createToken callback calls this to get an SPT
- * (requires secret key, so must be server-side).
+ * SPT provisioning for MPP client flow.
  */
 stripeBetaRouter.post("/create-spt", async (req, res) => {
   const parsed = sptProvisionSchema.safeParse(req.body);
@@ -83,7 +171,6 @@ stripeBetaRouter.post("/create-spt", async (req, res) => {
       return;
     }
 
-    // Create SPT via Stripe raw API (SDK types don't include SPT yet)
     const body = new URLSearchParams({
       payment_method: paymentMethod,
       "usage_limit[amount]": String(amount),
@@ -129,22 +216,19 @@ stripeBetaRouter.post("/create-spt", async (req, res) => {
 
 /**
  * POST /stripe-beta/create
- * Create a card via official MPP flow.
+ * Create card via MPP flow. Session auth + MPP payment required.
  *
  * Flow:
- *   1. Wallet auth (X-WALLET-ADDRESS, X-WALLET-SIGNATURE, X-WALLET-TIMESTAMP)
- *   2. Beta gate
- *   3. MPP payment: no Authorization → 402 WWW-Authenticate: Payment <challenge>
- *      has Authorization: Payment <credential> → verify → create PI → paymentContext
- *   4. Create card via cardService
- *   5. Return card + receipt
+ *   1. Session auth (X-STRIPE-SESSION) → managed wallet
+ *   2. MPP payment: no Authorization → 402; has credential → verify → PI
+ *   3. Create card via cardService (uses managed wallet address)
  */
 stripeBetaRouter.post(
   "/create",
   requireMppxPayment("create"),
   async (req, res) => {
-    if (!req.walletContext) {
-      res.status(401).json({ error: "Wallet auth required" });
+    if (!req.stripeSession) {
+      res.status(401).json({ error: "Session auth required" });
       return;
     }
 
@@ -169,7 +253,8 @@ stripeBetaRouter.post(
 
     appLogger.info(
       {
-        wallet: req.walletContext.address,
+        session: req.stripeSession.sessionId,
+        owner: req.stripeSession.ownerId,
         amount,
         paymentIntentId: txHash,
         rail: "stripe_mpp",
@@ -179,7 +264,7 @@ stripeBetaRouter.post(
 
     try {
       const result = await cardService.createCard({
-        walletAddress: req.walletContext.address,
+        walletAddress: req.stripeSession.managedWalletAddress,
         nameOnCard,
         email,
         phone,
@@ -193,7 +278,7 @@ stripeBetaRouter.post(
 
       appLogger.info(
         {
-          wallet: req.walletContext.address,
+          session: req.stripeSession.sessionId,
           cardId: result.card.cardId,
           amount,
           rail: "stripe_mpp",
@@ -217,7 +302,7 @@ stripeBetaRouter.post(
           billingAddress: result.details.billingAddress,
           oneTimeAccess: true,
           expiresInSeconds: 300,
-          note: "Store securely. Use GET /cards/:id/details with X-AGENT-NONCE for subsequent access.",
+          note: "Store securely. Use GET /stripe-beta/cards/:id/details with X-STRIPE-SESSION for subsequent access.",
         };
       }
 
@@ -236,6 +321,183 @@ stripeBetaRouter.post(
         { err: error },
         "[STRIPE-BETA] Unexpected error in card creation"
       );
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// ── Card management routes ──────────────────────────────────
+
+/** GET /stripe-beta/cards — list cards for this session's managed wallet */
+stripeBetaRouter.get("/cards", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const cards = await cardService.listCards(req.stripeSession.managedWalletAddress);
+    res.json({ cards });
+  } catch (error) {
+    appLogger.error({ err: error }, "[STRIPE-BETA] List cards failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** GET /stripe-beta/cards/:cardId — get card info */
+stripeBetaRouter.get("/cards/:cardId", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const result = await cardService.getCard(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** GET /stripe-beta/cards/:cardId/details — sensitive card info (nonce required) */
+stripeBetaRouter.get("/cards/:cardId/details", requireAgentNonce, async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const result = await cardService.getCardDetails(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** GET /stripe-beta/cards/:cardId/balance — live balance */
+stripeBetaRouter.get("/cards/:cardId/balance", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const result = await cardService.getBalance(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** GET /stripe-beta/cards/:cardId/transactions — transaction history */
+stripeBetaRouter.get("/cards/:cardId/transactions", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const result = await cardService.getTransactions(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId,
+      page,
+      limit
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** POST /stripe-beta/cards/:cardId/freeze — freeze card */
+stripeBetaRouter.post("/cards/:cardId/freeze", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const result = await cardService.setCardStatus(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId,
+      "frozen"
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** POST /stripe-beta/cards/:cardId/unfreeze — unfreeze card */
+stripeBetaRouter.post("/cards/:cardId/unfreeze", async (req, res) => {
+  if (!req.stripeSession) {
+    res.status(401).json({ error: "Session auth required" });
+    return;
+  }
+  try {
+    const result = await cardService.setCardStatus(
+      req.stripeSession.managedWalletAddress,
+      req.params.cardId,
+      "active"
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/** POST /stripe-beta/cards/:cardId/fund — top up via MPP */
+stripeBetaRouter.post(
+  "/cards/:cardId/fund",
+  requireMppxPayment("fund"),
+  async (req, res) => {
+    if (!req.stripeSession || !req.paymentContext) {
+      res.status(401).json({ error: "Session and payment auth required" });
+      return;
+    }
+    try {
+      const result = await cardService.fundCard({
+        walletAddress: req.stripeSession.managedWalletAddress,
+        cardId: req.params.cardId,
+        fundAmountUsd: req.paymentContext.amount,
+        chargedUsd: req.paymentContext.totalCostUsd,
+        txHash: req.paymentContext.txHash,
+      });
+      res.json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   }

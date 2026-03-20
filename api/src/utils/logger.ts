@@ -26,7 +26,13 @@ const redactPaths = [
     'details.cardNumber',
     'details.cvv',
     '*.clientSecret',
-    '*.accountSecret'
+    '*.accountSecret',
+    // ── Stripe Managed Identity ──────────────────────────────
+    'req.headers["x-stripe-session"]',
+    'sessionKey',
+    '*.sessionKey',
+    'managedSecret',
+    '*.managedSecret',
 ];
 
 export const appLogger = pino({

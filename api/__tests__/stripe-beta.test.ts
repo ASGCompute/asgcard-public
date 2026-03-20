@@ -8,6 +8,17 @@ import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
 
+// Mock env with beta DISABLED for feature-gate test
+vi.mock("../src/config/env", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../src/config/env")>();
+  return {
+    env: {
+      ...mod.env,
+      STRIPE_MPP_BETA_ENABLED: "false",
+    },
+  };
+});
+
 // Mock issuer balance check
 vi.mock("../src/services/fourPaymentsClient", () => ({
   checkIssuerBalance: vi.fn().mockResolvedValue({

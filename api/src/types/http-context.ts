@@ -11,3 +11,10 @@ export interface WalletContext {
   address: string;
   timestamp: number;
 }
+
+export interface StripeSessionContext {
+  sessionId: string;
+  ownerId: string;
+  email: string;
+  managedWalletAddress: string;
+}

@@ -1,8 +1,12 @@
 /**
- * Stripe MPP Beta — Production Path Tests (beta ON)
+ * Stripe MPP Beta — Official MPP Contract Tests (beta ON)
  *
- * Uses vi.mock to override env module with beta enabled.
- * Tests: 402 challenge, Freighter auth, SPT validation, happy path.
+ * Tests the official Machine Payments Protocol (MPP) transport:
+ *   - 402 with WWW-Authenticate: Payment <challenge>
+ *   - Retry with Authorization: Payment <credential> containing SPT
+ *   - HMAC-bound challenge verification
+ *   - Freighter (SEP-0043) auth + MPP challenge
+ *   - Happy path: valid credential → 201 card created
  */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
@@ -11,7 +15,7 @@ import crypto from "node:crypto";
 import nacl from "tweetnacl";
 import { StrKey, Keypair } from "@stellar/stellar-sdk";
 
-// ── Mock env with beta enabled ──────────────────────────────────
+// ── Mock env with beta enabled + MPP key ────────────────────────
 vi.mock("../src/config/env", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../src/config/env")>();
   return {
@@ -21,6 +25,7 @@ vi.mock("../src/config/env", async (importOriginal) => {
       STRIPE_PUBLISHABLE_KEY: "pk_test_dummy_for_tests",
       STRIPE_SECRET_KEY: "sk_test_dummy_for_tests",
       STRIPE_BETA_ALLOWLIST: "",  // empty = allow all
+      MPP_SECRET_KEY: "test-mpp-secret-key-for-hmac-challenges-32chars!",
     },
   };
 });
@@ -36,15 +41,25 @@ vi.mock("../src/services/fourPaymentsClient", () => ({
   },
 }));
 
-// Mock Stripe service — test SPT → PI flow
-vi.mock("../src/services/stripeService", () => ({
-  createPaymentIntentWithSPT: vi.fn(async (sptId: string) => {
-    if (sptId.startsWith("spt_valid")) {
-      return { success: true, paymentIntentId: `pi_from_${sptId}` };
-    }
-    return { success: false, paymentIntentId: "", error: "Invalid SPT" };
-  }),
-}));
+// Mock Stripe SDK — intercept PaymentIntent.create for SPT verification
+vi.mock("stripe", () => {
+  return {
+    default: class MockStripe {
+      paymentIntents = {
+        create: vi.fn(async (params: Record<string, unknown>) => {
+          const spt = params.shared_payment_granted_token as string;
+          if (spt?.startsWith("spt_valid")) {
+            return {
+              id: `pi_from_${spt}`,
+              status: "succeeded",
+            };
+          }
+          throw new Error(`Invalid SPT: ${spt}`);
+        }),
+      };
+    },
+  };
+});
 
 // Mock cardService — return a mock card without calling the real issuer
 vi.mock("../src/services/cardService", () => {
@@ -87,7 +102,7 @@ vi.mock("../src/services/cardService", () => {
 
 import { createApp } from "../src/app";
 
-// ── Test Key ────────────────────────────────────────────────────
+// ── Test Helpers ────────────────────────────────────────────────
 
 const testKeypair = Keypair.random();
 const testPubKey = testKeypair.publicKey();
@@ -125,6 +140,38 @@ function buildFreighterAuthHeaders(): Record<string, string> {
   };
 }
 
+// ── MPP credential builder (matches the protocol spec) ──────────
+
+interface MppChallengeWire {
+  id: string;
+  realm: string;
+  method: string;
+  intent: string;
+  request: string;
+  description?: string;
+  expires?: string;
+}
+
+function parseMppChallenge(wwwAuth: string): MppChallengeWire | null {
+  const match = wwwAuth.match(/^Payment\s+(.+)$/i);
+  if (!match?.[1]) return null;
+  try {
+    const json = Buffer.from(match[1], "base64url").toString("utf8");
+    return JSON.parse(json) as MppChallengeWire;
+  } catch {
+    return null;
+  }
+}
+
+function buildMppCredential(challenge: MppChallengeWire, sptId: string): string {
+  const wire = {
+    challenge,
+    payload: { spt: sptId },
+  };
+  const json = JSON.stringify(wire);
+  return `Payment ${Buffer.from(json).toString("base64url")}`;
+}
+
 // ═════════════════════════════════════════════════════════════════
 
 let app: Express;
@@ -147,11 +194,11 @@ describe("Stripe Beta ON — Auth", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 2. Raw Auth → 402 Challenge
+// 2. Raw Auth → 402 Official MPP Challenge
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — Raw Auth → 402", () => {
-  it("POST with raw wallet auth + no SPT → 402 with paymentRequired", async () => {
+describe("Stripe Beta ON — 402 Official MPP Challenge", () => {
+  it("POST with auth + no credential → 402 with WWW-Authenticate: Payment", async () => {
     const headers = buildRawAuthHeaders();
     const res = await request(app)
       .post("/stripe-beta/create")
@@ -160,19 +207,33 @@ describe("Stripe Beta ON — Raw Auth → 402", () => {
       .send({ nameOnCard: "Test Agent", email: "test@asgcard.dev", amount: 25 });
 
     expect(res.status).toBe(402);
-    expect(res.body.paymentRequired).toBeDefined();
-    expect(res.body.paymentRequired.currency).toBe("usd");
-    expect(res.body.paymentRequired.amount).toBeGreaterThan(0);
-    expect(res.body.paymentRequired.stripePublishableKey).toBe("pk_test_dummy_for_tests");
+
+    // Official MPP: WWW-Authenticate header must be present
+    const wwwAuth = res.headers["www-authenticate"];
+    expect(wwwAuth).toBeDefined();
+    expect(wwwAuth).toMatch(/^Payment\s+/i);
+
+    // Parse the challenge
+    const challenge = parseMppChallenge(wwwAuth);
+    expect(challenge).not.toBeNull();
+    expect(challenge!.id).toBeDefined();
+    expect(challenge!.realm).toBe("asgcard.dev");
+    expect(challenge!.method).toBe("stripe");
+    expect(challenge!.intent).toBe("charge");
+
+    // Body is RFC 9457 Problem Details (not custom paymentRequired JSON)
+    expect(res.body.type).toBe("https://mpp.dev/errors/payment-required");
+    expect(res.body.status).toBe(402);
+    expect(res.body.challengeId).toBeDefined();
   });
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 3. Freighter Auth (message mode) → 402
+// 3. Freighter Auth (SEP-0043) → 402 MPP Challenge
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — Freighter Auth (SEP-0043)", () => {
-  it("POST with Freighter signMessage auth + no SPT → 402", async () => {
+describe("Stripe Beta ON — Freighter Auth → MPP Challenge", () => {
+  it("POST with Freighter signMessage auth + no credential → 402", async () => {
     const headers = buildFreighterAuthHeaders();
     const res = await request(app)
       .post("/stripe-beta/create")
@@ -181,62 +242,124 @@ describe("Stripe Beta ON — Freighter Auth (SEP-0043)", () => {
       .send({ nameOnCard: "Browser User", email: "browser@asgcard.dev", amount: 50 });
 
     expect(res.status).toBe(402);
-    expect(res.body.paymentRequired).toBeDefined();
-    expect(res.body.paymentRequired.amount).toBeGreaterThan(0);
+
+    const wwwAuth = res.headers["www-authenticate"];
+    expect(wwwAuth).toBeDefined();
+    expect(wwwAuth).toMatch(/^Payment\s+/i);
+
+    const challenge = parseMppChallenge(wwwAuth);
+    expect(challenge).not.toBeNull();
+    expect(challenge!.method).toBe("stripe");
   });
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 4. SPT Validation
+// 4. Malformed Credential → 402
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — SPT Validation", () => {
-  it("POST with invalid SPT format → 400", async () => {
+describe("Stripe Beta ON — Malformed Credential", () => {
+  it("POST with invalid Authorization: Payment → 402 malformed", async () => {
     const headers = buildRawAuthHeaders();
     const res = await request(app)
       .post("/stripe-beta/create")
       .set(headers)
-      .set("X-STRIPE-SPT", "not_a_valid_spt")
-      .set("Content-Type", "application/json")
-      .send({ nameOnCard: "Test", email: "test@test.com", amount: 25 });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("Invalid X-STRIPE-SPT");
-  });
-
-  it("POST with SPT that Stripe rejects → 402 error", async () => {
-    const headers = buildRawAuthHeaders();
-    const res = await request(app)
-      .post("/stripe-beta/create")
-      .set(headers)
-      .set("X-STRIPE-SPT", "spt_rejected_by_stripe_12345")
+      .set("Authorization", "Payment invalid_base64_garbage!!!")
       .set("Content-Type", "application/json")
       .send({ nameOnCard: "Test", email: "test@test.com", amount: 25 });
 
     expect(res.status).toBe(402);
-    expect(res.body.error).toBeDefined();
+    expect(res.body.type).toContain("malformed-credential");
+
+    // Must re-issue challenge
+    const wwwAuth = res.headers["www-authenticate"];
+    expect(wwwAuth).toBeDefined();
+    expect(wwwAuth).toMatch(/^Payment\s+/i);
   });
 });
 
 // ═════════════════════════════════════════════════════════════════
-// 5. Happy Path — Valid SPT → 201
+// 5. Tampered Challenge (wrong HMAC) → 402
 // ═════════════════════════════════════════════════════════════════
 
-describe("Stripe Beta ON — Happy Path", () => {
-  it("POST with valid SPT → 201 card created", async () => {
+describe("Stripe Beta ON — Invalid HMAC", () => {
+  it("POST with credential containing tampered challenge → 402", async () => {
     const headers = buildRawAuthHeaders();
+
+    // Build a fake challenge with wrong HMAC ID
+    const fakeChallenge: MppChallengeWire = {
+      id: "fake_hmac_id_not_generated_by_server",
+      realm: "asgcard.dev",
+      method: "stripe",
+      intent: "charge",
+      request: 'amount="2500"&currency="usd"',
+    };
+
+    const credential = buildMppCredential(fakeChallenge, "spt_valid_test_123");
+
     const res = await request(app)
       .post("/stripe-beta/create")
       .set(headers)
-      .set("X-STRIPE-SPT", "spt_valid_test_token_123")
+      .set("Authorization", credential)
       .set("Content-Type", "application/json")
-      .send({ nameOnCard: "Agent Alpha", email: "alpha@asgcard.dev", amount: 25 });
+      .send({ nameOnCard: "Test", email: "test@test.com", amount: 25 });
 
-    expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.card).toBeDefined();
-    expect(res.body.card.cardId).toBeDefined();
-    expect(res.body.paymentRail).toBe("stripe_mpp");
-    expect(res.body.beta).toBe(true);
+    expect(res.status).toBe(402);
+    expect(res.body.type).toContain("invalid-challenge");
+    expect(res.body.detail).toContain("not issued by this server");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════
+// 6. Happy Path — Valid Credential → 201
+// ═════════════════════════════════════════════════════════════════
+
+describe("Stripe Beta ON — Happy Path (Official MPP)", () => {
+  it("GET 402 challenge → build credential → retry → 201 card created", async () => {
+    const amount = 25;
+    const body = { nameOnCard: "Agent Alpha", email: "alpha@asgcard.dev", amount };
+
+    // Step 1: GET the 402 challenge
+    const headers1 = buildRawAuthHeaders();
+    const res1 = await request(app)
+      .post("/stripe-beta/create")
+      .set(headers1)
+      .set("Content-Type", "application/json")
+      .send(body);
+
+    expect(res1.status).toBe(402);
+    const wwwAuth = res1.headers["www-authenticate"];
+    expect(wwwAuth).toBeDefined();
+
+    const challenge = parseMppChallenge(wwwAuth);
+    expect(challenge).not.toBeNull();
+
+    // Step 2: Build credential with valid SPT
+    const credential = buildMppCredential(challenge!, "spt_valid_test_token_123");
+
+    // Step 3: Retry with Authorization: Payment header
+    const headers2 = buildRawAuthHeaders();
+    const res2 = await request(app)
+      .post("/stripe-beta/create")
+      .set(headers2)
+      .set("Authorization", credential)
+      .set("Content-Type", "application/json")
+      .send(body);
+
+    expect(res2.status).toBe(201);
+    expect(res2.body.success).toBe(true);
+    expect(res2.body.card).toBeDefined();
+    expect(res2.body.card.cardId).toBeDefined();
+    expect(res2.body.paymentRail).toBe("stripe_mpp");
+    expect(res2.body.beta).toBe(true);
+    expect(res2.body.detailsEnvelope).toBeDefined();
+    expect(res2.body.detailsEnvelope.cardNumber).toBeDefined();
+
+    // Verify receipt header
+    const receiptHeader = res2.headers["x-payment-receipt"];
+    expect(receiptHeader).toBeDefined();
+    const receipt = JSON.parse(Buffer.from(receiptHeader, "base64url").toString("utf8"));
+    expect(receipt.method).toBe("stripe");
+    expect(receipt.status).toBe("success");
+    expect(receipt.reference).toMatch(/^pi_from_/);
   });
 });

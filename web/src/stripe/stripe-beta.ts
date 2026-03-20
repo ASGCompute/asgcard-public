@@ -2,10 +2,14 @@
  * ASG Card × Stripe Machine Payments — Beta Surface
  *
  * Entrypoint for stripe.asgcard.dev
- * 3-step flow (docs-aligned):
+ * 3-step flow (Official MPP Protocol):
  *   1. Connect Stellar wallet (Freighter SEP-0043 signMessage)
- *   2. Submit card details → receive 402 → Stripe.js payment → grant SPT → retry
+ *   2. Submit card details → receive 402 (WWW-Authenticate: Payment) →
+ *      Stripe.js payment → create SPT → build credential → retry with Authorization: Payment
  *   3. View card result
+ *
+ * Protocol: https://mpp.dev
+ * No X-STRIPE-SPT headers. Official MPP transport only.
  */
 
 import './stripe-beta.css';
@@ -19,11 +23,14 @@ interface WalletState {
   signMessage: (message: string) => Promise<string>;
 }
 
-interface PaymentRequired {
-  amount: number;       // cents
-  currency: string;
-  description: string;
-  stripePublishableKey: string;
+interface MppChallengeWire {
+  id: string;
+  realm: string;
+  method: string;
+  intent: string;
+  request: string;
+  description?: string;
+  expires?: string;
 }
 
 interface CardResult {
@@ -34,9 +41,11 @@ interface CardResult {
 
 // ── State ───────────────────────────────────────────────────────
 let wallet: WalletState | null = null;
-let currentPaymentRequired: PaymentRequired | null = null;
+let currentChallenge: MppChallengeWire | null = null;
+let currentChallengeAmountCents: number = 0;
 let stripeInstance: unknown = null;
 let stripeElements: unknown = null;
+let stripePublishableKey: string | null = null;
 
 // ── Stripe.js Types (loaded via CDN) ────────────────────────────
 declare const Stripe: (key: string) => {
@@ -49,10 +58,6 @@ declare const Stripe: (key: string) => {
   };
   createPaymentMethod: (opts: Record<string, unknown>) => Promise<{
     paymentMethod?: { id: string };
-    error?: { message: string };
-  }>;
-  createToken: (type: string, opts: Record<string, unknown>) => Promise<{
-    token?: { id: string };
     error?: { message: string };
   }>;
 };
@@ -99,6 +104,60 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
     'X-WALLET-TIMESTAMP': timestamp,
     'X-WALLET-AUTH-MODE': 'message',
   };
+}
+
+// ── MPP Credential Helpers (inline — browser can't import npm) ──
+
+/**
+ * Base64url encode a string (browser-compatible).
+ */
+function base64urlEncode(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Base64url decode a string (browser-compatible).
+ */
+function base64urlDecode(encoded: string): string {
+  let padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  while (padded.length % 4 !== 0) padded += '=';
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+/**
+ * Parse the challenge from a WWW-Authenticate: Payment <base64url> header.
+ */
+function parseMppChallenge(wwwAuth: string): MppChallengeWire | null {
+  const match = wwwAuth.match(/^Payment\s+(.+)$/i);
+  if (!match?.[1]) return null;
+  try {
+    const json = base64urlDecode(match[1]);
+    return JSON.parse(json) as MppChallengeWire;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build an Authorization: Payment <credential> header value.
+ * Credential = base64url(JSON({challenge, payload: {spt}}))
+ */
+function buildMppCredential(challenge: MppChallengeWire, sptId: string): string {
+  const wire = {
+    challenge,
+    payload: { spt: sptId },
+  };
+  const json = JSON.stringify(wire);
+  return `Payment ${base64urlEncode(json)}`;
 }
 
 // ── UI Helpers ──────────────────────────────────────────────────
@@ -208,14 +267,14 @@ function render() {
           </button>
         </form>
 
-        <!-- Stripe Payment Section (shown after 402) -->
+        <!-- Stripe Payment Section (shown after 402 challenge) -->
         <div id="stripe-payment-section" style="display:none" class="sb-stripe-section">
           <h3>Complete Payment</h3>
           <p id="payment-info"></p>
           <div id="stripe-element-container" class="sb-stripe-element"></div>
           <div id="error-payment" style="display:none"></div>
           <button class="sb-cta-btn" id="btn-pay">
-            Pay & Create Card
+            Pay &amp; Create Card
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
@@ -306,7 +365,7 @@ async function handleConnect() {
   }
 }
 
-// ── Step 2a: Card Form Submit → 402 Challenge ───────────────────
+// ── Step 2a: Card Form Submit → 402 MPP Challenge ───────────────
 async function handleCardSubmit(e: Event) {
   e.preventDefault();
   if (!wallet) return;
@@ -330,7 +389,7 @@ async function handleCardSubmit(e: Event) {
   try {
     const authHeaders = await buildAuthHeaders();
 
-    // Request without SPT → expect 402
+    // Request without credential → expect 402 with WWW-Authenticate: Payment
     const res = await fetch(`${API_BASE}/stripe-beta/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -338,19 +397,37 @@ async function handleCardSubmit(e: Event) {
     });
 
     if (res.status === 402) {
-      const data = await res.json();
-      const pr = data.paymentRequired as PaymentRequired;
-
-      if (!pr?.stripePublishableKey) {
-        showError('error-2', 'Server returned 402 but no Stripe key. Contact support.');
+      // Parse MPP challenge from WWW-Authenticate header
+      const wwwAuth = res.headers.get('WWW-Authenticate');
+      if (!wwwAuth) {
+        showError('error-2', 'Server returned 402 but no WWW-Authenticate header. Contact support.');
         return;
       }
 
-      currentPaymentRequired = pr;
-      initStripeElements(pr);
-      trackEvent('402_received');
+      const challenge = parseMppChallenge(wwwAuth);
+      if (!challenge) {
+        showError('error-2', 'Could not parse payment challenge. Contact support.');
+        return;
+      }
+
+      // Also read the body for amount info (RFC 9457 Problem Details)
+      const body = await res.json().catch(() => ({}));
+      const amountCents = challenge.request
+        ? parseInt(String((challenge.request as unknown as Record<string, string>).amount ?? 
+            (typeof challenge.request === 'string' ? new URLSearchParams(challenge.request).get('amount') : '0')
+          ), 10)
+        : 0;
+
+      currentChallenge = challenge;
+      currentChallengeAmountCents = amountCents || (body as Record<string, unknown>).amount as number || 0;
+
+      // We need the Stripe publishable key to show Elements.
+      // It's available from the API's /pricing endpoint or from env.
+      // For now, use a known key or fetch from the API config.
+      await fetchPublishableKeyAndInitElements(challenge);
+
+      trackEvent('402_challenge_received');
     } else if (res.status === 201) {
-      // Unexpected direct success — show it
       const data = await res.json();
       showCardResult(data);
     } else {
@@ -364,20 +441,45 @@ async function handleCardSubmit(e: Event) {
   }
 }
 
+// ── Fetch Stripe publishable key and init Elements ──────────────
+async function fetchPublishableKeyAndInitElements(challenge: MppChallengeWire) {
+  try {
+    // Single source of truth: GET /stripe-beta/config
+    const configRes = await fetch(`${API_BASE}/stripe-beta/config`);
+    if (configRes.ok) {
+      const config = await configRes.json();
+      stripePublishableKey = config.stripePublishableKey || null;
+    }
+
+    if (!stripePublishableKey) {
+      showError('error-2', 'Could not obtain Stripe configuration. Contact support.');
+      return;
+    }
+
+    initStripeElements(challenge);
+  } catch (err) {
+    showError('error-2', `Failed to initialize payment: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 // ── Step 2b: Initialize Stripe.js Elements ──────────────────────
-function initStripeElements(pr: PaymentRequired) {
-  // Load Stripe.js if not already loaded
+function initStripeElements(challenge: MppChallengeWire) {
   if (typeof Stripe === 'undefined') {
     showError('error-2', 'Stripe.js not loaded. Please refresh the page.');
     return;
   }
 
-  stripeInstance = Stripe(pr.stripePublishableKey);
+  if (!stripePublishableKey) {
+    showError('error-2', 'Stripe publishable key not available.');
+    return;
+  }
+
+  stripeInstance = Stripe(stripePublishableKey);
   const stripe = stripeInstance as ReturnType<typeof Stripe>;
   stripeElements = stripe.elements({
     mode: 'payment',
-    amount: pr.amount,
-    currency: pr.currency,
+    amount: currentChallengeAmountCents,
+    currency: 'usd',
   });
 
   const elements = stripeElements as ReturnType<ReturnType<typeof Stripe>['elements']>;
@@ -392,14 +494,15 @@ function initStripeElements(pr: PaymentRequired) {
 
   const info = $('payment-info');
   if (info) {
-    const amountUsd = (pr.amount / 100).toFixed(2);
-    info.textContent = `Payment of $${amountUsd} ${pr.currency.toUpperCase()} required for: ${pr.description}`;
+    const amountUsd = (currentChallengeAmountCents / 100).toFixed(2);
+    const desc = challenge.description || 'ASG Card creation';
+    info.textContent = `Payment of $${amountUsd} USD required for: ${desc}`;
   }
 }
 
-// ── Step 2c: Complete Stripe Payment → Create SPT → Retry ───────
+// ── Step 2c: Complete Payment → Create SPT → Build Credential → Retry ──
 async function handleStripePayment() {
-  if (!wallet || !savedFormData || !stripeInstance || !stripeElements || !currentPaymentRequired) return;
+  if (!wallet || !savedFormData || !stripeInstance || !stripeElements || !currentChallenge) return;
   hideError('error-payment');
 
   const btn = $('btn-pay') as HTMLButtonElement | null;
@@ -426,29 +529,44 @@ async function handleStripePayment() {
       return;
     }
 
-    // 3. Create SharedPaymentToken granting our merchant access to this PM
-    //    In production, the SPT is created client-side via Stripe.js:
-    //    stripe.createToken('shared_payment_granted', { payment_method: pm.id, ... })
-    const { token, error: sptError } = await stripe.createToken('shared_payment_granted', {
-      payment_method: paymentMethod.id,
-      usage_limit: { amount: currentPaymentRequired.amount, currency: 'usd' },
+    // 3. Create SPT via backend endpoint
+    //    (SPT creation requires secret key, so must be server-side)
+    const authHeaders = await buildAuthHeaders();
+    const sptRes = await fetch(`${API_BASE}/stripe-beta/create-spt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({
+        paymentMethod: paymentMethod.id,
+        amount: currentChallengeAmountCents,
+        currency: 'usd',
+      }),
     });
 
-    if (sptError || !token) {
-      showError('error-payment', sptError?.message || 'Failed to create payment token');
+    if (!sptRes.ok) {
+      const err = await sptRes.json().catch(() => ({ error: 'SPT creation failed' }));
+      showError('error-payment', err.error || 'Failed to create payment token');
       return;
     }
 
-    // 4. Retry the card creation request with the SPT
-    const authHeaders = await buildAuthHeaders();
+    const { spt } = await sptRes.json();
+    if (!spt) {
+      showError('error-payment', 'Server did not return SPT');
+      return;
+    }
+
+    // 4. Build MPP credential: Authorization: Payment <base64url(JSON({challenge, payload: {spt}}))>
+    const credential = buildMppCredential(currentChallenge, spt);
+
+    // 5. Retry the card creation request with the credential
+    const retryAuthHeaders = await buildAuthHeaders();
     const { amount, nameOnCard, email, phone } = savedFormData;
 
     const res = await fetch(`${API_BASE}/stripe-beta/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-STRIPE-SPT': token.id,
-        ...authHeaders,
+        'Authorization': credential,
+        ...retryAuthHeaders,
       },
       body: JSON.stringify({ nameOnCard, email, phone: phone || undefined, amount }),
     });
@@ -459,7 +577,7 @@ async function handleStripePayment() {
       trackEvent('card_created');
     } else {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      showError('error-payment', err.error || `Payment failed: ${res.status}`);
+      showError('error-payment', err.error || err.detail || `Payment failed: ${res.status}`);
     }
   } catch (err) {
     showError('error-payment', `Payment failed: ${err instanceof Error ? err.message : String(err)}`);

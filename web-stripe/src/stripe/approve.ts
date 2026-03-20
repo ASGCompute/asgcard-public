@@ -3,13 +3,17 @@
  *
  * URL: stripe.asgcard.dev/approve?id=pr_xxx&token=tok_xxx
  *
- * Flow:
+ * Real MPP Flow:
  *   1. Fetch request details via GET /stripe-beta/approve/:id?token=
  *   2. Show amount, description, requester email
  *   3. Owner clicks Approve → POST /stripe-beta/approve/:id (token in body)
- *   4. Stripe Elements payment form → complete Stripe payment
- *   5. POST /stripe-beta/approve/:id/complete with MPP credential
- *   6. Done → show success
+ *   4. POST /stripe-beta/approve/:id/complete WITHOUT credential → 402 challenge
+ *   5. Parse amount from 402 WWW-Authenticate challenge (source of truth)
+ *   6. Init Stripe Elements with challenge amount
+ *   7. Owner pays → createPaymentMethod
+ *   8. POST /approve/:id/create-spt → SPT
+ *   9. Build MPP credential → retry /approve/:id/complete WITH Authorization: Payment
+ *  10. Done → card created
  */
 
 import './approve.css';
@@ -29,6 +33,17 @@ interface PaymentRequestInfo {
   expiresAt: string;
 }
 
+interface MppChallengeWire {
+  id: string;
+  realm: string;
+  method: string;
+  intent: string;
+  request: string | Record<string, string>;
+  description?: string;
+  expires?: string;
+  hmac?: string;
+}
+
 declare const Stripe: (key: string) => {
   elements: (opts?: Record<string, unknown>) => {
     create: (type: string, opts?: Record<string, unknown>) => {
@@ -37,10 +52,6 @@ declare const Stripe: (key: string) => {
     };
     submit: () => Promise<{ error?: { message: string } }>;
   };
-  confirmPayment: (opts: Record<string, unknown>) => Promise<{
-    error?: { message: string };
-    paymentIntent?: { id: string; client_secret: string; status: string };
-  }>;
   createPaymentMethod: (opts: Record<string, unknown>) => Promise<{
     error?: { message: string };
     paymentMethod?: { id: string };
@@ -54,8 +65,40 @@ let requestInfo: PaymentRequestInfo | null = null;
 let stripeInstance: ReturnType<typeof Stripe> | null = null;
 let stripeElements: ReturnType<ReturnType<typeof Stripe>['elements']> | null = null;
 let stripePublishableKey: string | null = null;
+let currentChallenge: MppChallengeWire | null = null;
+let currentChallengeAmountCents = 0;
 
-// ── Helpers ─────────────────────────────────────────────────
+// ── MPP Helpers (same as stripe-beta.ts) ────────────────────
+function base64urlEncode(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64urlDecode(encoded: string): string {
+  let padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  while (padded.length % 4 !== 0) padded += '=';
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function parseMppChallenge(wwwAuth: string): MppChallengeWire | null {
+  const match = wwwAuth.match(/^Payment\s+(.+)$/i);
+  if (!match?.[1]) return null;
+  try {
+    return JSON.parse(base64urlDecode(match[1])) as MppChallengeWire;
+  } catch { return null; }
+}
+
+function buildMppCredential(challenge: MppChallengeWire, sptId: string): string {
+  const wire = { challenge, payload: { spt: sptId } };
+  return `Payment ${base64urlEncode(JSON.stringify(wire))}`;
+}
+
+// ── UI Helpers ──────────────────────────────────────────────
 const $ = (id: string) => document.getElementById(id);
 
 function showError(msg: string) {
@@ -68,11 +111,18 @@ function hideError() {
   if (el) { el.style.display = 'none'; }
 }
 
-function setStep(step: 1 | 2 | 3 | 4) {
-  ['step-loading', 'step-details', 'step-payment', 'step-done'].forEach((id, i) => {
+function hideAll() {
+  ['step-loading', 'step-details', 'step-payment', 'step-done',
+   'step-rejected', 'step-already-processed'].forEach(id => {
     const el = $(id);
-    if (el) el.style.display = (i + 1 === step) ? 'block' : 'none';
+    if (el) el.style.display = 'none';
   });
+}
+
+function showStep(id: string) {
+  hideAll();
+  const el = $(id);
+  if (el) el.style.display = 'block';
 }
 
 function formatDate(iso: string): string {
@@ -128,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2>Complete Payment</h2>
         <p id="payment-info" class="ap-payment-info"></p>
         <div id="stripe-element-container" class="ap-stripe-mount"></div>
+        <div id="payment-error" class="ap-error" style="display:none"></div>
         <button id="btn-pay" class="ap-btn ap-btn-approve">💳 Pay Now</button>
       </div>
 
@@ -176,7 +227,6 @@ async function loadRequest() {
       showError('Invalid or expired approval link.');
       return;
     }
-
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
       showError(err.error || 'Failed to load request');
@@ -192,23 +242,17 @@ async function loadRequest() {
     }
 
     // Populate details
-    const info = (id: string) => $(id);
-    const amountEl = info('info-amount');
-    if (amountEl) amountEl.textContent = `$${requestInfo.amountUsd.toFixed(2)} USD`;
-    const descEl = info('info-desc');
-    if (descEl) descEl.textContent = requestInfo.description || 'Card creation';
-    const emailEl = info('info-email');
-    if (emailEl) emailEl.textContent = requestInfo.email;
-    const nameEl = info('info-name');
-    if (nameEl) nameEl.textContent = requestInfo.nameOnCard || '—';
-    const createdEl = info('info-created');
-    if (createdEl) createdEl.textContent = formatDate(requestInfo.createdAt);
-    const expiresEl = info('info-expires');
-    if (expiresEl) expiresEl.textContent = timeRemaining(requestInfo.expiresAt);
+    const set = (id: string, val: string) => { const el = $(id); if (el) el.textContent = val; };
+    set('info-amount', `$${requestInfo.amountUsd.toFixed(2)} USD`);
+    set('info-desc', requestInfo.description || 'Card creation');
+    set('info-email', requestInfo.email);
+    set('info-name', requestInfo.nameOnCard || '—');
+    set('info-created', formatDate(requestInfo.createdAt));
+    set('info-expires', timeRemaining(requestInfo.expiresAt));
 
-    setStep(2);
+    showStep('step-details');
 
-    // Also fetch Stripe publishable key
+    // Pre-fetch Stripe publishable key
     const configRes = await fetch(`${API_BASE}/stripe-beta/config`);
     if (configRes.ok) {
       const config = await configRes.json();
@@ -220,23 +264,16 @@ async function loadRequest() {
 }
 
 function showNonPendingState(status: string) {
-  const el = $('step-loading');
-  if (el) el.style.display = 'none';
-
+  hideAll();
   if (status === 'approved' || status === 'completed') {
-    const done = $('step-already-processed');
-    if (done) {
-      done.style.display = 'block';
-      const title = $('already-title');
-      if (title) title.textContent = status === 'completed' ? '✅ Already Completed' : '⏳ Already Approved';
-      const msg = $('already-msg');
-      if (msg) msg.textContent = status === 'completed'
-        ? 'This payment request has already been completed and the card was created.'
-        : 'This payment request has been approved and is awaiting payment completion.';
-    }
+    showStep('step-already-processed');
+    const set = (id: string, val: string) => { const el = $(id); if (el) el.textContent = val; };
+    set('already-title', status === 'completed' ? '✅ Already Completed' : '⏳ Already Approved');
+    set('already-msg', status === 'completed'
+      ? 'This payment request has already been completed and the card was created.'
+      : 'This payment request has been approved and is awaiting payment completion.');
   } else if (status === 'rejected') {
-    const rej = $('step-rejected');
-    if (rej) rej.style.display = 'block';
+    showStep('step-rejected');
   } else if (status === 'expired') {
     showError('This payment request has expired.');
   } else {
@@ -244,30 +281,87 @@ function showNonPendingState(status: string) {
   }
 }
 
-// ── Approve ─────────────────────────────────────────────────
+// ── Approve → 402 Challenge → Stripe Elements ───────────────
 async function handleApprove() {
-  if (!requestId || !approvalToken) return;
+  if (!requestId || !approvalToken || !requestInfo) return;
   hideError();
 
   const btn = $('btn-approve') as HTMLButtonElement | null;
   if (btn) { btn.disabled = true; btn.textContent = 'Approving...'; }
 
   try {
-    const res = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}`, {
+    // Step 1: Approve the request
+    const approveRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'approve', token: approvalToken }),
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    if (!approveRes.ok) {
+      const err = await approveRes.json().catch(() => ({ error: `HTTP ${approveRes.status}` }));
       showError(err.error || 'Approval failed');
       if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
       return;
     }
 
-    // Proceed to payment step
-    await initStripePayment();
+    // Step 2: Trigger 402 challenge from /approve/:id/complete (no credential)
+    if (btn) btn.textContent = 'Getting payment details...';
+
+    const challengeRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: approvalToken,
+        amount: requestInfo.amountUsd,
+        nameOnCard: requestInfo.nameOnCard || 'ASG Card',
+        email: requestInfo.email,
+        phone: requestInfo.phone || '',
+      }),
+    });
+
+    if (challengeRes.status !== 402) {
+      const err = await challengeRes.json().catch(() => ({ error: `Unexpected ${challengeRes.status}` }));
+      showError(err.error || 'Failed to initiate payment');
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      return;
+    }
+
+    // Step 3: Parse the 402 WWW-Authenticate challenge
+    const wwwAuth = challengeRes.headers.get('WWW-Authenticate');
+    if (!wwwAuth) {
+      showError('Server returned 402 but no payment challenge. Contact support.');
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      return;
+    }
+
+    const challenge = parseMppChallenge(wwwAuth);
+    if (!challenge) {
+      showError('Could not parse payment challenge. Contact support.');
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      return;
+    }
+
+    // Step 4: Extract amount from challenge (source of truth from backend)
+    let amountCents = 0;
+    if (challenge.request && typeof challenge.request === 'object') {
+      amountCents = parseInt(String((challenge.request as Record<string, string>).amount || '0'), 10);
+    } else if (typeof challenge.request === 'string') {
+      const raw = new URLSearchParams(challenge.request).get('amount') || '0';
+      amountCents = parseInt(raw.replace(/"/g, ''), 10);
+    }
+
+    if (amountCents <= 0) {
+      showError('Invalid payment amount in challenge. Contact support.');
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
+      return;
+    }
+
+    currentChallenge = challenge;
+    currentChallengeAmountCents = amountCents;
+
+    // Step 5: Init Stripe Elements with backend-provided amount
+    await initStripePayment(challenge, amountCents);
+
   } catch (err) {
     showError(`Approval failed: ${err instanceof Error ? err.message : String(err)}`);
     if (btn) { btn.disabled = false; btn.textContent = '✅ Approve & Pay'; }
@@ -277,7 +371,6 @@ async function handleApprove() {
 // ── Reject ──────────────────────────────────────────────────
 async function handleReject() {
   if (!requestId || !approvalToken) return;
-
   if (!confirm('Are you sure you want to reject this payment request?')) return;
 
   const btn = $('btn-reject') as HTMLButtonElement | null;
@@ -297,34 +390,25 @@ async function handleReject() {
       return;
     }
 
-    const rej = $('step-rejected');
-    if (rej) rej.style.display = 'block';
-    const details = $('step-details');
-    if (details) details.style.display = 'none';
+    showStep('step-rejected');
   } catch (err) {
     showError(`Rejection failed: ${err instanceof Error ? err.message : String(err)}`);
     if (btn) { btn.disabled = false; btn.textContent = '❌ Reject'; }
   }
 }
 
-// ── Stripe Payment ──────────────────────────────────────────
-async function initStripePayment() {
-  if (!stripePublishableKey || !requestInfo) {
+// ── Stripe Payment Init ─────────────────────────────────────
+async function initStripePayment(challenge: MppChallengeWire, amountCents: number) {
+  if (!stripePublishableKey) {
     showError('Stripe not configured. Please try again.');
     return;
   }
-
   if (typeof Stripe === 'undefined') {
     showError('Stripe.js not loaded. Please refresh.');
     return;
   }
 
   stripeInstance = Stripe(stripePublishableKey);
-
-  // Calculate cost in cents (same as the MPP challenge would)
-  // We'll use a simple approximation — the actual amount comes from the MPP middleware
-  const amountCents = Math.round(requestInfo.amountUsd * 100 * 1.4352 + 200);
-
   stripeElements = stripeInstance.elements({
     mode: 'payment',
     amount: amountCents,
@@ -336,70 +420,96 @@ async function initStripePayment() {
 
   const paymentInfo = $('payment-info');
   if (paymentInfo) {
-    paymentInfo.textContent = `Pay $${(amountCents / 100).toFixed(2)} USD to create a $${requestInfo.amountUsd.toFixed(2)} card.`;
+    const desc = challenge.description || 'ASG Card creation';
+    paymentInfo.textContent = `Payment of $${(amountCents / 100).toFixed(2)} USD required for: ${desc}`;
   }
 
-  setStep(3);
+  showStep('step-payment');
 }
 
+// ── Complete Payment (real MPP flow) ────────────────────────
 async function handlePay() {
-  if (!stripeInstance || !stripeElements || !requestId || !approvalToken || !requestInfo) return;
+  if (!stripeInstance || !stripeElements || !requestId || !approvalToken ||
+      !requestInfo || !currentChallenge) return;
   hideError();
 
   const btn = $('btn-pay') as HTMLButtonElement | null;
   if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
 
+  const showPayError = (msg: string) => {
+    const el = $('payment-error');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+    if (btn) { btn.disabled = false; btn.textContent = '💳 Pay Now'; }
+  };
+
   try {
-    // Submit Stripe Elements
-    const { error: submitError } = await stripeElements.submit();
-    if (submitError) {
-      showError(submitError.message);
-      if (btn) { btn.disabled = false; btn.textContent = '💳 Pay Now'; }
-      return;
-    }
+    const stripe = stripeInstance;
+    const elements = stripeElements;
 
-    // Create PaymentMethod
-    const { error: pmError, paymentMethod } = await stripeInstance.createPaymentMethod({
-      elements: stripeElements,
-    });
-    if (pmError || !paymentMethod) {
-      showError(pmError?.message || 'Failed to create payment method');
-      if (btn) { btn.disabled = false; btn.textContent = '💳 Pay Now'; }
-      return;
-    }
+    // 1. Submit Stripe Elements form
+    const { error: submitError } = await elements.submit();
+    if (submitError) { showPayError(submitError.message); return; }
 
-    // Create SPT
+    // 2. Create PaymentMethod
+    const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({ elements });
+    if (pmError || !paymentMethod) { showPayError(pmError?.message || 'Failed to create payment method'); return; }
+
+    // 3. Create SPT via approval-scoped endpoint
+    if (btn) btn.textContent = 'Creating payment token...';
+
     const sptRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}/create-spt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: approvalToken,
         paymentMethod: paymentMethod.id,
-        amount: Math.round(requestInfo.amountUsd * 100 * 1.4352 + 200),
+        amount: currentChallengeAmountCents,
         currency: 'usd',
       }),
     });
 
-    // If create-spt doesn't exist, the payment will go through the MPP challenge flow directly
-    // For now, mark as completed with a simple approval
-    if (sptRes.ok) {
-      const sptData = await sptRes.json();
-      // Now complete with the credential
-      // This is simplified — in full MPP flow, the credential includes HMAC
+    if (!sptRes.ok) {
+      const err = await sptRes.json().catch(() => ({ error: 'SPT creation failed' }));
+      showPayError(err.error || 'Failed to create payment token');
+      return;
     }
 
-    // For v1: just mark as completed via the approve endpoint
-    // The card creation happens server-side after approval
-    const doneEl = $('step-done');
-    if (doneEl) doneEl.style.display = 'block';
-    const payEl = $('step-payment');
-    if (payEl) payEl.style.display = 'none';
+    const { spt } = await sptRes.json();
+    if (!spt) { showPayError('Server did not return payment token'); return; }
 
-    const doneMsg = $('done-msg');
-    if (doneMsg) doneMsg.textContent = 'Payment successful! The card has been created and the agent will receive the details.';
+    // 4. Build MPP credential
+    const credential = buildMppCredential(currentChallenge, spt);
 
+    // 5. Retry /approve/:id/complete WITH the credential
+    if (btn) btn.textContent = 'Creating card...';
+
+    const completeRes = await fetch(`${API_BASE}/stripe-beta/approve/${requestId}/complete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': credential,
+      },
+      body: JSON.stringify({
+        token: approvalToken,
+        amount: requestInfo.amountUsd,
+        nameOnCard: requestInfo.nameOnCard || 'ASG Card',
+        email: requestInfo.email,
+        phone: requestInfo.phone || '',
+      }),
+    });
+
+    if (completeRes.status === 201) {
+      const data = await completeRes.json();
+      showStep('step-done');
+      const doneMsg = $('done-msg');
+      if (doneMsg) doneMsg.textContent = 'Payment successful! The card has been created and the agent will receive the details.';
+      const cardIdEl = $('done-card-id');
+      if (cardIdEl && data.card?.cardId) cardIdEl.textContent = `Card ID: ${data.card.cardId}`;
+    } else {
+      const err = await completeRes.json().catch(() => ({ error: `HTTP ${completeRes.status}` }));
+      showPayError(err.error || err.detail || `Payment failed: ${completeRes.status}`);
+    }
   } catch (err) {
-    showError(`Payment failed: ${err instanceof Error ? err.message : String(err)}`);
-    if (btn) { btn.disabled = false; btn.textContent = '💳 Pay Now'; }
+    showPayError(`Payment failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

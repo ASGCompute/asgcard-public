@@ -351,6 +351,83 @@ stripeBetaRouter.post(
   }
 );
 
+/**
+ * POST /stripe-beta/approve/:id/create-spt
+ * Create SPT for approved payment requests.
+ * Uses approval token for auth (owner doesn't have session key).
+ */
+stripeBetaRouter.post(
+  "/approve/:id/create-spt",
+  requireStripeBetaEnabled,
+  async (req, res) => {
+    const { id } = req.params;
+    const token = req.body?.token as string;
+
+    if (!token) {
+      res.status(400).json({ error: "Missing approval token" });
+      return;
+    }
+
+    const pr = await getPaymentRequestByToken(id, token);
+    if (!pr || pr.status !== "approved") {
+      res.status(400).json({ error: "Request not in approved state" });
+      return;
+    }
+
+    const { paymentMethod, amount, currency } = req.body;
+    if (!paymentMethod || !amount) {
+      res.status(400).json({ error: "Missing paymentMethod or amount" });
+      return;
+    }
+
+    try {
+      const key = env.STRIPE_SECRET_KEY;
+      if (!key) {
+        res.status(500).json({ error: "STRIPE_SECRET_KEY not configured" });
+        return;
+      }
+
+      const body = new URLSearchParams({
+        payment_method: paymentMethod,
+        "usage_limit[amount]": String(amount),
+        "usage_limit[currency]": currency || "usd",
+      });
+
+      const response = await fetch(
+        "https://api.stripe.com/v1/shared_payment_tokens",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body,
+        }
+      );
+
+      if (!response.ok) {
+        const errBody = await response.text();
+        appLogger.error(
+          { status: response.status, body: errBody },
+          "[APPROVE] SPT creation failed"
+        );
+        res.status(502).json({ error: "SPT creation failed" });
+        return;
+      }
+
+      const result = (await response.json()) as { id: string };
+      appLogger.info(
+        { sptId: result.id?.substring(0, 12), requestId: id },
+        "[APPROVE] SPT created for approval flow"
+      );
+      res.json({ spt: result.id });
+    } catch (err) {
+      appLogger.error({ err }, "[APPROVE] SPT creation failed");
+      res.status(502).json({ error: "SPT creation failed" });
+    }
+  }
+);
+
 // ── Authenticated endpoints (session auth) ─────────────────
 // Beta gate + session auth applied to ALL mutation/management routes
 

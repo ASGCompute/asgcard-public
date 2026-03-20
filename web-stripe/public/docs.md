@@ -1,15 +1,42 @@
 # ASG Card — LLM-Friendly Documentation
 
-> USD MasterCard virtual cards for AI agents, powered by x402 on Stellar
+> USD MasterCard virtual cards for AI agents — pay via Stellar x402 (USDC) or Stripe Machine Payments
 
 ## Quick Links
 
 - Site: [asgcard.dev](https://asgcard.dev)
+- Stripe Edition: [stripe.asgcard.dev](https://stripe.asgcard.dev)
 - API: [api.asgcard.dev](https://api.asgcard.dev)
 - npm SDK: `@asgcard/sdk`
 - npm CLI: `@asgcard/cli`
 - npm MCP: `@asgcard/mcp-server`
 - Agent config: [asgcard.dev/agent.txt](https://asgcard.dev/agent.txt)
+
+## Payment Rails
+
+ASG Card supports two payment rails. The card product is identical.
+
+### Stellar Edition (x402)
+
+Agent-autonomous. No human in the loop.
+
+1. Agent requests card → API returns 402 + USDC amount
+2. Agent signs Stellar USDC transfer via SDK
+3. x402 facilitator verifies and settles on-chain
+4. Card details returned in the response
+
+Uses: SDK, CLI, MCP server.
+
+### Stripe Edition (MPP)
+
+Owner-in-the-loop. Agent creates request, human approves and pays.
+
+1. Agent creates payment request → API returns `approval_required` + `approvalUrl`
+2. Owner opens approval page at `stripe.asgcard.dev/approve`
+3. Owner reviews, approves, pays via Stripe
+4. Card created → agent polls until `completed`
+
+Uses: session-based auth (`X-STRIPE-SESSION`).
 
 ## Quickstart — First Card in < 3 Minutes
 
@@ -18,8 +45,6 @@
 ```bash
 npx @asgcard/cli onboard -y
 ```
-
-This creates a wallet (`~/.asgcard/wallet.json`), configures MCP, installs the agent skill, and prints the next step.
 
 Then install for your client:
 
@@ -34,13 +59,7 @@ asgcard install --client cursor     # Cursor
 Send USDC on Stellar to the public key shown by `onboard`.
 Minimum: ~$15.53 USDC (for $5 card + $10 issuance + 3.5%).
 
-### 3. Check wallet status
-
-```bash
-npx @asgcard/cli wallet info
-```
-
-### 4. Create your first card
+### 3. Create your first card
 
 ```bash
 npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
@@ -56,8 +75,6 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `install --client <c>` | No | Configure MCP for codex/claude/cursor |
 | `onboard [-y]` | No | Full onboarding: wallet + MCP + skill |
 | `doctor` | No | Diagnose setup (key, API, RPC, balance) |
-| `login [key]` | No | Save Stellar private key (legacy) |
-| `whoami` | Yes | Show configured wallet address |
 | `cards` | Yes | List all cards |
 | `card <id>` | Yes | Get card summary |
 | `card:details <id>` | Yes | Get sensitive card info (PAN, CVV) |
@@ -68,68 +85,68 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `pricing` | No | View pricing (card $10, top-up 3.5%) |
 | `health` | No | API health check |
 
-## MCP Server Tools (9)
+## MCP Server Tools (11)
 
-The MCP server (`@asgcard/mcp-server`) reads your key from `~/.asgcard/wallet.json` automatically — no env vars needed in client configs.
+The MCP server reads your key from `~/.asgcard/wallet.json` automatically.
 
 | Tool | Description |
 | ---- | ----------- |
-| `get_wallet_status` | Check wallet address, USDC balance, and readiness (use FIRST) |
-| `create_card` | Create virtual MasterCard (pays USDC via x402) |
+| `get_wallet_status` | Check wallet address, USDC balance (use FIRST) |
+| `create_card` | Create virtual MasterCard ($5–$5,000, pays USDC via x402) |
 | `fund_card` | Top up existing card |
 | `list_cards` | List all wallet cards |
 | `get_card` | Get card summary by ID |
 | `get_card_details` | Get PAN, CVV, expiry (rate-limited 5/hour) |
-| `freeze_card` | Temporarily freeze a card |
+| `freeze_card` | Temporarily freeze card |
 | `unfreeze_card` | Re-enable frozen card |
 | `get_pricing` | View pricing (card $10, top-up 3.5%) |
-
-### Recommended Agent Flow
-
-1. `get_wallet_status` → verify wallet is funded
-2. `get_pricing` → see pricing (card $10, top-up 3.5%)
-3. `create_card` → issue virtual card (USDC payment happens on-chain)
-4. `list_cards` / `get_card` / `get_card_details` → manage cards
-5. `fund_card` → top up when needed
-6. `freeze_card` / `unfreeze_card` → control
-
-### MCP Setup
-
-**First-class clients** (one-click installer):
-
-```bash
-asgcard install --client codex      # OpenAI Codex
-asgcard install --client claude     # Claude Code
-asgcard install --client cursor     # Cursor
-```
-
-**Compatible runtimes** (OpenClaw, Manus, Perplexity Computer, custom agents): Use manual MCP config or `@asgcard/sdk` directly.
-
-No `STELLAR_PRIVATE_KEY` env var needed — MCP server reads from `~/.asgcard/wallet.json`.
-
-## Authentication
-
-- **Wallet signature**: All card management uses Stellar Ed25519 signature auth
-- **x402 payments**: Card creation and funding pay USDC on Stellar via the x402 protocol
-- **No API keys**: Authentication is wallet-based, no separate API keys needed
+| `get_transactions` | Card transaction history |
+| `get_balance` | Live card balance |
 
 ## API Endpoints
 
 Base URL: `https://api.asgcard.dev`
 
-| Method | Path | Auth | Description |
-| ------ | ---- | ---- | ----------- |
-| GET | `/health` | None | Health check |
-| GET | `/pricing` | None | Full pricing breakdown |
-| GET | `/cards/tiers` | None | Alias for `/pricing` |
-| GET | `/supported` | None | x402 capabilities |
-| POST | `/cards/create/tier/:amount` | x402 | Create card ($5–$5,000) |
-| POST | `/cards/fund/tier/:amount` | x402 | Fund card ($5–$5,000) |
-| GET | `/cards` | Wallet sig | List cards |
-| GET | `/cards/:cardId` | Wallet sig | Get card |
-| GET | `/cards/:cardId/details` | Wallet sig | Get card details (PAN, CVV) |
-| POST | `/cards/:cardId/freeze` | Wallet sig | Freeze card |
-| POST | `/cards/:cardId/unfreeze` | Wallet sig | Unfreeze card |
+### Public
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/health` | Health check |
+| GET | `/pricing` | Full pricing breakdown |
+| GET | `/cards/tiers` | Alias for `/pricing` |
+| GET | `/supported` | x402 capabilities |
+
+### Stellar x402 (Payment Required)
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| POST | `/cards/create/tier/:amount` | Create card ($5–$5,000) |
+| POST | `/cards/fund/tier/:amount` | Fund card ($5–$5,000) |
+
+### Wallet Signed
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/cards` | List cards |
+| GET | `/cards/:cardId` | Get card |
+| GET | `/cards/:cardId/details` | Get PAN, CVV (nonce required) |
+| GET | `/cards/:cardId/transactions` | Transaction history |
+| GET | `/cards/:cardId/balance` | Live balance |
+| POST | `/cards/:cardId/freeze` | Freeze card |
+| POST | `/cards/:cardId/unfreeze` | Unfreeze card |
+
+### Stripe MPP (Beta)
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| POST | `/stripe-beta/session` | Create managed session |
+| POST | `/stripe-beta/payment-requests` | Create payment request |
+| GET | `/stripe-beta/payment-requests/:id` | Poll request status |
+| GET | `/stripe-beta/approve/:id` | Get approval page data |
+| POST | `/stripe-beta/approve/:id` | Approve or reject |
+| POST | `/stripe-beta/approve/:id/complete` | Complete payment (MPP credential) |
+| GET | `/stripe-beta/cards` | List session's cards |
+| GET | `/stripe-beta/cards/:id/details` | Card details (nonce required) |
 
 ## Pricing
 
@@ -138,50 +155,34 @@ Base URL: `https://api.asgcard.dev`
 - **$10** one-time card issuance
 - **3.5%** on every top-up
 
-That's it. Load any amount from $5 to $5,000.
+Load any amount from $5 to $5,000. Same pricing on both Stellar and Stripe rails.
 
-> Example: load $100 onto a new card → you pay **$113.50 USDC** total.
-> Top up $200 later → just **$207 USDC**.
+> Example: load $100 onto a new card → **$113.50** total.
+> Top up $200 later → just **$207**.
 
 Live pricing: `GET https://api.asgcard.dev/pricing`
 
+## Authentication
+
+- **Stellar edition**: Wallet signature (Ed25519) + x402 payments
+- **Stripe edition**: Session-based (`X-STRIPE-SESSION` header)
+- **No API keys**: Authentication is wallet-based or session-based
+
 ## Error Handling
-
-All CLI and MCP errors follow a remediation-first pattern:
-
-```
-❌ [What happened]
-   Why: [Reason]
-   Fix: [Exact command to run]
-```
 
 | Code | When |
 | ---- | ---- |
 | `400` | Invalid amount or body |
 | `401` | Invalid wallet auth or X-Payment proof |
-| `402` | x402 challenge (no X-Payment header) |
-| `403` | Details access revoked by card owner |
+| `402` | x402 challenge |
+| `403` | Details access revoked |
 | `404` | Card not found |
 | `409` | Nonce replay detected |
 | `429` | Rate limit exceeded |
-| `503` | Provider capacity unavailable. Retry after the period specified in `retryAfter`. |
-
-## Payment Protocol
-
-- **Protocol**: x402 (HTTP 402-based machine payment)
-- **Network**: Stellar (mainnet)
-- **Currency**: USDC (Circle)
-- **Mechanism**: Soroban SAC transfer, signed auth entries
-- **Fees**: Sponsored by x402 facilitator (zero gas cost for user)
-
-## Refunds & Failures
-
-- **Merchant refunds**: Standard MasterCard merchant refunds to the card are supported. Refunds initiated by merchants are processed through the card network and credited to the card balance.
-- **Failed create/fund**: If a card creation or funding operation fails after payment acceptance, the case is handled operationally by ASG support. There is no self-serve refund mechanism. Contact support@asgcompute.dev with your transaction hash.
-- **Provider capacity (503)**: If the issuer cannot process the requested amount, the API returns `503` before accepting any payment. No payment is taken and no refund is needed.
+| `503` | Provider capacity unavailable |
 
 ## Support
 
 - Discord: [discord.gg/asgcompute](https://discord.gg/asgcompute)
-- GitHub: [github.com/asgcompute/asgcard](https://github.com/asgcompute/asgcard)
+- GitHub: [github.com/ASGCompute/asgcard-public](https://github.com/ASGCompute/asgcard-public)
 - Email: support@asgcompute.dev

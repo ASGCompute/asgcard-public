@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.0] - 2026-03-20
+### Added
+- **Stripe MPP Approval Flow:** Owner-in-the-loop payment request lifecycle — agents create requests, owners approve via `stripe.asgcard.dev/approve`, cards issued on completion.
+- **Payment Request API:** `POST /stripe-beta/payment-requests`, `GET /stripe-beta/payment-requests/:id` for agent polling, `POST /stripe-beta/approve/:id/complete` for MPP credential submission.
+- **Real End-to-End Card Creation:** Stripe payment flow now calls `cardService.createCard` — no demo mocks in production.
+- **Enterprise Approval Page:** Redesigned `stripe.asgcard.dev/approve` with clean ASG × Stripe branding, professional typography, SVG icons, and Stripe Elements integration.
+- **Dual-Rail Documentation:** README, main site docs, and hero copy updated to describe both Stellar x402 and Stripe MPP rails.
+- **Stripe Beta API Endpoints:** Session creation, payment request lifecycle, card management via `X-STRIPE-SESSION` auth.
+
+### Changed
+- `README.md` rewritten with dual-rail architecture diagram, both payment flows, and Stripe Beta API table.
+- `docs.ts` intro, overview, and pricing sections no longer imply Stellar-only.
+- `main.ts` hero copy and "How It Works" step 2 mention both payment rails.
+- Pricing sections display amounts without currency denomination (same on both rails).
+
+### Removed
+- `DEMO_MODE` environment variable and mock card creation block from `stripeBeta.ts`.
+- Stale `web/stripe/` and `web/src/stripe/stripe-beta.ts` duplicates from main web project (Stripe site lives in `web-stripe/`).
+- Stripe entry removed from main web `vite.config.ts` rollup inputs.
+
+### Non-Breaking
+- All existing Stellar x402 flows, wallet management, and SDK/CLI/MCP consumers remain unchanged.
+- Pricing unchanged: $10 card fee, 3.5% top-up, same on both rails.
+
 ## [0.4.0-beta.1] - 2026-03-19
 ### Added
 - **Stripe Machine Payments Beta:** New `stripe.asgcard.dev` beta surface for Stripe MPP integration.

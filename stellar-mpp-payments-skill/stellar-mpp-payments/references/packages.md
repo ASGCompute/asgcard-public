@@ -32,12 +32,12 @@
   "type": "module",
   "dependencies": {
     "@stellar/stellar-sdk": "^14.6.1",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "mppx": "^0.4.7",
     "stellar-mpp-sdk": "github:stellar-experimental/stellar-mpp-sdk"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.3",
     "@types/node": "^22.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"

@@ -308,28 +308,6 @@ stripeBetaRouter.post(
 
       const walletAddress = sessionRows[0].managed_wallet;
 
-      // DEMO_MODE: skip 4payments, return mock card (Stripe payment still real)
-      if (process.env.DEMO_MODE === 'true') {
-        const mockCardId = `card_demo_${id.slice(3, 11)}`;
-        const mockResult = {
-          success: true,
-          card: { cardId: mockCardId, status: 'active', balance: amount, last4: '0000' },
-          payment: { txHash, amount: totalCostUsd },
-        };
-        await completePaymentRequest(id, mockCardId, txHash, mockResult);
-        appLogger.info(
-          { requestId: id, cardId: mockCardId, demo: true },
-          "[APPROVE] DEMO_MODE — request completed with mock card"
-        );
-        res.status(201).json({
-          status: 'completed',
-          requestId: id,
-          card: mockResult.card,
-          payment: mockResult.payment,
-        });
-        return;
-      }
-
       const result = await cardService.createCard({
         walletAddress,
         nameOnCard: pr.nameOnCard || "ASG Card",

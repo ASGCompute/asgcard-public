@@ -2,14 +2,20 @@
 # https://asgcard.dev/agent.txt
 
 name: ASG Card
-description: Virtual MasterCard cards for AI agents, powered by x402 on Stellar
+description: Virtual MasterCard cards for AI agents — pay via Stellar x402 (USDC) or Stripe Machine Payments
 url: https://asgcard.dev
+stripe_url: https://stripe.asgcard.dev
 api: https://api.asgcard.dev
 docs: https://asgcard.dev/docs.md
 
+# Payment Rails
+payment_rails:
+  - stellar_x402: USDC on Stellar via x402 (agent-autonomous, no human)
+  - stripe_mpp: Stripe Machine Payments Protocol (owner-in-the-loop approval)
+
 # Authentication
-auth: stellar-wallet
-auth_method: Ed25519 signature (Stellar keypair)
+auth_stellar: stellar-wallet (Ed25519 signature)
+auth_stripe: X-STRIPE-SESSION header (session-based)
 key_storage: ~/.asgcard/wallet.json (auto-resolved by MCP server)
 no_api_keys: true
 
@@ -24,7 +30,7 @@ install_codex: npx @asgcard/cli install --client codex
 install_claude: npx @asgcard/cli install --client claude
 install_cursor: npx @asgcard/cli install --client cursor
 
-# MCP Tools (9 total)
+# MCP Tools (11 total)
 mcp_tools:
   - get_wallet_status: Check wallet address, USDC balance, and readiness (use FIRST)
   - create_card: Create virtual MasterCard ($5–$5,000, pays USDC via x402)
@@ -35,14 +41,8 @@ mcp_tools:
   - freeze_card: Temporarily freeze card
   - unfreeze_card: Re-enable frozen card
   - get_pricing: View pricing (card $10, top-up 3.5%)
-
-# Recommended Agent Flow
-agent_flow:
-  1. get_wallet_status → verify wallet is funded
-  2. get_pricing → see pricing
-  3. create_card → issue virtual card
-  4. list_cards / get_card → manage cards
-  5. fund_card → top up when needed
+  - get_transactions: Card transaction history
+  - get_balance: Live card balance
 
 # API Endpoints (base: https://api.asgcard.dev)
 endpoints:
@@ -58,24 +58,29 @@ endpoints:
     - GET /cards
     - GET /cards/:cardId
     - GET /cards/:cardId/details
+    - GET /cards/:cardId/transactions
+    - GET /cards/:cardId/balance
     - POST /cards/:cardId/freeze
     - POST /cards/:cardId/unfreeze
+  stripe_beta:
+    - POST /stripe-beta/session
+    - POST /stripe-beta/payment-requests
+    - GET /stripe-beta/payment-requests/:id
+    - GET /stripe-beta/approve/:id
+    - POST /stripe-beta/approve/:id
+    - POST /stripe-beta/approve/:id/complete
+    - GET /stripe-beta/cards
+    - GET /stripe-beta/cards/:id/details
 
-# Pricing
+# Pricing (same on both rails)
 pricing:
   card_issuance: $10 (one-time)
   top_up_fee: 3.5%
   amount_range: $5–$5,000
-  example_create: Load $100 → $113.50 USDC total
-  example_fund: Top up $200 → $207 USDC
-
-# Payment
-payment_protocol: x402
-payment_network: stellar:pubnet
-payment_currency: USDC
-payment_fees: sponsored (zero gas cost)
+  example_create: Load $100 → $113.50 total
+  example_fund: Top up $200 → $207
 
 # Support
 discord: https://discord.gg/asgcompute
-github: https://github.com/asgcompute/asgcard
+github: https://github.com/ASGCompute/asgcard-public
 email: support@asgcompute.dev

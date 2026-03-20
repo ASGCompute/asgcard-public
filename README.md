@@ -1,6 +1,6 @@
 # ASG Card
 
-ASG Card is an **agent-first** virtual card platform. AI agents programmatically issue and manage MasterCard virtual cards, paying in USDC via the **x402** protocol on **Stellar**.
+ASG Card is an **agent-first** virtual card platform. AI agents programmatically issue and manage MasterCard virtual cards, paying via **Stellar x402** (USDC) or **Stripe Machine Payments Protocol** (card).
 
 ## Architecture
 
@@ -8,8 +8,11 @@ ASG Card is an **agent-first** virtual card platform. AI agents programmatically
 graph TB
     subgraph Clients
         SDK["@asgcard/sdk<br>(npm, TypeScript)"]
+        CLI["@asgcard/cli<br>onboard + card ops"]
+        MCP["@asgcard/mcp-server<br>11 tools"]
         TG["Telegram Bot<br>@ASGCardbot"]
         WEB["asgcard.dev"]
+        STRIPE_WEB["stripe.asgcard.dev"]
     end
 
     subgraph ASG Infrastructure
@@ -18,40 +21,64 @@ graph TB
         DB["PostgreSQL"]
     end
 
+    subgraph Payment Rails
+        STELLAR["Stellar Pubnet<br>USDC"]
+        STRIPE["Stripe<br>MPP"]
+    end
+
     subgraph External
         ISSUER["Card Issuer<br>(MasterCard)"]
-        STELLAR["Stellar Pubnet<br>USDC"]
     end
 
     SDK -->|"x402 HTTP"| API
+    CLI -->|"x402 HTTP"| API
+    MCP -->|"x402 HTTP"| API
     TG -->|"Webhook"| API
     WEB -->|"Pricing"| API
+    STRIPE_WEB -->|"MPP"| API
     API -->|"verify/settle"| FAC
     API -->|"SQL"| DB
     API -->|"REST"| ISSUER
     FAC -->|"Soroban RPC"| STELLAR
+    API -->|"PaymentIntent"| STRIPE
     SDK -->|"Sign TX"| STELLAR
 ```
 
-## How It Works
+## Payment Rails
 
-1. **Agent requests a card** → API returns a `402 Payment Required` with USDC amount
+ASG Card supports two payment rails. The card product is identical — only the payment method differs.
+
+### Stellar Edition (x402)
+
+1. **Agent requests a card** → API returns `402 Payment Required` with USDC amount
 2. **Agent signs a Stellar USDC transfer** via the SDK
 3. **x402 Facilitator verifies and settles** the payment on-chain
-4. **API issues a real MasterCard** via the card issuer
-5. **Card details returned immediately** in the response (agent-first)
+4. **API issues a MasterCard** via the card issuer
+5. **Card details returned immediately** in the response
+
+Uses: SDK, CLI, MCP server. No human in the loop.
+
+### Stripe Edition (MPP)
+
+1. **Agent creates a payment request** → API returns `approval_required` + `approvalUrl`
+2. **Owner opens the approval page** at `stripe.asgcard.dev/approve`
+3. **Owner reviews and approves** → Stripe Elements form with real-time pricing
+4. **Owner pays via Stripe** → card/Apple Pay/Google Pay
+5. **Card created** → agent polls until `completed`
+
+Uses: session-based auth (`X-STRIPE-SESSION`). Human-in-the-loop approval.
 
 ## Workspace
 
 | Directory | Description |
 |-----------|-------------|
-| `/api` | ASG Card API (Express + x402 + wallet auth) |
+| `/api` | ASG Card API (Express + x402 + Stripe MPP) |
 | `/sdk` | `@asgcard/sdk` TypeScript client |
 | `/cli` | `@asgcard/cli` CLI with onboarding |
 | `/mcp-server` | `@asgcard/mcp-server` MCP server (11 tools) |
 | `/web` | Marketing website (asgcard.dev) |
+| `/web-stripe` | Stripe edition site (stripe.asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
-| `/stellar-mpp-payments-skill` | Community-facing Stellar MPP skill scaffold with installer, references, and examples |
 
 ## Quick Start — First Card
 
@@ -62,14 +89,6 @@ npx @asgcard/cli onboard -y --client codex
 # Fund your wallet with USDC on Stellar (address shown by onboard)
 # Then:
 npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
-```
-
-### Development
-
-```bash
-npm install
-npm run dev:api   # API on localhost:3000
-npm run dev       # Web on localhost:3001
 ```
 
 ## SDK Usage
@@ -128,14 +147,6 @@ const card = await client.createCard({
 npx @asgcard/cli install --client codex    # or claude, cursor
 ```
 
-## Agent Skill (x402 Payments)
-
-The CLI bundles a product-owned `asgcard` skill that is installed automatically during `asgcard onboard` to `~/.agents/skills/asgcard/`.
-
-For custom autonomous agents and raw LLM pipelines, the [x402-payments-skill](https://github.com/ASGCompute/x402-payments-skill) teaches agents how to pay via x402 natively on Stellar.
-
-For MPP-specific community work, see `stellar-mpp-payments-skill/` in this repo. It mirrors the same distribution model with a dedicated `SKILL.md`, installer, and seller/client examples for Stellar MPP.
-
 ## Pricing
 
 **Simple, transparent, no hidden fees.**
@@ -145,7 +156,8 @@ For MPP-specific community work, see `stellar-mpp-payments-skill/` in this repo.
 
 That's it. Load any amount from $5 to $5,000.
 
-> Load $100 onto a new card → **$113.50 USDC**. Top up $200 later → just **$207 USDC**.
+> Load $100 onto a new card → **$113.50** total. Top up $200 later → just **$207**.
+> Same pricing on both Stellar and Stripe rails.
 
 ## API Endpoints
 
@@ -158,7 +170,7 @@ That's it. Load any amount from $5 to $5,000.
 | `/cards/tiers` | GET | Pricing info |
 | `/supported` | GET | x402 capabilities |
 
-### Paid (x402 Payment Required)
+### Stellar x402 (Payment Required)
 
 | Route | Method | Description |
 |-------|--------|-------------|
@@ -177,6 +189,18 @@ That's it. Load any amount from $5 to $5,000.
 | `/cards/:id/freeze` | POST | Freeze card |
 | `/cards/:id/unfreeze` | POST | Unfreeze card |
 
+### Stripe MPP (Beta)
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/stripe-beta/session` | POST | Create managed session |
+| `/stripe-beta/payment-requests` | POST | Create payment request |
+| `/stripe-beta/payment-requests/:id` | GET | Poll request status |
+| `/stripe-beta/approve/:id` | GET/POST | Approval page data / approve or reject |
+| `/stripe-beta/approve/:id/complete` | POST | Complete payment (MPP credential) |
+| `/stripe-beta/cards` | GET | List session's cards |
+| `/stripe-beta/cards/:id/details` | GET | Card details (nonce required) |
+
 ## Telegram Bot (@ASGCardbot)
 
 Link your wallet to Telegram for card management:
@@ -188,28 +212,13 @@ Link your wallet to Telegram for card management:
 | `/faq` | FAQ |
 | `/support` | Support |
 
-### Linking Flow
-1. Generate a deep-link token via the Owner Portal
-2. Click `t.me/ASGCardbot?start=lnk_xxx`
-3. Bot verifies and creates the wallet ↔ Telegram binding
-4. Use `/mycards` to view and manage cards with inline buttons
-
-## x402 Protocol
-
-ASG Card implements the **x402 payment protocol v2** on **Stellar**:
-
-- **Network:** Stellar Pubnet
-- **Asset:** USDC (Stellar SAC contract)
-- **Scheme:** `exact` (pay the exact amount required)
-- **Fees sponsored:** Yes (Stellar transaction fees covered)
-
-The flow follows the standard x402 challenge-response: `402 → sign → verify → settle → deliver`.
-
 ## Security
 
 - Card details encrypted at rest with **AES-256-GCM**
 - Agent nonce-based anti-replay protection (5 reads/hour)
-- Wallet signature authentication
+- Wallet signature authentication (Stellar edition)
+- Session-based authentication with beta gates (Stripe edition)
+- Stripe session keys redacted from logs
 - Telegram webhook secret validation
 - Ops endpoints protected by API key + IP allowlist
 

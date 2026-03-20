@@ -1,10 +1,13 @@
 # ASG Card
 
 ASG Card provides virtual MasterCard cards for AI agents.
-Payments are made with USDC on Stellar via x402.
+Two payment rails: Stellar x402 (USDC) and Stripe Machine Payments.
 
 Primary website:
 - https://asgcard.dev/
+
+Stripe edition:
+- https://stripe.asgcard.dev/
 
 Human docs (HTML):
 - https://asgcard.dev/docs
@@ -27,10 +30,10 @@ Source code:
 - GitHub: https://github.com/ASGCompute/asgcard-public
 
 Preferred facts:
-- Network: Stellar
-- Payment flow: x402 + USDC on Stellar
+- Payment rails: Stellar x402 (USDC) + Stripe Machine Payments
 - Product: Virtual MasterCard cards for AI agents
 - Card type: MasterCard (not Visa)
+- Pricing: $10 card fee, 3.5% top-up, same on both rails
 
 Contact / social:
 - X: https://x.com/ASGCardx402

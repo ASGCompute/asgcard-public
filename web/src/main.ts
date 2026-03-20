@@ -50,7 +50,7 @@ const FEATURES = [
 
 const STEPS = [
   { num: 1, title: 'Send a Request', desc: 'Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.', hint: 'POST /cards/create/tier/:amount' },
-  { num: 2, title: 'Pay with USDC', desc: 'The server responds 402 with payment details on chain. Your x402 client auto-pays the exact USDC amount.', hint: '402 → X-Payment → retry' },
+  { num: 2, title: 'Pay', desc: 'The server responds 402 with payment details. Your x402 client auto-pays the exact amount — USDC on Stellar or card via Stripe MPP.', hint: '402 → X-Payment → retry' },
   { num: 3, title: 'Receive Card Details', desc: 'Card number, CVV, expiry, and billing address returned instantly in the response body.', hint: '201 { cardNumber, cvv, expiry }' },
   { num: 4, title: 'Start Spending', desc: 'Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.', hint: '/cards/:cardId/freeze · /cards/:cardId/unfreeze' },
 ]
@@ -229,7 +229,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </h1>
 
             <p class="text-base sm:text-lg text-white/45 max-w-lg leading-relaxed">
-              Give your AI agent a spending card. Issues virtual debit cards on demand — paid with USDC on chain via x402.
+              Give your AI agent a spending card. Issues virtual debit cards on demand — pay via Stellar x402 or Stripe Machine Payments.
               <span class="text-white/65">Card details in seconds.</span>
             </p>
 

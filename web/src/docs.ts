@@ -163,7 +163,7 @@ function renderIntroduction(): string {
     <section id="introduction" aria-label="Introduction">
       <div class="docs-hero">
         <h1>ASG Card Documentation</h1>
-        <p>x402-powered virtual card issuance for AI agents on Stellar. Pay with USDC, get a card in seconds.</p>
+        <p>Virtual card issuance for AI agents. Pay via Stellar x402 (USDC) or Stripe Machine Payments — get a card in seconds.</p>
       </div>
 
       <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:1rem;">
@@ -193,7 +193,7 @@ function renderOverview(): string {
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-post">Paid (x402)</span></td>
               <td data-label="Auth">USDC payment on Stellar via x402</td>
-              <td data-label="Description">Create/fund cards</td>
+              <td data-label="Description">Create/fund cards (Stellar edition)</td>
             </tr>
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-put">Wallet-signed</span></td>
@@ -767,12 +767,12 @@ function renderPricing(): string {
       <p style="color:rgba(255,255,255,0.6);font-size:14px;">That's it. Load any amount from ${fmtUsd(p.minAmount)} to ${fmtUsd(p.maxAmount)}.</p>
 
       <h3 id="card-creation">Card Creation</h3>
-      <p>Load ${fmtUsd(exampleAmount)} onto a new card — you pay <strong>${fmtUsd(exampleTotal)} USDC</strong> total.</p>
+      <p>Load ${fmtUsd(exampleAmount)} onto a new card — you pay <strong>${fmtUsd(exampleTotal)}</strong> total. Same pricing on both Stellar and Stripe rails.</p>
 
       <hr class="docs-divider" />
 
       <h3 id="card-funding">Card Funding</h3>
-      <p>Top up ${fmtUsd(topUpExample)} later — just <strong>${fmtUsd(topUpTotal)} USDC</strong>. No card fee on top-ups.</p>
+      <p>Top up ${fmtUsd(topUpExample)} later — just <strong>${fmtUsd(topUpTotal)}</strong>. No card fee on top-ups.</p>
     </section>
   `;
 }

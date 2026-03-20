@@ -2,13 +2,13 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ASG Card API",
-    "version": "0.3.1",
-    "description": "ASG Card virtual card issuance API for AI agents. Paid endpoints use x402 with USDC on Stellar mainnet. See https://asgcard.dev/docs for integration guide."
+    "version": "0.5.0",
+    "description": "ASG Card virtual card issuance API for AI agents. Supports two payment rails: x402 with USDC on Stellar mainnet (agent-autonomous) and Stripe Machine Payments Protocol (owner-in-the-loop). See https://asgcard.dev/docs for integration guide."
   },
   "servers": [
     {
       "url": "https://api.asgcard.dev",
-      "description": "ASG Card API — Stellar Mainnet"
+      "description": "ASG Card API — Stellar Mainnet + Stripe MPP"
     }
   ],
   "tags": [
@@ -31,6 +31,10 @@
     {
       "name": "ops",
       "description": "Operations dashboard — secured by OPS_API_KEY"
+    },
+    {
+      "name": "stripe-beta",
+      "description": "Stripe Machine Payments Protocol — session-based, owner-in-the-loop"
     }
   ],
   "paths": {
@@ -483,6 +487,95 @@
           "401": {
             "$ref": "#/components/responses/ErrorResponse"
           }
+        }
+      }
+    },
+    "/stripe-beta/session": {
+      "post": {
+        "tags": ["stripe-beta"],
+        "summary": "Create managed session",
+        "operationId": "createStripeSession",
+        "description": "Creates a managed session for Stripe MPP. Returns a session key for subsequent requests.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "nameOnCard": { "type": "string" },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Session created with session key" },
+          "403": { "description": "Email not in beta allowlist" }
+        }
+      }
+    },
+    "/stripe-beta/payment-requests": {
+      "post": {
+        "tags": ["stripe-beta"],
+        "summary": "Create payment request",
+        "operationId": "createPaymentRequest",
+        "description": "Creates a payment request. Returns approval_required status with approvalUrl for owner.",
+        "parameters": [
+          { "name": "X-STRIPE-SESSION", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": { "type": "number", "minimum": 5, "maximum": 5000 },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Payment request created (status: approval_required)" },
+          "401": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/stripe-beta/payment-requests/{id}": {
+      "get": {
+        "tags": ["stripe-beta"],
+        "summary": "Poll payment request status",
+        "operationId": "getPaymentRequest",
+        "description": "Returns current status of a payment request (pending, approved, completed, rejected, expired).",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "X-STRIPE-SESSION", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Payment request status" },
+          "404": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/stripe-beta/approve/{id}/complete": {
+      "post": {
+        "tags": ["stripe-beta"],
+        "summary": "Complete payment (MPP credential)",
+        "operationId": "completeStripePayment",
+        "description": "Called after Stripe payment succeeds. Submits MPP credential and triggers card creation.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Card created successfully" },
+          "400": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     }

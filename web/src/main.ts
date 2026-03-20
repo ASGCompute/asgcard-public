@@ -49,10 +49,10 @@ const FEATURES = [
 ]
 
 const STEPS = [
-  { num: 1, title: 'Send a Request', desc: 'Your agent hits the create endpoint. No auth headers, no API key, no pre-registration needed.', hint: 'POST /cards/create/tier/:amount' },
-  { num: 2, title: 'Pay', desc: 'Via Stellar x402: auto-pay USDC on-chain. Via Stripe MPP: owner approves and pays via Stripe checkout. Same result.', hint: 'x402 → auto-pay · Stripe → owner approval' },
-  { num: 3, title: 'Receive Card Details', desc: 'Stellar x402: card number, CVV, expiry returned instantly in the response. Stripe MPP: card created after owner approves and pays.', hint: '201 { cardNumber, cvv, expiry }' },
-  { num: 4, title: 'Start Spending', desc: 'Fund more, freeze, unfreeze — all via simple wallet-signed API calls. Full lifecycle control.', hint: '/cards/:cardId/freeze · /cards/:cardId/unfreeze' },
+  { num: 1, title: 'Send a Request', desc: 'Stellar: agent hits the create endpoint directly. Stripe: agent creates a session, then a payment request.', hint: 'POST /cards/create/tier/:amount · POST /stripe-beta/payment-requests' },
+  { num: 2, title: 'Pay', desc: 'Stellar: agent auto-pays USDC on-chain via x402. Stripe: owner opens approval URL and pays via Stripe checkout.', hint: 'x402 → auto-pay · Stripe → owner approval' },
+  { num: 3, title: 'Card Created', desc: 'Stellar: card details returned instantly in the response. Stripe: agent polls until status is completed, then retrieves card.', hint: 'x402 → instant 201 · Stripe → poll → GET /stripe-beta/cards' },
+  { num: 4, title: 'Manage', desc: 'Fund more, freeze, unfreeze — all via API calls. Stellar uses wallet signatures, Stripe uses session keys.', hint: '/cards/:cardId/freeze · /stripe-beta/cards' },
 ]
 
 // ============================================================

@@ -185,7 +185,6 @@ function renderOverview(): string {
           <thead>
             <tr><th>Type</th><th>Auth</th><th>Description</th></tr>
           </thead>
-          <tbody>
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-get">Public</span></td>
               <td data-label="Auth">None</td>
@@ -199,7 +198,17 @@ function renderOverview(): string {
             <tr>
               <td data-label="Type"><span class="docs-badge docs-badge-put">Wallet-signed</span></td>
               <td data-label="Auth">Ed25519 signature</td>
-              <td data-label="Description">Card management</td>
+              <td data-label="Description">Card management (Stellar edition)</td>
+            </tr>
+            <tr>
+              <td data-label="Type"><span class="docs-badge docs-badge-post">Stripe Session</span></td>
+              <td data-label="Auth"><code>X-STRIPE-SESSION</code> header</td>
+              <td data-label="Description">Session, payment requests, card management (Stripe edition)</td>
+            </tr>
+            <tr>
+              <td data-label="Type"><span class="docs-badge docs-badge-get">Stripe Approval</span></td>
+              <td data-label="Auth">One-time token in URL</td>
+              <td data-label="Description">Owner approval and payment (Stripe edition)</td>
             </tr>
           </tbody>
         </table>
@@ -1064,6 +1073,90 @@ function renderEndpoints(): string {
   "cardId": "550e8400-e29b-41d4-a716-446655440000",
   "status": "active"
 }`, 'json')}
+      </div>
+
+      <hr class="docs-divider" />
+
+      <h3 id="stripe-endpoints">Stripe MPP Endpoints</h3>
+      <p>These endpoints use session-based authentication via <code>X-STRIPE-SESSION</code> header. See <a href="#stripe-mpp-flow">Authentication → Stripe MPP Flow</a>.</p>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-post">POST</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/session</code>
+        </div>
+        <p>Create a managed session. Returns <code>sessionKey</code> (store securely — shown only once).</p>
+        <strong>Request body:</strong>
+        ${codeBlock(`{ "email": "owner@company.com" }`, 'json')}
+        <strong>Response 201:</strong>
+        ${codeBlock(`{
+  "sessionId": "abc123...",
+  "ownerId": "owner_xyz...",
+  "sessionKey": "sk_sess_...",
+  "managedWalletAddress": "G...",
+  "note": "Store this sessionKey securely. It will not be shown again."
+}`, 'json')}
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-post">POST</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/payment-requests</code>
+        </div>
+        <p>Create a payment request. Amount 0 = card-only ($10). Amount $5–$5,000 = card with initial load.</p>
+        <strong>Request body:</strong>
+        ${codeBlock(`{
+  "amountUsd": 100,
+  "nameOnCard": "AI Agent",
+  "description": "Virtual card for agent"
+}`, 'json')}
+        <strong>Response 201:</strong>
+        ${codeBlock(`{
+  "status": "approval_required",
+  "requestId": "pr_...",
+  "approvalUrl": "https://stripe.asgcard.dev/approve?id=pr_...&token=...",
+  "expiresAt": "2026-03-21T..."
+}`, 'json')}
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-get">GET</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/payment-requests/:id</code>
+        </div>
+        <p>Poll payment request status. Returns <code>pending</code>, <code>approved</code>, <code>completed</code>, <code>rejected</code>, <code>expired</code>, or <code>failed</code>.</p>
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-get">GET</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/approve/:id?token=...</code>
+        </div>
+        <p>Get approval page data. Token-based auth — no session needed.</p>
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-post">POST</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/approve/:id</code>
+        </div>
+        <p>Approve or reject a payment request. Body: <code>{"action": "approve", "token": "..."}</code></p>
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-get">GET</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/cards</code>
+        </div>
+        <p>List all cards created in this session.</p>
+      </div>
+
+      <div style="margin:1rem 0;padding:1rem 1.25rem;border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span class="docs-badge docs-badge-get">GET</span>
+          <code style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);font-size:13px;">/stripe-beta/cards/:id/details</code>
+        </div>
+        <p>Retrieve PAN, CVV, expiry for a Stripe-edition card. Requires <code>X-AGENT-NONCE</code> header.</p>
       </div>
     </section>
   `;

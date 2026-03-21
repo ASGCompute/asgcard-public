@@ -1141,13 +1141,14 @@ const AMOUNT_MAX = 5000;
 
 function isValidAmount(amount: string): boolean {
   const num = Number(amount);
+  if (num === 0) return true; // card-only, $10 flat
   return Number.isFinite(num) && num >= AMOUNT_MIN && num <= AMOUNT_MAX;
 }
 
 program
   .command("card:create")
   .description("Create a new virtual card (pays on-chain via x402)")
-  .requiredOption("-a, --amount <amount>", `Card load amount ($${AMOUNT_MIN}–$${AMOUNT_MAX})`)
+  .requiredOption("-a, --amount <amount>", `Card load amount (0 = card-only, or $${AMOUNT_MIN}–$${AMOUNT_MAX})`)
   .requiredOption("-n, --name <name>", "Name on card")
   .requiredOption("-e, --email <email>", "Email for notifications")
   .requiredOption("-p, --phone <phone>", "Phone number (e.g. +1234567890)")
@@ -1155,7 +1156,7 @@ program
     if (!isValidAmount(options.amount)) {
       remediate(
         `Invalid amount: ${options.amount}`,
-        `Amount must be between $${AMOUNT_MIN} and $${AMOUNT_MAX}`,
+        `Amount must be 0 (card-only) or between $${AMOUNT_MIN} and $${AMOUNT_MAX}`,
         "asgcard pricing  (to see pricing details)"
       );
       process.exit(1);
@@ -1622,8 +1623,9 @@ program
   .description("Create a Stripe payment request (card creation via Stripe fallback)")
   .requiredOption("-a, --amount <amount>", "Card load amount (0 = card-only $10, or $5–$5,000)")
   .requiredOption("-n, --name <name>", "Name on card")
+  .requiredOption("-p, --phone <phone>", "Phone number (e.g. +1234567890)")
   .option("-d, --description <desc>", "Description for the request")
-  .action(async (options: { amount: string; name: string; description?: string }) => {
+  .action(async (options: { amount: string; name: string; phone: string; description?: string }) => {
     const amount = Number(options.amount);
     if (!Number.isFinite(amount) || amount < 0 || amount > 5000) {
       remediate("Invalid amount", "Amount must be 0 (card-only) or $5–$5,000", "asgcard pricing");
@@ -1647,6 +1649,7 @@ program
         body: JSON.stringify({
           amountUsd: amount,
           nameOnCard: options.name,
+          phone: options.phone,
           description: options.description,
         }),
       });

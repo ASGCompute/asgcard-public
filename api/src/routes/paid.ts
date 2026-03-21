@@ -6,7 +6,7 @@ import { cardService, HttpError } from "../services/cardService";
 const createCardSchema = z.object({
   nameOnCard: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
+  phone: z.string().min(1),
 });
 
 const fundCardSchema = z.object({

@@ -76,8 +76,8 @@ const sessionCreateSchema = z.object({
 const paymentRequestCreateSchema = z.object({
   amountUsd: z.number().min(0).max(5000).default(0),
   description: z.string().max(500).optional(),
-  nameOnCard: z.string().min(1).optional(),
-  phone: z.string().optional(),
+  nameOnCard: z.string().min(1),
+  phone: z.string().min(1),
 });
 
 export const stripeBetaRouter = Router();
@@ -308,11 +308,23 @@ stripeBetaRouter.post(
 
       const walletAddress = sessionRows[0].managed_wallet;
 
+      // Reject if required identity data is missing — no fallback defaults
+      if (!pr.nameOnCard || !pr.phone) {
+        res.status(400).json({
+          error: "Missing required identity data",
+          details: [
+            !pr.nameOnCard && "nameOnCard is required",
+            !pr.phone && "phone is required",
+          ].filter(Boolean),
+        });
+        return;
+      }
+
       const result = await cardService.createCard({
         walletAddress,
-        nameOnCard: pr.nameOnCard || "ASG Card",
+        nameOnCard: pr.nameOnCard,
         email: pr.email,
-        phone: pr.phone || undefined,
+        phone: pr.phone,
         initialAmountUsd: amount,
         amount,
         chargedUsd: totalCostUsd,

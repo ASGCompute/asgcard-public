@@ -4,7 +4,8 @@
  * @asgcard/cli — ASG Card command line interface
  *
  * Manage virtual cards for AI agents from your terminal.
- * Authenticates via Stellar wallet signature (no API keys needed).
+ * Primary rail: Stellar x402 (autonomous, no human needed).
+ * Fallback rail: Stripe MPP (owner-in-the-loop, when USDC unavailable).
  *
  * Onboarding commands:
  *   asgcard install --client codex|claude|cursor  — Configure MCP for your AI client
@@ -14,15 +15,22 @@
  *   asgcard wallet info                           — Show wallet address, USDC balance, deposit info
  *   asgcard doctor                                — Diagnose your setup
  *
- * Card commands:
- *   asgcard login              — Set your Stellar private key (legacy, use wallet import)
+ * Card commands (Stellar x402 — primary):
+ *   asgcard card:create        — Create a new card (x402 payment)
+ *   asgcard card:fund <id>     — Fund a card (x402 payment)
  *   asgcard cards              — List your cards
  *   asgcard card <id>          — Get card details
  *   asgcard card:details <id>  — Get sensitive card info (PAN, CVV)
- *   asgcard card:create        — Create a new card (x402 payment)
- *   asgcard card:fund <id>     — Fund a card (x402 payment)
  *   asgcard card:freeze <id>   — Freeze a card
  *   asgcard card:unfreeze <id> — Unfreeze a card
+ *
+ * Stripe fallback commands:
+ *   asgcard stripe:session <email>    — Create or view Stripe session
+ *   asgcard stripe:request            — Create a Stripe payment request
+ *   asgcard stripe:status <id>        — Check payment request status
+ *   asgcard stripe:wait <id>          — Wait for payment request completion
+ *
+ * Utility:
  *   asgcard pricing            — View pricing
  *   asgcard health             — API health check
  */
@@ -32,7 +40,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { ASGCardClient } from "@asgcard/sdk";
 import { WalletClient } from "./wallet-client.js";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
@@ -43,6 +51,7 @@ import { fileURLToPath } from "node:url";
 const CONFIG_DIR = join(homedir(), ".asgcard");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 const WALLET_FILE = join(CONFIG_DIR, "wallet.json");
+const STRIPE_SESSION_FILE = join(CONFIG_DIR, "stripe-session.json");
 const SKILL_DIR = join(homedir(), ".agents", "skills", "asgcard");
 const VERSION = "0.5.0";
 
@@ -64,6 +73,15 @@ interface Config {
 interface WalletState {
   publicKey: string;
   secretKey: string;
+  createdAt: string;
+}
+
+interface StripeSessionState {
+  sessionId: string;
+  ownerId: string;
+  sessionKey: string;
+  managedWalletAddress: string;
+  email: string;
   createdAt: string;
 }
 
@@ -97,6 +115,44 @@ function loadWallet(): WalletState | null {
 function saveWallet(wallet: WalletState): void {
   mkdirSync(CONFIG_DIR, { recursive: true });
   writeFileSync(WALLET_FILE, JSON.stringify(wallet, null, 2), { mode: 0o600 });
+}
+
+function loadStripeSession(): StripeSessionState | null {
+  try {
+    if (existsSync(STRIPE_SESSION_FILE)) {
+      return JSON.parse(readFileSync(STRIPE_SESSION_FILE, "utf-8"));
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveStripeSession(session: StripeSessionState): void {
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  writeFileSync(STRIPE_SESSION_FILE, JSON.stringify(session, null, 2), { mode: 0o600 });
+}
+
+function clearStripeSession(): void {
+  try {
+    if (existsSync(STRIPE_SESSION_FILE)) {
+      unlinkSync(STRIPE_SESSION_FILE);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function requireStripeSession(): StripeSessionState {
+  const session = loadStripeSession();
+  if (!session) {
+    console.error(
+      chalk.red("❌ No Stripe session. Create one first:\n\n") +
+        chalk.cyan("  asgcard stripe:session <email>\n")
+    );
+    process.exit(1);
+  }
+  return session;
 }
 
 function resolveKey(): string | null {
@@ -1113,10 +1169,13 @@ program
       const kp = Keypair.fromSecret(key);
       const balance = await getUsdcBalance(kp.publicKey());
       if (balance === 0) {
-        remediate(
-          "Wallet has zero USDC balance",
-          `You need USDC on Stellar to pay for card creation`,
-          `Send USDC to: ${kp.publicKey()}\n         Check balance: asgcard wallet info\n         View pricing: asgcard pricing`
+        console.error(
+          chalk.red("❌ Wallet has zero USDC balance\n") +
+            chalk.dim("   You need USDC on Stellar to pay for card creation.\n\n") +
+            chalk.bold("   Option 1 (Stellar):  ") + chalk.cyan(`Send USDC to ${kp.publicKey()}`) + "\n" +
+            chalk.dim("                        Then: ") + chalk.cyan("asgcard wallet info\n\n") +
+            chalk.bold("   Option 2 (Stripe):   ") + chalk.cyan("asgcard stripe:session <your-email>") + "\n" +
+            chalk.dim("                        Then: ") + chalk.cyan(`asgcard stripe:request -a ${options.amount} -n "${options.name}"`) + "\n"
         );
         process.exit(1);
       }
@@ -1157,10 +1216,13 @@ program
       if (msg.includes("Insufficient") || msg.includes("balance")) {
         const { Keypair } = await import("@stellar/stellar-sdk");
         const kp = Keypair.fromSecret(key);
-        remediate(
-          "Insufficient USDC balance",
-          msg,
-          `Deposit USDC to: ${kp.publicKey()}\n         Then retry: asgcard card:create -a ${options.amount} -n "${options.name}" -e ${options.email} -p ${options.phone}`
+        console.error(
+          chalk.red("❌ Insufficient USDC balance\n") +
+            chalk.dim(`   ${msg}\n\n`) +
+            chalk.bold("   Option 1 (Stellar):  ") + chalk.cyan(`Deposit USDC to ${kp.publicKey()}`) + "\n" +
+            chalk.dim(`                        Then: asgcard card:create -a ${options.amount} -n "${options.name}" -e ${options.email} -p ${options.phone}\n\n`) +
+            chalk.bold("   Option 2 (Stripe):   ") + chalk.cyan("asgcard stripe:session <your-email>") + "\n" +
+            chalk.dim(`                        Then: asgcard stripe:request -a ${options.amount} -n "${options.name}"`) + "\n"
         );
       } else if (msg.includes("simulation")) {
         remediate("Transaction simulation failed", msg, "Check: asgcard doctor  (RPC connectivity + balance)");
@@ -1477,6 +1539,269 @@ program
     const { Keypair } = await import("@stellar/stellar-sdk");
     const kp = Keypair.fromSecret(key);
     console.log(chalk.cyan(kp.publicKey()));
+  });
+
+// ── stripe:session ───────────────────────────────────────────
+
+program
+  .command("stripe:session")
+  .description("Create or view a Stripe MPP session (fallback rail)")
+  .argument("[email]", "Owner email — creates a new session")
+  .option("--clear", "Clear saved session")
+  .action(async (email: string | undefined, options: { clear?: boolean }) => {
+    if (options.clear) {
+      clearStripeSession();
+      console.log(chalk.green("✅ Stripe session cleared."));
+      return;
+    }
+
+    if (!email) {
+      const session = loadStripeSession();
+      if (!session) {
+        console.log(chalk.dim("No Stripe session saved.") + "\n" + chalk.cyan("  Create one: asgcard stripe:session <email>"));
+      } else {
+        console.log(chalk.bold("\n🔗 Stripe Session"));
+        console.log(`  Session ID: ${chalk.cyan(session.sessionId)}`);
+        console.log(`  Owner ID:   ${chalk.cyan(session.ownerId)}`);
+        console.log(`  Email:      ${chalk.dim(session.email)}`);
+        console.log(`  Wallet:     ${chalk.dim(session.managedWalletAddress)}`);
+        console.log(`  Created:    ${chalk.dim(session.createdAt)}`);
+        console.log(chalk.dim("\n  To clear: asgcard stripe:session --clear"));
+      }
+      return;
+    }
+
+    const spinner = ora("Creating Stripe session...").start();
+
+    try {
+      const res = await fetch(`${getApiUrl()}/stripe-beta/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json() as Record<string, unknown>;
+
+      if (!res.ok) {
+        spinner.fail();
+        remediate(
+          "Session creation failed",
+          String(data.error || res.statusText),
+          "Check your email is enrolled in the Stripe beta"
+        );
+        process.exit(1);
+      }
+
+      const session: StripeSessionState = {
+        sessionId: String(data.sessionId),
+        ownerId: String(data.ownerId),
+        sessionKey: String(data.sessionKey),
+        managedWalletAddress: String(data.managedWalletAddress),
+        email,
+        createdAt: new Date().toISOString(),
+      };
+      saveStripeSession(session);
+
+      spinner.succeed(chalk.green("Stripe session created!"));
+      console.log(`  Session ID: ${chalk.cyan(session.sessionId)}`);
+      console.log(`  Owner ID:   ${chalk.cyan(session.ownerId)}`);
+      console.log(`  Wallet:     ${chalk.dim(session.managedWalletAddress)}`);
+      console.log(chalk.yellow("\n  ⚠ Session key saved to ~/.asgcard/stripe-session.json"));
+      console.log(chalk.dim("\n  Next: asgcard stripe:request -a <amount> -n \"Card Name\""));
+    } catch (error) {
+      spinner.fail();
+      remediate("Session creation failed", error instanceof Error ? error.message : String(error), "Check your internet connection");
+      process.exit(1);
+    }
+  });
+
+// ── stripe:request ──────────────────────────────────────────
+
+program
+  .command("stripe:request")
+  .description("Create a Stripe payment request (card creation via Stripe fallback)")
+  .requiredOption("-a, --amount <amount>", "Card load amount (0 = card-only $10, or $5–$5,000)")
+  .requiredOption("-n, --name <name>", "Name on card")
+  .option("-d, --description <desc>", "Description for the request")
+  .action(async (options: { amount: string; name: string; description?: string }) => {
+    const amount = Number(options.amount);
+    if (!Number.isFinite(amount) || amount < 0 || amount > 5000) {
+      remediate("Invalid amount", "Amount must be 0 (card-only) or $5–$5,000", "asgcard pricing");
+      process.exit(1);
+    }
+    if (amount > 0 && amount < 5) {
+      remediate("Amount too low", "Minimum load is $5 (or use 0 for card-only)", "asgcard pricing");
+      process.exit(1);
+    }
+
+    const session = requireStripeSession();
+    const spinner = ora("Creating payment request...").start();
+
+    try {
+      const res = await fetch(`${getApiUrl()}/stripe-beta/payment-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-STRIPE-SESSION": session.sessionKey,
+        },
+        body: JSON.stringify({
+          amountUsd: amount,
+          nameOnCard: options.name,
+          description: options.description,
+        }),
+      });
+
+      const data = await res.json() as Record<string, unknown>;
+
+      if (!res.ok) {
+        spinner.fail();
+        remediate(
+          "Payment request failed",
+          String(data.error || res.statusText),
+          "Check your session: asgcard stripe:session"
+        );
+        process.exit(1);
+      }
+
+      const fee = amount === 0 ? CARD_FEE : CARD_FEE + amount + amount * TOPUP_RATE;
+      spinner.succeed(chalk.green("Payment request created!"));
+      console.log(`  Request ID:  ${chalk.cyan(String(data.requestId))}`);
+      console.log(`  Amount:      ${chalk.green(`$${amount}`)} ${amount === 0 ? "(card-only)" : "+ $10 fee + 3.5%"}`);
+      console.log(`  Total:       ${chalk.bold(`$${fee.toFixed(2)}`)}`);
+      console.log(`  Expires:     ${chalk.dim(String(data.expiresAt))}`);
+      console.log(chalk.yellow(`\n  📧 Send this approval URL to the card owner:`));
+      console.log(chalk.cyan(`     ${data.approvalUrl}\n`));
+      console.log(chalk.dim(`  Then wait: asgcard stripe:wait ${data.requestId}`));
+    } catch (error) {
+      spinner.fail();
+      remediate("Payment request failed", error instanceof Error ? error.message : String(error), "asgcard stripe:session");
+      process.exit(1);
+    }
+  });
+
+// ── stripe:status ───────────────────────────────────────────
+
+program
+  .command("stripe:status")
+  .description("Check status of a Stripe payment request")
+  .argument("<id>", "Payment request ID")
+  .action(async (id: string) => {
+    const session = requireStripeSession();
+    const spinner = ora("Checking payment request...").start();
+
+    try {
+      const res = await fetch(`${getApiUrl()}/stripe-beta/payment-requests/${id}`, {
+        headers: { "X-STRIPE-SESSION": session.sessionKey },
+      });
+
+      const data = await res.json() as Record<string, unknown>;
+
+      if (!res.ok) {
+        spinner.fail();
+        remediate(
+          "Status check failed",
+          String(data.error || res.statusText),
+          "Check request ID and session: asgcard stripe:session"
+        );
+        process.exit(1);
+      }
+
+      spinner.stop();
+      const status = String(data.status);
+      const statusColor =
+        status === "completed" ? chalk.green :
+        status === "pending" ? chalk.yellow :
+        status === "approved" ? chalk.blue :
+        chalk.red;
+
+      console.log(chalk.bold(`\n📋 Payment Request ${chalk.cyan(id)}`));
+      console.log(`  Status:      ${statusColor(status)}`);
+      console.log(`  Amount:      ${chalk.green(`$${data.amountUsd}`)}`);
+      if (data.description) console.log(`  Description: ${chalk.dim(String(data.description))}`);
+      if (data.cardId) console.log(`  Card ID:     ${chalk.cyan(String(data.cardId))}`);
+      if (data.createdAt) console.log(`  Created:     ${chalk.dim(String(data.createdAt))}`);
+
+      if (status === "pending") {
+        console.log(chalk.dim("\n  Waiting for owner approval..."));
+        console.log(chalk.dim(`  Wait: asgcard stripe:wait ${id}`));
+      }
+    } catch (error) {
+      spinner.fail();
+      remediate("Status check failed", error instanceof Error ? error.message : String(error), "asgcard stripe:session");
+      process.exit(1);
+    }
+  });
+
+// ── stripe:wait ─────────────────────────────────────────────
+
+program
+  .command("stripe:wait")
+  .description("Wait for a Stripe payment request to complete (polls until terminal state)")
+  .argument("<id>", "Payment request ID")
+  .option("-t, --timeout <seconds>", "Timeout in seconds", "300")
+  .action(async (id: string, options: { timeout: string }) => {
+    const session = requireStripeSession();
+    const timeoutMs = Number(options.timeout) * 1000;
+    const startTime = Date.now();
+    const pollInterval = 3000;
+
+    const spinner = ora(`Waiting for payment request ${chalk.cyan(id)}...`).start();
+    spinner.text = `Waiting for owner approval... ${chalk.dim(`(timeout: ${options.timeout}s)`)}`;
+
+    const terminalStatuses = new Set(["completed", "rejected", "expired", "failed"]);
+
+    try {
+      while (Date.now() - startTime < timeoutMs) {
+        const res = await fetch(`${getApiUrl()}/stripe-beta/payment-requests/${id}`, {
+          headers: { "X-STRIPE-SESSION": session.sessionKey },
+        });
+
+        if (!res.ok) {
+          spinner.fail();
+          const data = await res.json() as Record<string, unknown>;
+          remediate("Poll failed", String(data.error || res.statusText), "asgcard stripe:session");
+          process.exit(1);
+        }
+
+        const data = await res.json() as Record<string, unknown>;
+        const status = String(data.status);
+
+        if (status === "completed") {
+          spinner.succeed(chalk.green("Payment completed — card created!"));
+          if (data.cardId) {
+            console.log(`  Card ID: ${chalk.cyan(String(data.cardId))}`);
+            console.log(chalk.dim("\n  View cards: asgcard stripe:cards  (coming soon)"));
+          }
+          process.exit(0);
+        }
+
+        if (terminalStatuses.has(status)) {
+          spinner.fail(chalk.red(`Payment request ${status}`));
+          if (status === "rejected") console.log(chalk.dim("  The owner rejected this payment request."));
+          if (status === "expired") console.log(chalk.dim("  The request expired (1 hour TTL)."));
+          if (status === "failed") console.log(chalk.dim("  Payment or card creation failed."));
+          process.exit(1);
+        }
+
+        // Still pending or approved — keep polling
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        spinner.text = `Waiting for owner approval... ${chalk.dim(`(${elapsed}s / ${options.timeout}s)`)}`;
+        if (status === "approved") {
+          spinner.text = `Owner approved — processing payment... ${chalk.dim(`(${elapsed}s)`)}`;
+        }
+
+        await new Promise((r) => setTimeout(r, pollInterval));
+      }
+
+      spinner.fail(chalk.red("Timeout — owner did not respond"));
+      console.log(chalk.dim(`  Request ${id} is still pending.`));
+      console.log(chalk.dim(`  Check again: asgcard stripe:status ${id}`));
+      process.exit(1);
+    } catch (error) {
+      spinner.fail();
+      remediate("Wait failed", error instanceof Error ? error.message : String(error), "asgcard stripe:session");
+      process.exit(1);
+    }
   });
 
 // ── Default action: no subcommand → onboard -y ─────────────

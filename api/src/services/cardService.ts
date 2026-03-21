@@ -60,24 +60,11 @@ class CardService {
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-    // Resolve real email/phone — no fake defaults
-    let profileEmail = input.email;
-    let profilePhone = input.phone || "";
-
-    try {
-      const { query: dbQuery } = await import("../db/db");
-      const rows = await dbQuery<{ email: string | null; phone: string | null }>(
-        `SELECT email, phone FROM owner_telegram_links
-         WHERE owner_wallet = $1 AND status = 'active' LIMIT 1`,
-        [input.walletAddress]
-      );
-      if (rows.length > 0) {
-        if (rows[0].email) profileEmail = rows[0].email;
-        if (rows[0].phone) profilePhone = rows[0].phone;
-      }
-    } catch (err) {
-      console.error("[cardService] Profile lookup failed, using request values:", err);
-    }
+    // Request payload is the source of truth for email/phone/nameOnCard.
+    // Stored profile data (owner_telegram_links) is NOT used as override —
+    // it is only written to for convenience/history (see profile upsert below).
+    const profileEmail = input.email;
+    const profilePhone = input.phone || "";
 
     // Validate: must have real email before sending to 4payments
     if (!profileEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) {

@@ -266,11 +266,11 @@ async function handleFormSubmit(e: Event) {
 
   const email = ($('f-email') as HTMLInputElement)?.value?.trim();
   const nameOnCard = ($('f-name') as HTMLInputElement)?.value?.trim();
-  const phone = ($('f-phone') as HTMLInputElement)?.value?.trim() || '';
+  const phone = ($('f-phone') as HTMLInputElement)?.value?.trim();
   const amount = Number(($('f-amount') as HTMLInputElement)?.value);
 
-  if (!email || !nameOnCard || amount < 5 || amount > 5000) {
-    showError('error-1', 'Please fill in all required fields with valid values.');
+  if (!email || !nameOnCard || !phone || amount < 5 || amount > 5000) {
+    showError('error-1', 'Please fill in all required fields (email, name, phone) with valid values.');
     return;
   }
 
@@ -312,7 +312,7 @@ async function handleFormSubmit(e: Event) {
         'Content-Type': 'application/json',
         ...buildSessionHeaders(),
       },
-      body: JSON.stringify({ nameOnCard, email, phone: phone || undefined, amount }),
+      body: JSON.stringify({ nameOnCard, email, phone, amount }),
     });
 
     if (res.status === 402) {
@@ -400,6 +400,7 @@ function initStripeElements(challenge: MppChallengeWire) {
     mode: 'payment',
     amount: currentChallengeAmountCents,
     currency: 'usd',
+    paymentMethodCreation: 'manual',
   });
 
   const elements = stripeElements as ReturnType<ReturnType<typeof Stripe>['elements']>;
@@ -485,7 +486,7 @@ async function handleStripePayment() {
         'Authorization': credential,
         ...buildSessionHeaders(),
       },
-      body: JSON.stringify({ nameOnCard, email, phone: phone || undefined, amount }),
+      body: JSON.stringify({ nameOnCard, email, phone, amount }),
     });
 
     if (res.status === 201) {

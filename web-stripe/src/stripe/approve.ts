@@ -168,7 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="step-details" class="ap-card" style="display:none">
         <h2>Payment Request</h2>
         <div class="ap-info">
-          <div class="ap-row"><span class="ap-label">Amount</span><span id="info-amount" class="ap-value ap-amount"></span></div>
+          <div class="ap-row"><span class="ap-label">Requested load</span><span id="info-amount" class="ap-value ap-amount"></span></div>
+          <div class="ap-row"><span class="ap-label">Card creation fee</span><span id="info-card-fee" class="ap-value">$10.00</span></div>
+          <div class="ap-row"><span class="ap-label">Top-up fee (3.5%)</span><span id="info-topup-fee" class="ap-value"></span></div>
+          <div class="ap-row ap-row-total"><span class="ap-label">Total due</span><span id="info-total" class="ap-value ap-amount"></span></div>
           <div class="ap-row"><span class="ap-label">Description</span><span id="info-desc" class="ap-value"></span></div>
           <div class="ap-row"><span class="ap-label">Requester</span><span id="info-email" class="ap-value"></span></div>
           <div class="ap-row"><span class="ap-label">Card name</span><span id="info-name" class="ap-value"></span></div>
@@ -256,9 +259,16 @@ async function loadRequest() {
       return;
     }
 
-    // Populate details
+    // Populate details with pricing breakdown
     const set = (id: string, val: string) => { const el = $(id); if (el) el.textContent = val; };
-    set('info-amount', `$${requestInfo.amountUsd.toFixed(2)} USD`);
+    const loadAmount = requestInfo.amountUsd;
+    const cardFee = 10;
+    const topupFee = loadAmount > 0 ? loadAmount * 0.035 : 0;
+    const totalDue = loadAmount > 0 ? cardFee + loadAmount + topupFee : cardFee;
+    set('info-amount', loadAmount > 0 ? `$${loadAmount.toFixed(2)} USD` : '$0.00 (card only)');
+    set('info-card-fee', `$${cardFee.toFixed(2)}`);
+    set('info-topup-fee', loadAmount > 0 ? `$${topupFee.toFixed(2)}` : '$0.00');
+    set('info-total', `$${totalDue.toFixed(2)} USD`);
     set('info-desc', requestInfo.description || 'Card creation');
     set('info-email', requestInfo.email);
     set('info-name', requestInfo.nameOnCard || '—');
@@ -328,9 +338,9 @@ async function handleApprove() {
       body: JSON.stringify({
         token: approvalToken,
         amount: requestInfo.amountUsd,
-        nameOnCard: requestInfo.nameOnCard || 'ASG Card',
+        nameOnCard: requestInfo.nameOnCard,
         email: requestInfo.email,
-        phone: requestInfo.phone || '',
+        phone: requestInfo.phone,
       }),
     });
 
@@ -428,6 +438,7 @@ async function initStripePayment(challenge: MppChallengeWire, amountCents: numbe
     mode: 'payment',
     amount: amountCents,
     currency: 'usd',
+    paymentMethodCreation: 'manual',
   });
 
   const paymentElement = stripeElements.create('payment');
@@ -507,9 +518,9 @@ async function handlePay() {
       body: JSON.stringify({
         token: approvalToken,
         amount: requestInfo.amountUsd,
-        nameOnCard: requestInfo.nameOnCard || 'ASG Card',
+        nameOnCard: requestInfo.nameOnCard,
         email: requestInfo.email,
-        phone: requestInfo.phone || '',
+        phone: requestInfo.phone,
       }),
     });
 

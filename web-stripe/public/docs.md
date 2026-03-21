@@ -55,6 +55,7 @@ curl -X POST https://api.asgcard.dev/stripe-beta/payment-requests \
   -d '{
     "amountUsd": 100,
     "nameOnCard": "AI Agent",
+    "phone": "+1234567890",
     "description": "Virtual card for agent"
   }'
 ```

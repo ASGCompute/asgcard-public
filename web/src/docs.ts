@@ -716,13 +716,13 @@ function renderAuthentication(): string {
       ${codeBlock(`curl -X POST https://api.asgcard.dev/stripe-beta/session \\
   -H "Content-Type: application/json" \\
   -d '{"email": "owner@company.com"}'`, 'bash')}
-      <p>Response: <code>{"sessionId": "sess_abc123", ...}</code></p>
+      <p>Response: <code>{"sessionId": "...", "sessionKey": "sk_sess_...", ...}</code> — store the <code>sessionKey</code> securely.</p>
 
       <h4>Step 2 — Create a payment request</h4>
       ${codeBlock(`curl -X POST https://api.asgcard.dev/stripe-beta/payment-requests \\
   -H "Content-Type: application/json" \\
-  -H "X-STRIPE-SESSION: sess_abc123" \\
-  -d '{"amountUsd": 100, "cardholderName": "AI Agent", "email": "owner@company.com"}'`, 'bash')}
+  -H "X-STRIPE-SESSION: sk_sess_..." \\
+  -d '{"amountUsd": 100, "nameOnCard": "AI Agent", "phone": "+1234567890"}'`, 'bash')}
       <p>Response includes <code>status: "approval_required"</code> and an <code>approvalUrl</code>.</p>
 
       <h4>Step 3 — Owner approves and pays</h4>
@@ -730,7 +730,7 @@ function renderAuthentication(): string {
 
       <h4>Step 4 — Agent polls for completion</h4>
       ${codeBlock(`curl https://api.asgcard.dev/stripe-beta/payment-requests/pr_xyz789 \\
-  -H "X-STRIPE-SESSION: sess_abc123"`, 'bash')}
+  -H "X-STRIPE-SESSION: sk_sess_..."`, 'bash')}
       <p>When <code>status</code> changes to <code>completed</code>, the card is ready. Use <code>GET /stripe-beta/cards</code> to retrieve card details.</p>
 
       <hr class="docs-divider" />

@@ -207,6 +207,25 @@ body {
   border-bottom: none;
 }
 
+.ap-row-total {
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.ap-row-total .ap-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.ap-row-total .ap-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
 .ap-label {
   font-size: 0.8rem;
   color: var(--text-muted);

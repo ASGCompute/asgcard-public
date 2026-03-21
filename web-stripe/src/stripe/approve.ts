@@ -263,6 +263,8 @@ async function loadRequest() {
     const set = (id: string, val: string) => { const el = $(id); if (el) el.textContent = val; };
     const loadAmount = requestInfo.amountUsd;
     const cardFee = 10;
+    // Force redeploy to bust CDN cache for paymentMethodCreation fix (2)
+    console.log("Approve page loaded.");
     const topupFee = loadAmount > 0 ? loadAmount * 0.035 : 0;
     const totalDue = loadAmount > 0 ? cardFee + loadAmount + topupFee : cardFee;
     set('info-amount', loadAmount > 0 ? `$${loadAmount.toFixed(2)} USD` : '$0.00 (card only)');

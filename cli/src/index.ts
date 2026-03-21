@@ -1176,7 +1176,7 @@ program
             chalk.bold("   Option 1 (Stellar):  ") + chalk.cyan(`Send USDC to ${kp.publicKey()}`) + "\n" +
             chalk.dim("                        Then: ") + chalk.cyan("asgcard wallet info\n\n") +
             chalk.bold("   Option 2 (Stripe):   ") + chalk.cyan("asgcard stripe:session <your-email>") + "\n" +
-            chalk.dim("                        Then: ") + chalk.cyan(`asgcard stripe:request -a ${options.amount} -n "${options.name}"`) + "\n"
+            chalk.dim("                        Then: ") + chalk.cyan(`asgcard stripe:request -a ${options.amount} -n "${options.name}" -p +1234567890`) + "\n"
         );
         process.exit(1);
       }
@@ -1223,7 +1223,7 @@ program
             chalk.bold("   Option 1 (Stellar):  ") + chalk.cyan(`Deposit USDC to ${kp.publicKey()}`) + "\n" +
             chalk.dim(`                        Then: asgcard card:create -a ${options.amount} -n "${options.name}" -e ${options.email} -p ${options.phone}\n\n`) +
             chalk.bold("   Option 2 (Stripe):   ") + chalk.cyan("asgcard stripe:session <your-email>") + "\n" +
-            chalk.dim(`                        Then: asgcard stripe:request -a ${options.amount} -n "${options.name}"`) + "\n"
+            chalk.dim(`                        Then: asgcard stripe:request -a ${options.amount} -n "${options.name}" -p +1234567890`) + "\n"
         );
       } else if (msg.includes("simulation")) {
         remediate("Transaction simulation failed", msg, "Check: asgcard doctor  (RPC connectivity + balance)");
@@ -1608,7 +1608,7 @@ program
       console.log(`  Owner ID:   ${chalk.cyan(session.ownerId)}`);
       console.log(`  Wallet:     ${chalk.dim(session.managedWalletAddress)}`);
       console.log(chalk.yellow("\n  ⚠ Session key saved to ~/.asgcard/stripe-session.json"));
-      console.log(chalk.dim("\n  Next: asgcard stripe:request -a <amount> -n \"Card Name\""));
+      console.log(chalk.dim("\n  Next: asgcard stripe:request -a <amount> -n \"Card Name\" -p +1234567890"));
     } catch (error) {
       spinner.fail();
       remediate("Session creation failed", error instanceof Error ? error.message : String(error), "Check your internet connection");

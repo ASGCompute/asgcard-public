@@ -59,10 +59,8 @@ export const requireMppxPayment = (purpose: StripePurpose) => {
     }
 
     // ── Extract amount from body ──
-    const amount =
-      typeof req.body?.amount === "number"
-        ? req.body.amount
-        : Number(req.params.amount);
+    const rawAmount = req.body?.amount ?? req.body?.amountUsd ?? req.params.amount;
+    const amount = Number(rawAmount);
 
     const amountValidator = purpose === "create" ? isValidCreateAmount : isValidAmount;
     if (!amountValidator(amount)) {

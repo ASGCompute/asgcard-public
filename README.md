@@ -16,7 +16,7 @@
   <br />
   <a href="https://github.com/ASGCompute/asgcard/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
   <a href="https://asgcard.dev"><img src="https://img.shields.io/badge/website-asgcard.dev-blueviolet" alt="Website"></a>
-  <a href="https://visitcount.itsvg.in"><img src="https://visitcount.itsvg.in/api?id=asgcard&label=Profile%20Views&color=6&icon=5&pretty=true" alt="Visitors"></a>
+  <img src="https://komarev.com/ghpvc/?username=ASGCompute&label=repo%20views&color=blueviolet&style=flat" alt="Visitors">
 </p>
 
 <p align="center">

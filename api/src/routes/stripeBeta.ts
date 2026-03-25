@@ -57,7 +57,7 @@ const requireStripeBetaEnabled: RequestHandler = (_req, res, next) => {
 const stripeBetaBodySchema = z.object({
   nameOnCard: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
+  phone: z.string().min(1),
   amount: z.number().min(0).max(5000).default(0),
 });
 
@@ -77,6 +77,7 @@ const paymentRequestCreateSchema = z.object({
   amountUsd: z.number().min(0).max(5000).default(0),
   description: z.string().max(500).optional(),
   nameOnCard: z.string().min(1),
+  email: z.string().email(),
   phone: z.string().min(1),
 });
 
@@ -829,7 +830,7 @@ paymentRequestRouter.post("/", async (req, res) => {
     const result = await createPaymentRequest({
       sessionId: req.stripeSession.sessionId,
       ownerId: req.stripeSession.ownerId,
-      email: req.stripeSession.email,
+      email: parsed.data.email,
       amountUsd: parsed.data.amountUsd,
       description: parsed.data.description,
       nameOnCard: parsed.data.nameOnCard,

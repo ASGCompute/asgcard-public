@@ -190,7 +190,7 @@ export function faqMessage(): string {
     return (
         `<b>❓ Frequently Asked Questions</b>\n\n` +
         `<b>How do I create a card?</b>\n` +
-        `Use our SDK: <code>client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com' })</code>. ` +
+        `Use our SDK: <code>client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com', phone: '+1234567890' })</code>. ` +
         `Payment is automatic via x402 on Stellar.\n\n` +
         `<b>How do I fund my card?</b>\n` +
         `Use <code>client.fundCard({ amount: 25, cardId: 'uuid' })</code> to top up an existing card.\n\n` +

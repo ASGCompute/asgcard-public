@@ -38,7 +38,7 @@ export async function handleFundCommand(
         if (cards.length === 0) {
             await client.sendMessage({
                 chat_id: chatId,
-                text: "📭 You don't have any cards yet.\n\nCreate one using the SDK:\n<code>client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com' })</code>",
+                text: "📭 You don't have any cards yet.\n\nCreate one using the SDK:\n<code>client.createCard({ amount: 50, nameOnCard: 'AI', email: 'a@b.com', phone: '+1234567890' })</code>",
                 parse_mode: "HTML",
                 reply_markup: persistentMenu(),
             });

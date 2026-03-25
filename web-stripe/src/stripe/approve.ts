@@ -140,7 +140,7 @@ function timeRemaining(expiresAt: string): string {
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   requestId = params.get('id');
-  approvalToken = params.get('token');
+  approvalToken = params.get('token') || params.get('amp;token');
 
   const app = $('approve-app');
   if (!app) return;

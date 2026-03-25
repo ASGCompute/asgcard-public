@@ -1623,9 +1623,10 @@ program
   .description("Create a Stripe payment request (card creation via Stripe fallback)")
   .requiredOption("-a, --amount <amount>", "Card load amount (0 = card-only $10, or $5–$5,000)")
   .requiredOption("-n, --name <name>", "Name on card")
+  .requiredOption("-e, --email <email>", "User's email address")
   .requiredOption("-p, --phone <phone>", "Phone number (e.g. +1234567890)")
   .option("-d, --description <desc>", "Description for the request")
-  .action(async (options: { amount: string; name: string; phone: string; description?: string }) => {
+  .action(async (options: { amount: string; name: string; email: string; phone: string; description?: string }) => {
     const amount = Number(options.amount);
     if (!Number.isFinite(amount) || amount < 0 || amount > 5000) {
       remediate("Invalid amount", "Amount must be 0 (card-only) or $5–$5,000", "asgcard pricing");
@@ -1649,6 +1650,7 @@ program
         body: JSON.stringify({
           amountUsd: amount,
           nameOnCard: options.name,
+          email: options.email,
           phone: options.phone,
           description: options.description,
         }),
@@ -1673,7 +1675,7 @@ program
       console.log(`  Total:       ${chalk.bold(`$${fee.toFixed(2)}`)}`);
       console.log(`  Expires:     ${chalk.dim(String(data.expiresAt))}`);
       console.log(chalk.yellow(`\n  📧 Send this approval URL to the card owner:`));
-      console.log(chalk.cyan(`     ${data.approvalUrl}\n`));
+      console.log(`     ${chalk.cyan(String(data.approvalUrl))}\n`);
       console.log(chalk.dim(`  Then wait: asgcard stripe:wait ${data.requestId}`));
     } catch (error) {
       spinner.fail();

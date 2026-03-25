@@ -3,7 +3,10 @@
   "name": "@asgcard/mcp-server",
   "version": "0.5.0",
   "description": "MCP Server for ASG Card — give AI agents autonomous virtual card management via x402",
-  "repository": "https://github.com/ASGCompute/asgcard-public",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ASGCompute/asgcard-public"
+  },
   "command": {
     "name": "npx",
     "args": ["-y", "@asgcard/mcp-server@latest"]

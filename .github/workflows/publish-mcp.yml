@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
       - name: Install mcp-publisher
         run: brew install mcp-publisher
 

@@ -6,13 +6,13 @@ Command-line interface for [ASG Card](https://asgcard.dev) — virtual MasterCar
 
 ```bash
 # Full onboarding (wallet + MCP + skill)
-npx @asgcard/cli onboard -y --client codex
+npx @asgcard/cli@latest onboard -y --client codex
 
 # Or step by step:
-npx @asgcard/cli wallet create          # Generate Stellar keypair
-npx @asgcard/cli wallet info            # Check balance
-npx @asgcard/cli install --client codex # Configure MCP
-npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+npx @asgcard/cli@latest wallet create          # Generate Stellar keypair
+npx @asgcard/cli@latest wallet info            # Check balance
+npx @asgcard/cli@latest install --client codex # Configure MCP
+npx @asgcard/cli@latest card:create -a 10 -n "AI Agent" -e you@email.com -p "+1234567890"
 ```
 
 ## Commands
@@ -35,10 +35,18 @@ npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
 | `asgcard cards` | List all your virtual cards |
 | `asgcard card <id>` | Get card summary |
 | `asgcard card:details <id>` | Get sensitive card info (PAN, CVV, expiry) |
-| `asgcard card:create -a <amt> -n <name> -e <email>` | Create a new card (x402 payment) |
+| `asgcard card:create -a <amt> -n <name> -e <email> -p <phone>` | Create a new card (x402 payment) |
 | `asgcard card:fund <id> -a <amt>` | Fund an existing card |
 | `asgcard card:freeze <id>` | Freeze a card |
 | `asgcard card:unfreeze <id>` | Unfreeze a card |
+
+### Stripe MPP (Fiat Payments)
+
+| Command | Description |
+|---------|-------------|
+| `asgcard stripe:session <email>` | Create a Stripe beta session |
+| `asgcard stripe:request -a <amt> -n <name> -e <email> -p <phone>` | Create a payment request |
+| `asgcard stripe:wait <requestId>` | Poll until card is issued |
 
 ### Info
 

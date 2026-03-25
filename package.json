@@ -2,6 +2,24 @@
   "name": "asg-card",
   "version": "0.1.0",
   "private": true,
+  "description": "Agent-first virtual MasterCard cards for AI agents — pay via Stellar x402 (USDC) or Stripe MPP",
+  "keywords": [
+    "virtual-card",
+    "ai-agent",
+    "mcp",
+    "x402",
+    "stellar",
+    "stripe",
+    "usdc",
+    "mastercard",
+    "machine-payments"
+  ],
+  "author": "ASG Compute <support@asgcompute.dev>",
+  "homepage": "https://asgcard.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ASGCompute/asgcard"
+  },
   "workspaces": [
     "api",
     "sdk",

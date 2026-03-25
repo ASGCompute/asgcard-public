@@ -1,0 +1,290 @@
+# ASG Card
+
+> Agent-first virtual MasterCard cards for AI agents — pay via Stellar x402 (USDC) or Stripe Machine Payments Protocol.
+
+ASG Card is a programmable virtual card platform designed for AI agents. Agents issue MasterCard virtual cards, fund them, and manage them autonomously through SDK, CLI, or MCP server. Two payment rails are supported: Stellar x402 (USDC on-chain) and Stripe Machine Payments Protocol (traditional card payments).
+
+## Key Facts
+
+- Product: Virtual MasterCard cards for AI agents
+- Card network: MasterCard (BIN 539578)
+- Payment rails: Stellar x402 (USDC) + Stripe MPP
+- Pricing: $10 flat card creation + 3.5% on loads. Same on both rails.
+- Load range: $5–$5,000
+- License: MIT
+- Language: TypeScript (strict mode)
+- Runtime: Node.js
+- Website: https://asgcard.dev
+- Stripe edition: https://stripe.asgcard.dev
+- API: https://api.asgcard.dev
+- npm packages: @asgcard/sdk, @asgcard/cli, @asgcard/mcp-server
+- GitHub: https://github.com/ASGCompute/asgcard
+
+---
+
+## Architecture
+
+```
+Clients:
+  @asgcard/sdk (npm, TypeScript)
+  @asgcard/cli (onboard + card ops)
+  @asgcard/mcp-server (11 MCP tools)
+  Telegram Bot (@ASGCardbot)
+  asgcard.dev (marketing site)
+  stripe.asgcard.dev (Stripe edition)
+
+Infrastructure:
+  ASG Card API (api.asgcard.dev) — Express + x402 + Stripe MPP
+  x402 Facilitator — verifies and settles Stellar USDC payments
+  PostgreSQL (Supabase)
+
+Payment Rails:
+  Stellar Pubnet (USDC via Soroban)
+  Stripe (Machine Payments Protocol)
+
+External:
+  Card Issuer (MasterCard)
+```
+
+---
+
+## Workspace Structure
+
+| Directory | Description |
+|-----------|-------------|
+| `/api` | ASG Card API (Express + x402 + Stripe MPP) |
+| `/sdk` | `@asgcard/sdk` TypeScript client |
+| `/cli` | `@asgcard/cli` CLI with onboarding |
+| `/mcp-server` | `@asgcard/mcp-server` MCP server (11 tools) |
+| `/web` | Marketing website (asgcard.dev) |
+| `/web-stripe` | Stripe edition site (stripe.asgcard.dev) |
+| `/docs` | Internal documentation and ADRs |
+
+---
+
+## Payment Flow: Stellar x402
+
+1. Agent requests a card → API returns `402 Payment Required` with USDC amount
+2. Agent signs a Stellar USDC transfer via the SDK
+3. x402 Facilitator verifies and settles the payment on-chain
+4. API issues a MasterCard via the card issuer
+5. Card details returned immediately in the response
+
+Uses: SDK, CLI, MCP server. No human in the loop.
+
+## Payment Flow: Stripe MPP
+
+1. Agent creates a payment request → API returns `approval_required` + `approvalUrl`
+2. Owner opens the approval page at stripe.asgcard.dev/approve
+3. Owner reviews and approves → Stripe Elements form with real-time pricing
+4. Owner pays via Stripe → card/Apple Pay/Google Pay
+5. Card created → agent polls until `completed`
+
+Uses: session-based auth (`X-STRIPE-SESSION`). Human-in-the-loop approval.
+
+---
+
+## Quick Start — First Card (Stellar)
+
+```bash
+# One-step onboarding (creates wallet, configures MCP, installs skill)
+npx @asgcard/cli onboard -y --client codex
+
+# Fund your wallet with USDC on Stellar (address shown by onboard)
+# Then:
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+```
+
+---
+
+## SDK Reference (@asgcard/sdk)
+
+```typescript
+import { ASGCardClient } from "@asgcard/sdk";
+
+const client = new ASGCardClient({
+  privateKey: "S...",  // Stellar secret key
+  rpcUrl: "https://mainnet.sorobanrpc.com"
+});
+
+const card = await client.createCard({
+  amount: 10,
+  nameOnCard: "AI Agent",
+  email: "agent@example.com"
+});
+// card.detailsEnvelope = { cardNumber, cvv, expiryMonth, expiryYear }
+```
+
+### SDK Methods
+
+| Method | Description |
+|--------|-------------|
+| `createCard({amount, nameOnCard, email, phone?})` | Issue a virtual card with x402 payment |
+| `fundCard({amount, cardId})` | Top up an existing card |
+| `listCards()` | List all cards for this wallet |
+| `getTransactions(cardId, page?, limit?)` | Get card transaction history |
+| `getBalance(cardId)` | Get live card balance |
+| `getPricing()` | Get current pricing |
+| `health()` | API health check |
+
+---
+
+## MCP Server Reference (@asgcard/mcp-server)
+
+`@asgcard/mcp-server` exposes 11 tools for Claude Code, Claude Desktop, Cursor, and Codex:
+
+| Tool | Description |
+|------|-------------|
+| `get_wallet_status` | Wallet address, USDC balance, readiness — use FIRST |
+| `create_card` | Create virtual card (x402 payment) |
+| `fund_card` | Fund existing card (x402 payment) |
+| `list_cards` | List all wallet cards |
+| `get_card` | Get card summary |
+| `get_card_details` | Get PAN, CVV, expiry |
+| `freeze_card` | Freeze a card |
+| `unfreeze_card` | Unfreeze a card |
+| `get_pricing` | View pricing |
+| `get_transactions` | Card transaction history (real data) |
+| `get_balance` | Live card balance |
+
+### MCP Setup
+
+```bash
+# Claude Code
+claude mcp add asgcard -- npx -y @asgcard/mcp-server -e STELLAR_PRIVATE_KEY=S...
+
+# Claude Desktop / Cursor (add to config JSON)
+{
+  "mcpServers": {
+    "asgcard": {
+      "command": "npx",
+      "args": ["-y", "@asgcard/mcp-server"],
+      "env": {
+        "STELLAR_PRIVATE_KEY": "S..."
+      }
+    }
+  }
+}
+```
+
+### MCP Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `STELLAR_PRIVATE_KEY` | Yes | — | Stellar secret key (S...) |
+| `ASGCARD_API_URL` | No | `https://api.asgcard.dev` | API endpoint |
+| `STELLAR_RPC_URL` | No | `https://mainnet.sorobanrpc.com` | Soroban RPC |
+
+---
+
+## CLI Reference (@asgcard/cli)
+
+```bash
+# Onboard: create wallet, configure MCP client, install skill
+npx @asgcard/cli onboard -y --client codex
+
+# Install MCP server into a specific client
+npx @asgcard/cli install --client codex    # or claude, cursor
+
+# Create a card
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+
+# Fund a card
+npx @asgcard/cli card:fund -a 50 -c <cardId>
+
+# List cards
+npx @asgcard/cli card:list
+```
+
+---
+
+## API Endpoints
+
+Base URL: `https://api.asgcard.dev`
+
+### Public
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/health` | GET | Health check |
+| `/pricing` | GET | Pricing info |
+| `/cards/tiers` | GET | Pricing info |
+| `/supported` | GET | x402 capabilities |
+
+### Stellar x402 (Payment Required)
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/cards/create/tier/:amount` | POST | Create a virtual card |
+| `/cards/fund/tier/:amount` | POST | Fund an existing card |
+
+### Wallet Authenticated
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/cards/` | GET | List wallet's cards |
+| `/cards/:id` | GET | Card details |
+| `/cards/:id/details` | GET | Sensitive data (nonce required) |
+| `/cards/:id/transactions` | GET | Card transaction history |
+| `/cards/:id/balance` | GET | Live card balance |
+| `/cards/:id/freeze` | POST | Freeze card |
+| `/cards/:id/unfreeze` | POST | Unfreeze card |
+
+### Stripe MPP (Beta)
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/stripe-beta/session` | POST | Create managed session |
+| `/stripe-beta/payment-requests` | POST | Create payment request |
+| `/stripe-beta/payment-requests/:id` | GET | Poll request status |
+| `/stripe-beta/approve/:id` | GET/POST | Approval page data / approve or reject |
+| `/stripe-beta/approve/:id/complete` | POST | Complete payment (MPP credential) |
+| `/stripe-beta/cards` | GET | List session's cards |
+| `/stripe-beta/cards/:id/details` | GET | Card details (nonce required) |
+
+---
+
+## Pricing
+
+- $10 flat card creation (no initial load required)
+- 3.5% on every top-up
+- Load range: $5 to $5,000
+- Same pricing on both Stellar and Stripe rails
+
+Examples:
+- Create card with no load → $10
+- Create card loaded with $100 → $113.50
+- Top up $200 later → $207
+
+---
+
+## Security
+
+- Card details encrypted at rest with AES-256-GCM
+- Agent nonce-based anti-replay protection (5 reads/hour)
+- Wallet signature authentication (Stellar edition)
+- Session-based authentication with beta gates (Stripe edition)
+- Stripe session keys redacted from logs
+- Telegram webhook secret validation
+- Ops endpoints protected by API key + IP allowlist
+
+---
+
+## Telegram Bot (@ASGCardbot)
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome / Link account |
+| `/mycards` | List your cards |
+| `/faq` | FAQ |
+| `/support` | Support |
+
+---
+
+## Support
+
+- Discord: https://discord.gg/asgcompute
+- X (Twitter): https://x.com/ASGCardx402
+- Telegram Bot: https://t.me/ASGCardbot
+- Email: support@asgcompute.dev
+- GitHub: https://github.com/ASGCompute/asgcard

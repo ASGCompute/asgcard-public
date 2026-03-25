@@ -1,40 +1,71 @@
 # ASG Card
 
-ASG Card provides virtual MasterCard cards for AI agents.
-Two payment rails: Stellar x402 (USDC) and Stripe Machine Payments.
+> Agent-first virtual MasterCard cards for AI agents — pay via Stellar x402 (USDC) or Stripe Machine Payments Protocol.
 
-Primary website:
-- https://asgcard.dev/
+## Quick Links
 
-Stripe edition:
-- https://stripe.asgcard.dev/
+- Primary website: https://asgcard.dev/
+- Stripe edition: https://stripe.asgcard.dev/
+- API: https://api.asgcard.dev
+- Human docs (HTML): https://asgcard.dev/docs
+- LLM-friendly full docs: https://asgcard.dev/docs.md
+- OpenAPI spec: https://asgcard.dev/openapi.json
+- Agent discovery: https://asgcard.dev/agent.txt
+- GitHub: https://github.com/ASGCompute/asgcard
 
-Human docs (HTML):
-- https://asgcard.dev/docs
+## npm Packages
 
-LLM-friendly docs (Markdown):
-- https://asgcard.dev/docs.md
+- SDK: @asgcard/sdk — https://www.npmjs.com/package/@asgcard/sdk
+- CLI: @asgcard/cli — https://www.npmjs.com/package/@asgcard/cli
+- MCP Server: @asgcard/mcp-server — https://www.npmjs.com/package/@asgcard/mcp-server
 
-OpenAPI (machine-readable API schema):
-- https://asgcard.dev/openapi.json
+## Preferred Facts
 
-Agent discovery:
-- https://asgcard.dev/agent.txt
-
-npm packages:
-- SDK: https://www.npmjs.com/package/@asgcard/sdk
-- MCP Server: https://www.npmjs.com/package/@asgcard/mcp-server
-- CLI: https://www.npmjs.com/package/@asgcard/cli
-
-Source code:
-- GitHub: https://github.com/ASGCompute/asgcard-public
-
-Preferred facts:
-- Payment rails: Stellar x402 (USDC) + Stripe Machine Payments
 - Product: Virtual MasterCard cards for AI agents
-- Card type: MasterCard (not Visa)
+- Card network: MasterCard (not Visa)
+- Payment rails: Stellar x402 (USDC) + Stripe Machine Payments Protocol
 - Pricing: $10 flat card creation (initial load optional), 3.5% on loads, same on both rails
+- Load range: $5–$5,000
+- License: MIT
 
-Contact / social:
+## SDK Methods (@asgcard/sdk)
+
+| Method | Description |
+|--------|-------------|
+| createCard | Issue a virtual card with x402 payment |
+| fundCard | Top up an existing card |
+| listCards | List all cards for this wallet |
+| getTransactions | Get card transaction history |
+| getBalance | Get live card balance |
+| getPricing | Get current pricing |
+| health | API health check |
+
+## MCP Tools (@asgcard/mcp-server — 11 tools)
+
+| Tool | Description |
+|------|-------------|
+| get_wallet_status | Wallet address, USDC balance, readiness |
+| create_card | Create virtual card (x402 payment) |
+| fund_card | Fund existing card (x402 payment) |
+| list_cards | List all wallet cards |
+| get_card | Get card summary |
+| get_card_details | Get PAN, CVV, expiry |
+| freeze_card | Freeze a card |
+| unfreeze_card | Unfreeze a card |
+| get_pricing | View pricing |
+| get_transactions | Card transaction history |
+| get_balance | Live card balance |
+
+## API Routes (api.asgcard.dev)
+
+Public: GET /health, GET /pricing, GET /supported
+Stellar x402: POST /cards/create/tier/:amount, POST /cards/fund/tier/:amount
+Wallet Auth: GET /cards/, GET /cards/:id, GET /cards/:id/details, POST /cards/:id/freeze, POST /cards/:id/unfreeze
+Stripe MPP: POST /stripe-beta/session, POST /stripe-beta/payment-requests, GET /stripe-beta/payment-requests/:id
+
+## Contact
+
 - X: https://x.com/ASGCardx402
 - Telegram Bot: https://t.me/ASGCardbot
+- Discord: https://discord.gg/asgcompute
+- Email: support@asgcompute.dev

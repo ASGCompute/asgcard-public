@@ -1,6 +1,98 @@
-# ASG Card
+<p align="center">
+  <h1 align="center">ASG Card</h1>
+  <p align="center">
+    <strong>Your AI agent needs a credit card. ASG Card gives it one — programmatically, in seconds, with USDC or Stripe.</strong>
+  </p>
+</p>
 
-ASG Card is an **agent-first** virtual card platform. AI agents programmatically issue and manage MasterCard virtual cards, paying via **Stellar x402** (USDC) or **Stripe Machine Payments Protocol** (card).
+<p align="center">
+  <a href="https://www.npmjs.com/package/@asgcard/sdk"><img src="https://img.shields.io/npm/v/@asgcard/sdk?label=sdk&color=0969da" alt="SDK version"></a>
+  <a href="https://www.npmjs.com/package/@asgcard/cli"><img src="https://img.shields.io/npm/v/@asgcard/cli?label=cli&color=0969da" alt="CLI version"></a>
+  <a href="https://www.npmjs.com/package/@asgcard/mcp-server"><img src="https://img.shields.io/npm/v/@asgcard/mcp-server?label=mcp-server&color=0969da" alt="MCP Server version"></a>
+  <br />
+  <a href="https://www.npmjs.com/package/@asgcard/sdk"><img src="https://img.shields.io/npm/dm/@asgcard/sdk?label=sdk%20downloads&color=green" alt="SDK downloads"></a>
+  <a href="https://www.npmjs.com/package/@asgcard/cli"><img src="https://img.shields.io/npm/dm/@asgcard/cli?label=cli%20downloads&color=green" alt="CLI downloads"></a>
+  <a href="https://www.npmjs.com/package/@asgcard/mcp-server"><img src="https://img.shields.io/npm/dm/@asgcard/mcp-server?label=mcp%20downloads&color=green" alt="MCP downloads"></a>
+  <br />
+  <a href="https://github.com/ASGCompute/asgcard/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+  <a href="https://asgcard.dev"><img src="https://img.shields.io/badge/website-asgcard.dev-blueviolet" alt="Website"></a>
+  <a href="https://visitcount.itsvg.in"><img src="https://visitcount.itsvg.in/api?id=asgcard&label=Profile%20Views&color=6&icon=5&pretty=true" alt="Visitors"></a>
+</p>
+
+<p align="center">
+  🌐 <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
+</p>
+
+---
+
+**ASG Card** is an **agent-first** virtual card platform. AI agents programmatically issue and manage MasterCard virtual cards, paying via **Stellar x402** (USDC) or **Stripe Machine Payments Protocol** (card).
+
+## Quick Start — First Card
+
+```bash
+# One-step onboarding (creates wallet, configures MCP, installs skill)
+npx @asgcard/cli onboard -y --client codex
+
+# Fund your wallet with USDC on Stellar (address shown by onboard)
+# Then:
+npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
+```
+
+## SDK Usage
+
+```typescript
+import { ASGCardClient } from "@asgcard/sdk";
+
+const client = new ASGCardClient({
+  privateKey: "S...",  // Stellar secret key
+  rpcUrl: "https://mainnet.sorobanrpc.com"
+});
+
+// Automatically handles: 402 → USDC payment → card creation
+const card = await client.createCard({
+  amount: 10,        // $10 card load
+  nameOnCard: "AI Agent",
+  email: "agent@example.com"
+});
+
+// card.detailsEnvelope = { cardNumber, cvv, expiryMonth, expiryYear }
+```
+
+### SDK Methods
+
+| Method | Description |
+|--------|-------------|
+| `createCard({amount, nameOnCard, email, phone?})` | Issue a virtual card with x402 payment |
+| `fundCard({amount, cardId})` | Top up an existing card |
+| `listCards()` | List all cards for this wallet |
+| `getTransactions(cardId, page?, limit?)` | Get card transaction history |
+| `getBalance(cardId)` | Get live card balance |
+| `getPricing()` | Get current pricing |
+| `health()` | API health check |
+
+## MCP Server (AI Agent Integration)
+
+`@asgcard/mcp-server` exposes **11 tools** for Codex, Claude Code, and Cursor:
+
+| Tool | Description |
+|------|-------------|
+| `get_wallet_status` | **Use FIRST** — wallet address, USDC balance, readiness |
+| `create_card` | Create virtual card (x402 payment) |
+| `fund_card` | Fund existing card (x402 payment) |
+| `list_cards` | List all wallet cards |
+| `get_card` | Get card summary |
+| `get_card_details` | Get PAN, CVV, expiry |
+| `freeze_card` | Freeze a card |
+| `unfreeze_card` | Unfreeze a card |
+| `get_pricing` | View pricing |
+| `get_transactions` | Card transaction history (real 4payments data) |
+| `get_balance` | Live card balance from 4payments |
+
+### MCP Setup
+
+```bash
+npx @asgcard/cli install --client codex    # or claude, cursor
+```
 
 ## Architecture
 
@@ -80,85 +172,6 @@ Uses: session-based auth (`X-STRIPE-SESSION`). Human-in-the-loop approval.
 | `/web-stripe` | Stripe edition site (stripe.asgcard.dev) |
 | `/docs` | Internal documentation and ADRs |
 
-## Quick Start — First Card
-
-```bash
-# One-step onboarding (creates wallet, configures MCP, installs skill)
-npx @asgcard/cli onboard -y --client codex
-
-# Fund your wallet with USDC on Stellar (address shown by onboard)
-# Then:
-npx @asgcard/cli card:create -a 10 -n "AI Agent" -e you@email.com
-```
-
-## SDK Usage
-
-```typescript
-import { ASGCardClient } from "@asgcard/sdk";
-
-const client = new ASGCardClient({
-  privateKey: "S...",  // Stellar secret key
-  rpcUrl: "https://mainnet.sorobanrpc.com"
-});
-
-// Automatically handles: 402 → USDC payment → card creation
-const card = await client.createCard({
-  amount: 10,        // $10 card load
-  nameOnCard: "AI Agent",
-  email: "agent@example.com"
-});
-
-// card.detailsEnvelope = { cardNumber, cvv, expiryMonth, expiryYear }
-```
-
-### SDK Methods
-
-| Method | Description |
-|--------|-------------|
-| `createCard({amount, nameOnCard, email, phone?})` | Issue a virtual card with x402 payment |
-| `fundCard({amount, cardId})` | Top up an existing card |
-| `listCards()` | List all cards for this wallet |
-| `getTransactions(cardId, page?, limit?)` | Get card transaction history |
-| `getBalance(cardId)` | Get live card balance |
-| `getPricing()` | Get current pricing |
-| `health()` | API health check |
-
-## MCP Server (AI Agent Integration)
-
-`@asgcard/mcp-server` exposes **11 tools** for Codex, Claude Code, and Cursor:
-
-| Tool | Description |
-|------|-------------|
-| `get_wallet_status` | **Use FIRST** — wallet address, USDC balance, readiness |
-| `create_card` | Create virtual card (x402 payment) |
-| `fund_card` | Fund existing card (x402 payment) |
-| `list_cards` | List all wallet cards |
-| `get_card` | Get card summary |
-| `get_card_details` | Get PAN, CVV, expiry |
-| `freeze_card` | Freeze a card |
-| `unfreeze_card` | Unfreeze a card |
-| `get_pricing` | View pricing |
-| `get_transactions` | Card transaction history (real 4payments data) |
-| `get_balance` | Live card balance from 4payments |
-
-### MCP Setup
-
-```bash
-npx @asgcard/cli install --client codex    # or claude, cursor
-```
-
-## Pricing
-
-**Simple, transparent, no hidden fees.**
-
-- **$10** flat card creation (no initial load required)
-- **3.5%** on every top-up
-
-That's it. Load any amount from $5 to $5,000.
-
-> Create card with no load → **$10**. Create card loaded with $100 → **$113.50**. Top up $200 later → just **$207**.
-> Same pricing on both Stellar and Stripe rails.
-
 ## API Endpoints
 
 ### Public
@@ -201,6 +214,18 @@ That's it. Load any amount from $5 to $5,000.
 | `/stripe-beta/cards` | GET | List session's cards |
 | `/stripe-beta/cards/:id/details` | GET | Card details (nonce required) |
 
+## Pricing
+
+**Simple, transparent, no hidden fees.**
+
+- **$10** flat card creation (no initial load required)
+- **3.5%** on every top-up
+
+That's it. Load any amount from $5 to $5,000.
+
+> Create card with no load → **$10**. Create card loaded with $100 → **$113.50**. Top up $200 later → just **$207**.
+> Same pricing on both Stellar and Stripe rails.
+
 ## Telegram Bot (@ASGCardbot)
 
 Link your wallet to Telegram for card management:
@@ -222,6 +247,20 @@ Link your wallet to Telegram for card management:
 - Telegram webhook secret validation
 - Ops endpoints protected by API key + IP allowlist
 
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and check out issues labeled [`good first issue`](https://github.com/ASGCompute/asgcard/labels/good%20first%20issue) to get started.
+
+This project follows our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  <a href="https://star-history.com/#ASGCompute/asgcard&Date">
+    <img src="https://api.star-history.com/svg?repos=ASGCompute/asgcard&type=Date" width="600" alt="Star History Chart">
+  </a>
+</p>

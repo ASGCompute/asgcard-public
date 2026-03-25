@@ -46,14 +46,18 @@ import { homedir } from "node:os";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { createRequire } from "node:module";
+
 // ── Constants ───────────────────────────────────────────────
+
+const __require = createRequire(import.meta.url);
+const { version: VERSION } = __require("../package.json") as { version: string };
 
 const CONFIG_DIR = join(homedir(), ".asgcard");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 const WALLET_FILE = join(CONFIG_DIR, "wallet.json");
 const STRIPE_SESSION_FILE = join(CONFIG_DIR, "stripe-session.json");
 const SKILL_DIR = join(homedir(), ".agents", "skills", "asgcard");
-const VERSION = "0.5.1";
 
 const USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
 const HORIZON_URL = "https://horizon.stellar.org";

@@ -1,14 +1,17 @@
 {
-  "$schema": "https://mcp.github.io/publisher/schema.json",
-  "name": "@asgcard/mcp-server",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.asgcompute/asgcard-mcp-server",
+  "title": "ASG Card",
+  "description": "Give AI agents autonomous virtual card management via x402 and Stellar USDC",
   "version": "0.5.0",
-  "description": "MCP Server for ASG Card — give AI agents autonomous virtual card management via x402",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ASGCompute/asgcard-public"
-  },
-  "command": {
-    "name": "npx",
-    "args": ["-y", "@asgcard/mcp-server@latest"]
-  }
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@asgcard/mcp-server",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
 }

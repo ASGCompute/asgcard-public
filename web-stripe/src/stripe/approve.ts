@@ -142,6 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
   requestId = params.get('id');
   approvalToken = params.get('token') || params.get('amp;token');
 
+  // Fallback to path parameters: /approve/:id/:token
+  if (!requestId || !approvalToken) {
+    const parts = window.location.pathname.split('/');
+    if (parts[1] === 'approve' && parts.length >= 4) {
+      requestId = parts[2];
+      approvalToken = parts[3];
+    }
+  }
+
   const app = $('approve-app');
   if (!app) return;
 

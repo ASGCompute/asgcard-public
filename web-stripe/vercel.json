@@ -7,6 +7,10 @@
     {
       "source": "/approve",
       "destination": "/approve/index.html"
+    },
+    {
+      "source": "/approve/:id/:token",
+      "destination": "/approve/index.html"
     }
   ]
 }

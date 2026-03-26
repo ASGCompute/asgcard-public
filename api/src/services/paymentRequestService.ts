@@ -107,7 +107,7 @@ export async function createPaymentRequest(
     ]
   );
 
-  const approvalUrl = `https://stripe.asgcard.dev/approve?id=${requestId}&token=${approvalToken}`;
+  const approvalUrl = `https://stripe.asgcard.dev/approve/${requestId}/${approvalToken}`;
 
   appLogger.info(
     { requestId, ownerId: input.ownerId, amountUsd: input.amountUsd },

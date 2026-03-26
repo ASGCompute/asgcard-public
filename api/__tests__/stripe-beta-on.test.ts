@@ -288,7 +288,7 @@ describe("Stripe Beta ON — Invalid HMAC", () => {
 describe("Stripe Beta ON — Happy Path (Session Auth + MPP)", () => {
   it("402 challenge → build credential → retry → 201 card created", async () => {
     const amount = 25;
-    const body = { nameOnCard: "Agent Alpha", email: "alpha@asgcard.dev", amount };
+    const body = { nameOnCard: "Agent Alpha", email: "alpha@asgcard.dev", phone: "+1234567890", amount };
 
     // Step 1: GET the 402 challenge with session auth
     const res1 = await request(app)

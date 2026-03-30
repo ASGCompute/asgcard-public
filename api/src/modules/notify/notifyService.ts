@@ -71,11 +71,11 @@ export class NotifyService {
 
         const eventId = inserted[0].id;
 
-        // Find Telegram binding for this wallet
+        // Find Telegram binding for this wallet (must have chat_id to deliver)
         const bindings = await query<{ chat_id: string; telegram_user_id: string }>(
             `SELECT chat_id, telegram_user_id
        FROM owner_telegram_links
-       WHERE owner_wallet = $1 AND status = 'active'`,
+       WHERE owner_wallet = $1 AND status = 'active' AND chat_id IS NOT NULL`,
             [event.walletAddress]
         );
 

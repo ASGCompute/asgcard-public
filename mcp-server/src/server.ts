@@ -1,7 +1,7 @@
 /**
  * @asgcard/mcp-server — Core MCP Server
  *
- * Exposes 11 tools for AI agents to manage ASGCard virtual cards:
+ * Exposes 14 tools for AI agents to manage ASGCard virtual cards:
  *   - get_wallet_status: Read-only wallet status (address, balance, readiness)
  *   - create_card:       Create a virtual card (x402 autonomous payment)
  *   - fund_card:         Fund an existing card (x402 autonomous payment)
@@ -13,6 +13,9 @@
  *   - get_pricing:       Get pricing info
  *   - get_transactions:  Get card transaction history from 4payments
  *   - get_balance:       Get live card balance from 4payments
+ *   - telegram_link:     Generate Telegram deep-link for notification binding
+ *   - telegram_status:   Check Telegram connection status
+ *   - telegram_revoke:   Disconnect Telegram notifications
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -447,6 +450,93 @@ export function createASGCardServer(config: ServerConfig): McpServer {
         };
       } catch (error) {
         return remediationError("Failed to get balance", error instanceof Error ? error.message : String(error), "Verify the card ID. Use list_cards to see available cards.");
+      }
+    }
+  );
+
+  // ── Tool 11: telegram_link ──────────────────────────────────
+
+  server.tool(
+    "telegram_link",
+    "Generate a one-time Telegram deep-link URL to connect the wallet owner's Telegram account for real-time transaction notifications (charges, declines, refunds, top-ups). The link expires in 10 minutes. Send the returned URL to the wallet owner — when they click it, their Telegram is automatically bound to this wallet.",
+    {},
+    async () => {
+      try {
+        const result = await walletClient.getTelegramLinkToken();
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("404")) {
+          return remediationError("Portal API not available", "The Owner Portal is not enabled on the API server", "This feature requires OWNER_PORTAL_ENABLED=true on the API server.");
+        }
+        if (msg.includes("429")) {
+          return remediationError("Rate limited", "Maximum 5 link tokens per hour", "Wait and retry later.");
+        }
+        return remediationError("Failed to generate Telegram link", msg, "Check API connectivity and wallet authentication.");
+      }
+    }
+  );
+
+  // ── Tool 12: telegram_status ────────────────────────────────
+
+  server.tool(
+    "telegram_status",
+    "Check whether the wallet owner's Telegram account is currently connected for transaction notifications. Returns linked status, Telegram user ID, and link date.",
+    {},
+    async () => {
+      try {
+        const result = await walletClient.getTelegramStatus();
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("404")) {
+          return remediationError("Portal API not available", "The Owner Portal is not enabled on the API server", "This feature requires OWNER_PORTAL_ENABLED=true on the API server.");
+        }
+        return remediationError("Failed to check Telegram status", msg, "Check API connectivity and wallet authentication.");
+      }
+    }
+  );
+
+  // ── Tool 13: telegram_revoke ────────────────────────────────
+
+  server.tool(
+    "telegram_revoke",
+    "Disconnect the wallet owner's Telegram account. Immediately stops all transaction notifications. The owner can re-link at any time using telegram_link.",
+    {},
+    async () => {
+      try {
+        const result = await walletClient.revokeTelegram();
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("404")) {
+          return remediationError("Portal API not available", "The Owner Portal is not enabled on the API server", "This feature requires OWNER_PORTAL_ENABLED=true on the API server.");
+        }
+        return remediationError("Failed to revoke Telegram", msg, "Check API connectivity and wallet authentication.");
       }
     }
   );

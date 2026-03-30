@@ -48,6 +48,16 @@ npx @asgcard/cli@latest card:create -a 10 -n "AI Agent" -e you@email.com -p "+12
 | `asgcard stripe:request -a <amt> -n <name> -e <email> -p <phone>` | Create a payment request |
 | `asgcard stripe:wait <requestId>` | Poll until card is issued |
 
+### Telegram Notifications
+
+| Command | Description |
+|---------|-------------|
+| `asgcard telegram:link` | Generate a deep-link to connect Telegram notifications |
+| `asgcard telegram:status` | Check if Telegram is connected for this wallet |
+| `asgcard telegram:revoke` | Disconnect Telegram — stops all notifications |
+
+> **How it works:** Run `telegram:link` → send the generated deep-link to the card owner → owner clicks it in Telegram → bot binds their account → owner receives real-time alerts for charges, declines, refunds, and top-ups.
+
 ### Info
 
 | Command | Description |

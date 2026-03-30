@@ -89,6 +89,38 @@ If wallet has insufficient USDC:
 
 Example: create a $50 card → you pay $50 + $10 + 3.5% = $62.10 USDC.
 
+## Telegram Owner Linking
+
+When the user wants to receive transaction notifications (charges, declines, refunds, top-ups) via Telegram:
+
+### Step 1 — Generate a deep-link
+
+```bash
+npx -y @asgcard/cli@latest telegram:link
+```
+
+This generates a one-time link like `https://t.me/ASGCardbot?start=lnk_xxx` (expires in 10 minutes).
+
+### Step 2 — Send the link to the owner
+
+Show the deep-link to the user and tell them: **"Click this link in Telegram to connect notifications for your wallet."**
+
+### Step 3 — Verify (optional)
+
+```bash
+npx -y @asgcard/cli@latest telegram:status
+```
+
+Shows whether Telegram is connected or not.
+
+### Disconnect
+
+```bash
+npx -y @asgcard/cli@latest telegram:revoke
+```
+
+Stops all notifications immediately.
+
 ### Key Notes
 
 - All on-chain payments are in USDC on Stellar via x402 protocol
@@ -98,3 +130,4 @@ Example: create a $50 card → you pay $50 + $10 + 3.5% = $62.10 USDC.
 - Wallet uses Stellar Ed25519 keypair — private key stays in `~/.asgcard/wallet.json`
 - MCP server auto-resolves key from wallet.json at startup (no env var needed)
 - **ALWAYS use `@latest` tag with npx to avoid stale cached versions**
+

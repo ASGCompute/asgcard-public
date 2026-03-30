@@ -122,6 +122,32 @@ export class WalletClient {
     return this.authenticatedRequest("GET", `/cards/${cardId}/balance`);
   }
 
+  // ── Portal / Telegram ────────────────────────────────────
+
+  /** Generate a one-time Telegram deep-link token for wallet binding */
+  async getTelegramLinkToken(): Promise<{ deepLink: string; expiresAt: string; message: string }> {
+    return this.authenticatedRequest<{ deepLink: string; expiresAt: string; message: string }>(
+      "POST",
+      "/portal/telegram/link-token"
+    );
+  }
+
+  /** Get current Telegram binding status for this wallet */
+  async getTelegramStatus(): Promise<{ linked: boolean; telegramUserId?: number; linkedAt?: string }> {
+    return this.authenticatedRequest<{ linked: boolean; telegramUserId?: number; linkedAt?: string }>(
+      "GET",
+      "/portal/telegram/status"
+    );
+  }
+
+  /** Revoke Telegram binding — immediately stops all notifications */
+  async revokeTelegram(): Promise<{ revoked: boolean; message: string }> {
+    return this.authenticatedRequest<{ revoked: boolean; message: string }>(
+      "POST",
+      "/portal/telegram/revoke"
+    );
+  }
+
   // ── Auth signing ────────────────────────────────────────
 
   private signAuth(): { address: string; signature: string; timestamp: string } {

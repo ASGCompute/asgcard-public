@@ -24,7 +24,8 @@ export async function handleStartCommand(
     client: TelegramClient,
     chatId: number,
     userId: number,
-    token?: string
+    token?: string,
+    username?: string
 ): Promise<void> {
     // Deep-link: /start lnk_<token>
     if (token && token.startsWith("lnk_")) {
@@ -47,7 +48,7 @@ export async function handleStartCommand(
             AdminBot.accountLinked({
                 wallet: result.ownerWallet,
                 telegramUserId: userId,
-                username: undefined,
+                username,
             }).catch(() => {});
         } else {
             await client.sendMessage({
@@ -57,6 +58,17 @@ export async function handleStartCommand(
                 reply_markup: persistentMenu(),
             });
         }
+        return;
+    }
+
+    // Invalid deep-link token (not lnk_ prefixed)
+    if (token) {
+        await client.sendMessage({
+            chat_id: chatId,
+            text: linkFailedMessage("invalid_token"),
+            parse_mode: "HTML",
+            reply_markup: persistentMenu(),
+        });
         return;
     }
 

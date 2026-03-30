@@ -30,6 +30,11 @@
  *   asgcard stripe:status <id>        — Check payment request status
  *   asgcard stripe:wait <id>          — Wait for payment request completion
  *
+ * Telegram notifications:
+ *   asgcard telegram:link             — Generate deep-link to connect Telegram
+ *   asgcard telegram:status           — Check Telegram connection status
+ *   asgcard telegram:revoke           — Disconnect Telegram notifications
+ *
  * Utility:
  *   asgcard pricing            — View pricing
  *   asgcard health             — API health check
@@ -1544,6 +1549,145 @@ program
     const { Keypair } = await import("@stellar/stellar-sdk");
     const kp = Keypair.fromSecret(key);
     console.log(chalk.cyan(kp.publicKey()));
+  });
+
+// ═══════════════════════════════════════════════════════════
+// TELEGRAM COMMANDS
+// ═══════════════════════════════════════════════════════════
+
+// ── telegram:link ───────────────────────────────────────────
+
+program
+  .command("telegram:link")
+  .description("Generate a Telegram deep-link to connect notifications for this wallet")
+  .action(async () => {
+    const key = requireKey();
+    const spinner = ora("Generating Telegram link...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const result = await client.getTelegramLinkToken();
+      spinner.stop();
+
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      const walletShort = kp.publicKey().slice(0, 6) + "..." + kp.publicKey().slice(-4);
+
+      console.log(chalk.green("\n✅ Telegram link generated!\n"));
+      console.log(chalk.bold("   Open this link in Telegram:\n"));
+      console.log(chalk.cyan(`   ${result.deepLink}\n`));
+      console.log(chalk.dim("   ⏱ Expires: ") + chalk.yellow(new Date(result.expiresAt).toLocaleTimeString()));
+      console.log();
+      console.log(chalk.dim("   Send this link to the card owner."));
+      console.log(chalk.dim("   When they click it, the bot will bind their Telegram"));
+      console.log(chalk.dim("   to wallet ") + chalk.cyan(walletShort) + chalk.dim(" for transaction notifications."));
+      console.log();
+    } catch (error) {
+      spinner.fail();
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("404")) {
+        remediate(
+          "Telegram linking not available",
+          "The Owner Portal feature is not enabled on this API server",
+          "Contact the platform administrator or check https://docs.asgcard.dev/telegram"
+        );
+      } else if (msg.includes("401") || msg.includes("403")) {
+        remediate("Authentication failed", "Wallet signature rejected", "Check your key: asgcard doctor");
+      } else {
+        remediate("Failed to generate link", msg, "asgcard doctor");
+      }
+      process.exit(1);
+    }
+  });
+
+// ── telegram:status ─────────────────────────────────────────
+
+program
+  .command("telegram:status")
+  .description("Check Telegram connection status for this wallet")
+  .action(async () => {
+    const key = requireKey();
+    const spinner = ora("Checking Telegram status...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const result = await client.getTelegramStatus();
+      spinner.stop();
+
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      const walletShort = kp.publicKey().slice(0, 6) + "..." + kp.publicKey().slice(-4);
+
+      console.log(chalk.bold("\n📱 Telegram Status\n"));
+      console.log(chalk.dim("   Wallet:  ") + chalk.cyan(walletShort));
+
+      if (result.linked) {
+        const linkedDate = result.linkedAt
+          ? new Date(result.linkedAt).toLocaleDateString()
+          : "unknown date";
+        console.log(chalk.dim("   Status:  ") + chalk.green(`✅ Connected (since ${linkedDate})`));
+        console.log();
+        console.log(chalk.dim("   You will receive transaction notifications."));
+        console.log(chalk.dim("   To disconnect: ") + chalk.cyan("asgcard telegram:revoke"));
+      } else {
+        console.log(chalk.dim("   Status:  ") + chalk.red("❌ Not connected"));
+        console.log();
+        console.log(chalk.dim("   To connect: ") + chalk.cyan("asgcard telegram:link"));
+      }
+      console.log();
+    } catch (error) {
+      spinner.fail();
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("404")) {
+        remediate(
+          "Telegram status not available",
+          "The Owner Portal feature is not enabled on this API server",
+          "Contact the platform administrator or check https://docs.asgcard.dev/telegram"
+        );
+      } else {
+        remediate("Failed to check status", msg, "asgcard doctor");
+      }
+      process.exit(1);
+    }
+  });
+
+// ── telegram:revoke ─────────────────────────────────────────
+
+program
+  .command("telegram:revoke")
+  .description("Disconnect Telegram from this wallet — stops all notifications")
+  .action(async () => {
+    const key = requireKey();
+    const spinner = ora("Revoking Telegram connection...").start();
+
+    try {
+      const client = new WalletClient({ privateKey: key, baseUrl: getApiUrl() });
+      const result = await client.revokeTelegram();
+      spinner.stop();
+
+      if (result.revoked) {
+        console.log(chalk.green("\n✅ Telegram disconnected. Bot access revoked.\n"));
+        console.log(chalk.dim("   Transaction notifications stopped immediately."));
+        console.log(chalk.dim("   To reconnect: ") + chalk.cyan("asgcard telegram:link"));
+      } else {
+        console.log(chalk.yellow("\n⚠ No active Telegram connection found.\n"));
+        console.log(chalk.dim("   To connect: ") + chalk.cyan("asgcard telegram:link"));
+      }
+      console.log();
+    } catch (error) {
+      spinner.fail();
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("404")) {
+        remediate(
+          "Telegram revoke not available",
+          "The Owner Portal feature is not enabled on this API server",
+          "Contact the platform administrator or check https://docs.asgcard.dev/telegram"
+        );
+      } else {
+        remediate("Failed to revoke", msg, "asgcard doctor");
+      }
+      process.exit(1);
+    }
   });
 
 // ── stripe:session ───────────────────────────────────────────

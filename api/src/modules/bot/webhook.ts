@@ -236,7 +236,7 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
     if (cmd.startsWith("/start")) {
         const parts = text.split(" ");
         const token = parts.length > 1 ? parts[1] : undefined;
-        await handleStartCommand(client, chatId, userId, token);
+        await handleStartCommand(client, chatId, userId, token, msg.from.username);
         return;
     }
 

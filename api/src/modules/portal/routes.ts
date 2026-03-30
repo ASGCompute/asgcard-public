@@ -42,8 +42,14 @@ portalRouter.post("/telegram/link-token", async (req, res) => {
             message: "Open this link in Telegram to connect your account.",
         });
     } catch (error) {
-        appLogger.error({ err: error }, "[PORTAL] link-token error");
-        res.status(500).json({ error: "Failed to generate link token" });
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("Rate limit")) {
+            appLogger.warn({ wallet: req.walletContext?.address }, "[PORTAL] link-token rate limited");
+            res.status(429).json({ error: msg });
+        } else {
+            appLogger.error({ err: error }, "[PORTAL] link-token error");
+            res.status(500).json({ error: "Failed to generate link token" });
+        }
     }
 });
 

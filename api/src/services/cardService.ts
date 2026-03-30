@@ -147,11 +147,12 @@ class CardService {
     // Step 5: Upsert wallet profile — always save email+phone for all callers
     // This ensures API/SDK/CLI/MCP users have profile data stored
     // Uses telegram_user_id=0 as sentinel for non-Telegram callers
+    // Status 'profile_only' ensures it's excluded from notification delivery queries
     try {
       const { query: dbQuery } = await import("../db/db");
       await dbQuery(
         `INSERT INTO owner_telegram_links (owner_wallet, telegram_user_id, email, phone, status)
-         VALUES ($1, 0, $2, $3, 'active')
+         VALUES ($1, 0, $2, $3, 'profile_only')
          ON CONFLICT (owner_wallet, telegram_user_id)
          DO UPDATE SET email = COALESCE(EXCLUDED.email, owner_telegram_links.email),
                        phone = COALESCE(EXCLUDED.phone, owner_telegram_links.phone)`,

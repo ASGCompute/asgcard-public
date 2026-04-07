@@ -172,7 +172,7 @@ export class WalletClient {
     };
   }
 
-  private async authenticatedRequest<T>(method: string, path: string): Promise<T> {
+  public async authenticatedRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
     const auth = this.signAuth();
 
     const controller = new AbortController();
@@ -187,6 +187,7 @@ export class WalletClient {
           "X-WALLET-SIGNATURE": auth.signature,
           "X-WALLET-TIMESTAMP": auth.timestamp,
         },
+        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
 

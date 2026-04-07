@@ -583,14 +583,16 @@ program
 
 program
   .command("onboard")
-  .description("Full onboarding: create/import wallet, install MCP, install skill, print next step")
+  .description("Full 9-step onboarding: wallet → MCP → skill → API register → TG identity → sponsorship → fund link → status")
   .option("-y, --yes", "Non-interactive mode (auto-create wallet, skip prompts)")
-  .option("-c, --client <client>", "AI client to configure (codex, claude, cursor)")
+  .option("-c, --client <client>", "AI client to configure (codex, claude, cursor, gemini)")
   .action(async (options: { yes?: boolean; client?: string }) => {
     console.log(chalk.bold("\n🚀 ASG Card Onboarding\n"));
 
+    const TOTAL_STEPS = 9;
+
     // Step 1: Wallet
-    console.log(chalk.bold("Step 1/4: Wallet"));
+    console.log(chalk.bold(`Step 1/${TOTAL_STEPS}: Wallet`));
     let key = resolveKey();
 
     if (key) {
@@ -648,7 +650,7 @@ program
     console.log();
 
     // Step 2: Install MCP for detected/specified clients
-    console.log(chalk.bold("Step 2/4: MCP Configuration"));
+    console.log(chalk.bold(`Step 2/${TOTAL_STEPS}: MCP Configuration`));
     const clients: string[] = [];
 
     if (options.client) {
@@ -658,6 +660,7 @@ program
       if (existsSync(join(homedir(), ".codex"))) clients.push("codex");
       if (existsSync(join(homedir(), ".claude"))) clients.push("claude");
       if (existsSync(join(homedir(), ".cursor"))) clients.push("cursor");
+      if (existsSync(join(homedir(), ".gemini"))) clients.push("gemini");
     }
 
     if (clients.length === 0) {
@@ -718,13 +721,32 @@ program
             }
             break;
           }
+          case "gemini": {
+            const geminiConfigPath = join(homedir(), ".gemini", "settings.json");
+            mkdirSync(dirname(geminiConfigPath), { recursive: true });
+            let geminiConfig: Record<string, unknown> = {};
+            try { geminiConfig = JSON.parse(readFileSync(geminiConfigPath, "utf-8")); } catch { /* */ }
+            const gServers = (geminiConfig.mcpServers || {}) as Record<string, unknown>;
+            if (gServers.asgcard) {
+              console.log(chalk.green("  ✅ Gemini: already configured"));
+            } else {
+              gServers.asgcard = {
+                command: "npx",
+                args: ["-y", "@asgcard/mcp-server"],
+              };
+              geminiConfig.mcpServers = gServers;
+              writeFileSync(geminiConfigPath, JSON.stringify(geminiConfig, null, 2));
+              console.log(chalk.green("  ✅ Gemini: MCP configured"));
+            }
+            break;
+          }
         }
       }
     }
     console.log();
 
     // Step 3: Install product-owned skill
-    console.log(chalk.bold("Step 3/4: Agent Skill"));
+    console.log(chalk.bold(`Step 3/${TOTAL_STEPS}: Agent Skill`));
     try {
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = dirname(__filename);
@@ -797,8 +819,117 @@ If wallet has insufficient USDC:
     }
     console.log();
 
-    // Step 4: Wallet balance check and next step
-    console.log(chalk.bold("Step 4/4: Status & Next Steps"));
+    // ── Step 4/9: API Registration ─────────────────────────
+    console.log(chalk.bold(`Step 4/${TOTAL_STEPS}: API Registration`));
+    let apiRegistered = false;
+    let telegramLink: string | null = null;
+    let apiStatus: string | null = null;
+    let pendingXdr: string | null = null;
+
+    if (key) {
+      try {
+        const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+        const data = await client.authenticatedRequest<{
+          registered: boolean;
+          status: string;
+          telegramLink?: string;
+          expiresAt?: string;
+          pendingXdr?: string | null;
+          message?: string;
+        }>("POST", "/onboard/register", { clientType: clients[0] ?? "manual" });
+
+        apiRegistered = data.registered;
+        apiStatus = data.status;
+        telegramLink = data.telegramLink ?? null;
+        pendingXdr = data.pendingXdr ?? null;
+
+        if (data.status === "active") {
+          console.log(chalk.green("  ✅ Already registered and active"));
+        } else if (data.telegramLink) {
+          console.log(chalk.green("  ✅ Registered. TG link issued."));
+        } else {
+          console.log(chalk.green("  ✅ Registered. Status: ") + chalk.cyan(data.status));
+        }
+      } catch {
+        console.log(chalk.yellow("  ⚠ API unavailable or onboarding not enabled. Skipping."));
+        console.log(chalk.dim("     This step will auto-complete when ONBOARDING_ENABLED=true on the server."));
+      }
+    } else {
+      console.log(chalk.dim("  Skipped (no wallet)"));
+    }
+    console.log();
+
+    // ── Step 5/9: Telegram Identity ────────────────────────
+    console.log(chalk.bold(`Step 5/${TOTAL_STEPS}: Telegram Identity`));
+    if (apiStatus === "active") {
+      console.log(chalk.green("  ✅ Telegram already linked"));
+    } else if (telegramLink) {
+      console.log(chalk.cyan("  🔗 Open this link in Telegram to connect your financial identity:\n"));
+      console.log(chalk.bold(`     ${telegramLink}`));
+      console.log(chalk.dim("\n     Link expires in 10 minutes. After clicking, return here."));
+
+      if (!options.yes) {
+        const readline = await import("node:readline");
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        await new Promise<void>((resolve) => {
+          rl.question(chalk.dim("\n     Press Enter when you've clicked the link... "), () => {
+            rl.close();
+            resolve();
+          });
+        });
+      }
+    } else if (apiStatus === "pending_sponsor" || apiStatus === "sponsoring") {
+      console.log(chalk.green("  ✅ Telegram already connected"));
+    } else if (!apiRegistered) {
+      console.log(chalk.dim("  Skipped (API registration pending)"));
+    } else {
+      console.log(chalk.dim("  Skipped (status: " + (apiStatus ?? "unknown") + ")"));
+    }
+    console.log();
+
+    // ── Step 6/9: Wallet Activation (Sponsorship) ──────────
+    console.log(chalk.bold(`Step 6/${TOTAL_STEPS}: Wallet Activation (Sponsorship)`));
+    if (apiStatus === "active") {
+      console.log(chalk.green("  ✅ Wallet already activated on Stellar"));
+    } else if (pendingXdr) {
+      console.log(chalk.yellow("  ⏳ Sponsorship XDR ready. Co-sign required."));
+      console.log(chalk.dim("     Your AI agent will co-sign automatically via MCP, or use:"));
+      console.log(chalk.cyan("     asgcard status") + chalk.dim(" to check progress"));
+    } else if (apiStatus === "pending_identity") {
+      console.log(chalk.dim("  Waiting for Telegram identity binding (step 5)"));
+      console.log(chalk.dim("  Sponsorship XDR will be built automatically after TG connection."));
+    } else {
+      console.log(chalk.dim("  Skipped (will activate after TG binding)"));
+    }
+    console.log();
+
+    // ── Step 7/9: Fund Link ────────────────────────────────
+    console.log(chalk.bold(`Step 7/${TOTAL_STEPS}: Fund Link`));
+    if (key) {
+      try {
+        const { Keypair } = await import("@stellar/stellar-sdk");
+        const kp = Keypair.fromSecret(key);
+        const params = new URLSearchParams({
+          agentName: "AI Agent",
+          toAddress: kp.publicKey(),
+          toAmount: "50",
+          toToken: "USDC",
+        });
+        const fundUrl = `https://fund.asgcard.dev/?${params.toString()}`;
+
+        console.log(chalk.green("  ✅ Fund link generated:"));
+        console.log(chalk.dim("     Share this with the wallet owner to fund the agent:\n"));
+        console.log(chalk.cyan(`     ${fundUrl}`));
+      } catch {
+        console.log(chalk.yellow("  ⚠ Could not generate fund link"));
+      }
+    } else {
+      console.log(chalk.dim("  Skipped (no wallet)"));
+    }
+    console.log();
+
+    // ── Step 8/9: Balance Check ────────────────────────────
+    console.log(chalk.bold(`Step 8/${TOTAL_STEPS}: Balance Check`));
     if (key) {
       const { Keypair } = await import("@stellar/stellar-sdk");
       const kp = Keypair.fromSecret(key);
@@ -809,14 +940,41 @@ If wallet has insufficient USDC:
         console.log(chalk.dim("     Check manually: ") + chalk.cyan("asgcard wallet info"));
       } else if (balance >= MIN_CREATE_COST) {
         console.log(chalk.green("  ✅ Wallet funded!") + chalk.dim(` Balance: $${balance.toFixed(2)} USDC`));
-        console.log(chalk.bold("\n  🎉 Ready! Create your first card:\n"));
-        console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890\n"));
       } else {
-        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CREATE_COST} for card creation)`));
-        console.log(chalk.bold("\n  📥 Next step: Fund your wallet\n"));
-        console.log(chalk.dim("     Send USDC on Stellar to:"));
-        console.log(chalk.cyan(`     ${kp.publicKey()}\n`));
-        console.log(chalk.dim("     Then check: ") + chalk.cyan("asgcard wallet info"));
+        console.log(chalk.yellow(`  ⚠ Balance: $${balance.toFixed(2)} USDC`) + chalk.dim(` (need $${MIN_CREATE_COST} for minimum card)`));
+      }
+    } else {
+      console.log(chalk.dim("  Skipped (no wallet)"));
+    }
+    console.log();
+
+    // ── Step 9/9: Summary & Next Steps ─────────────────────
+    console.log(chalk.bold(`Step 9/${TOTAL_STEPS}: Summary & Next Steps`));
+    if (key) {
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      const balance = await getUsdcBalance(kp.publicKey());
+
+      const steps: string[] = [];
+      if (!apiRegistered) steps.push("Enable ONBOARDING_ENABLED=true on server, then re-run onboard");
+      if (apiStatus === "pending_identity") steps.push("Click the Telegram link (step 5) to connect identity");
+      if (apiStatus === "pending_sponsor" || pendingXdr) steps.push("Co-sign sponsorship XDR via MCP or CLI");
+      if (balance >= 0 && balance < MIN_CREATE_COST) steps.push("Fund your wallet with USDC (use the fund link from step 7)");
+      if (balance >= MIN_CREATE_COST) steps.push("Create your first card: asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890");
+
+      if (steps.length === 0 && apiStatus === "active" && balance >= MIN_CREATE_COST) {
+        console.log(chalk.green("  🎉 Fully onboarded and funded! Ready to create cards."));
+        console.log(chalk.dim("\n  Quick commands:"));
+        console.log(chalk.cyan("     asgcard card:create -a 10 -n \"AI Agent\" -e you@email.com -p +1234567890"));
+        console.log(chalk.cyan("     asgcard status"));
+        console.log(chalk.cyan("     asgcard balance"));
+      } else if (steps.length > 0) {
+        console.log(chalk.yellow("  Next steps:\n"));
+        steps.forEach((s, i) => {
+          console.log(chalk.dim(`  ${i + 1}. `) + chalk.white(s));
+        });
+      } else {
+        console.log(chalk.dim("  Check: ") + chalk.cyan("asgcard status") + chalk.dim(" or ") + chalk.cyan("asgcard doctor"));
       }
     } else {
       console.log(chalk.yellow("  ⚠ No wallet configured."));
@@ -980,10 +1138,48 @@ program
     if (claudeHas) mcpParts.push("Claude");
     if (cursorHas) mcpParts.push("Cursor");
 
+    // 10. Gemini MCP check
+    const geminiHas = (() => {
+      try {
+        const c = JSON.parse(readFileSync(join(homedir(), ".gemini", "settings.json"), "utf-8"));
+        return !!(c.mcpServers?.asgcard);
+      } catch { return false; }
+    })();
+    if (geminiHas) mcpParts.push("Gemini");
+
     if (mcpParts.length > 0) {
       console.log(chalk.dim("  MCP Configured:   ") + chalk.green(`✅ ${mcpParts.join(", ")}`));
     } else {
       console.log(chalk.dim("  MCP Configured:   ") + chalk.yellow("⚠ None — run: asgcard install --client <client>"));
+    }
+
+    // 11. Onboarding status (API check)
+    if (key) {
+      try {
+        const client = new WalletClient({ baseUrl: apiUrl, privateKey: key });
+        const data = await client.authenticatedRequest<{
+          registered: boolean;
+          status: string;
+          telegram?: { linked: boolean };
+          balance?: number | null;
+        }>("GET", "/wallet/status");
+
+        if (data.status === "active") {
+          console.log(chalk.dim("  Onboard Status:   ") + chalk.green("✅ Active (fully onboarded)"));
+        } else if (data.registered) {
+          console.log(chalk.dim("  Onboard Status:   ") + chalk.yellow(`⚠ ${data.status} — run: asgcard onboard`));
+        } else {
+          console.log(chalk.dim("  Onboard Status:   ") + chalk.dim("— Not registered yet"));
+        }
+
+        if (data.telegram?.linked) {
+          console.log(chalk.dim("  Telegram:         ") + chalk.green("✅ Linked"));
+        } else if (data.registered) {
+          console.log(chalk.dim("  Telegram:         ") + chalk.yellow("⚠ Not linked — run: asgcard onboard"));
+        }
+      } catch {
+        console.log(chalk.dim("  Onboard Status:   ") + chalk.dim("— Unavailable (onboarding may not be enabled)"));
+      }
     }
 
     console.log();
@@ -991,6 +1187,142 @@ program
       console.log(chalk.green("  ✅ All checks passed! You're ready to create cards.\n"));
     } else {
       console.log(chalk.yellow("  ⚠ Some checks failed. Fix the issues above and run ") + chalk.cyan("asgcard doctor") + chalk.yellow(" again.\n"));
+    }
+  });
+
+// ═══════════════════════════════════════════════════════════
+// WALLET STATUS COMMANDS (v0.4.1 — queries /wallet/* routes)
+// ═══════════════════════════════════════════════════════════
+
+program
+  .command("status")
+  .description("Show onboarding lifecycle status from the API")
+  .action(async () => {
+    const key = resolveKey();
+    if (!key) {
+      remediate("No wallet configured", "Cannot check status without a wallet", "asgcard wallet create");
+      process.exit(1);
+    }
+
+    const spinner = ora("Fetching wallet status...").start();
+
+    try {
+      const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+      const data = await client.authenticatedRequest<{
+        registered: boolean;
+        status: string;
+        registeredAt?: string;
+        sponsoredAt?: string;
+        clientType?: string;
+        telegram?: { linked: boolean; userId?: number; linkedAt?: string };
+        balance?: number | null;
+        pendingXdr?: string | null;
+        message?: string;
+      }>("GET", "/wallet/status");
+
+      spinner.stop();
+
+      console.log(chalk.bold("\n📊 Wallet Status\n"));
+
+      if (!data.registered) {
+        console.log(chalk.yellow("  Not registered.") + chalk.dim(" Run: ") + chalk.cyan("asgcard onboard"));
+        console.log();
+        return;
+      }
+
+      const statusColors: Record<string, (s: string) => string> = {
+        active: chalk.green,
+        pending_identity: chalk.yellow,
+        pending_sponsor: chalk.yellow,
+        sponsoring: chalk.blue,
+        failed: chalk.red,
+      };
+      const colorFn = statusColors[data.status] ?? chalk.dim;
+
+      console.log(chalk.dim("  Status:       ") + colorFn(data.status));
+      console.log(chalk.dim("  Registered:   ") + chalk.dim(data.registeredAt ?? "—"));
+      if (data.sponsoredAt) {
+        console.log(chalk.dim("  Sponsored:    ") + chalk.green(data.sponsoredAt));
+      }
+      if (data.clientType) {
+        console.log(chalk.dim("  Client:       ") + chalk.dim(data.clientType));
+      }
+
+      // Telegram
+      if (data.telegram?.linked) {
+        console.log(chalk.dim("  Telegram:     ") + chalk.green(`✅ Linked (user ${data.telegram.userId})`));
+      } else {
+        console.log(chalk.dim("  Telegram:     ") + chalk.yellow("⚠ Not linked"));
+      }
+
+      // Balance
+      if (data.balance !== null && data.balance !== undefined) {
+        const bal = data.balance;
+        console.log(chalk.dim("  USDC Balance: ") + (bal >= MIN_CREATE_COST ? chalk.green(`$${bal.toFixed(2)}`) : chalk.yellow(`$${bal.toFixed(2)}`)));
+      }
+
+      // Pending XDR
+      if (data.pendingXdr) {
+        console.log(chalk.dim("  Pending XDR:  ") + chalk.blue("Co-sign required"));
+      }
+
+      console.log();
+    } catch (error) {
+      spinner.fail(chalk.red("Could not fetch status"));
+      console.log(chalk.dim("  The API may be unavailable or onboarding may not be enabled."));
+      console.log(chalk.dim("  Try: ") + chalk.cyan("asgcard wallet info") + chalk.dim(" (local check)"));
+      console.log();
+    }
+  });
+
+program
+  .command("fund-link")
+  .description("Generate a fund.asgcard.dev URL for your wallet")
+  .option("-n, --name <name>", "Agent name for the funding page", "AI Agent")
+  .option("-a, --amount <amount>", "Suggested USDC amount", "50")
+  .action(async (options: { name: string; amount: string }) => {
+    const key = resolveKey();
+    if (!key) {
+      remediate("No wallet configured", "Cannot generate fund link without a wallet", "asgcard wallet create");
+      process.exit(1);
+    }
+
+    try {
+      const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+      const data = await client.authenticatedRequest<{
+        url: string;
+        address: string;
+        agentName: string;
+        amount: number;
+        token: string;
+      }>("GET", `/wallet/fund-link?agentName=${encodeURIComponent(options.name)}&amount=${options.amount}`);
+
+      console.log(chalk.bold("\n🔗 Fund Link\n"));
+      console.log(chalk.dim("  Agent:   ") + chalk.cyan(data.agentName));
+      console.log(chalk.dim("  Amount:  ") + chalk.green(`$${data.amount} ${data.token}`));
+      console.log(chalk.dim("  Address: ") + chalk.dim(data.address));
+      console.log();
+      console.log(chalk.bold("  URL: ") + chalk.cyan(data.url));
+      console.log();
+    } catch {
+      // Fallback: generate locally
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      const params = new URLSearchParams({
+        agentName: options.name,
+        toAddress: kp.publicKey(),
+        toAmount: options.amount,
+        toToken: "USDC",
+      });
+      const url = `https://fund.asgcard.dev/?${params.toString()}`;
+
+      console.log(chalk.bold("\n🔗 Fund Link") + chalk.dim(" (generated locally)\n"));
+      console.log(chalk.dim("  Agent:   ") + chalk.cyan(options.name));
+      console.log(chalk.dim("  Amount:  ") + chalk.green(`$${options.amount} USDC`));
+      console.log(chalk.dim("  Address: ") + chalk.dim(kp.publicKey()));
+      console.log();
+      console.log(chalk.bold("  URL: ") + chalk.cyan(url));
+      console.log();
     }
   });
 

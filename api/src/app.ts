@@ -5,20 +5,13 @@ import { publicRouter } from "./routes/public";
 import { walletRouter } from "./routes/wallet";
 import { webhookRouter } from "./routes/webhook";
 import { opsRouter } from "./routes/ops";
-import { analyticsRouter } from "./routes/analytics";
 import { env } from "./config/env";
 import { httpLogger, appLogger } from "./utils/logger";
 
 export const createApp = async () => {
   const app = express();
 
-  app.use(cors({
-    exposedHeaders: [
-      "WWW-Authenticate",   // MPP 402 challenge header
-      "X-Payment-Receipt",  // MPP 201 receipt header
-      "X-Request-Id",       // request tracing
-    ],
-  }));
+  app.use(cors());
   app.use(httpLogger);
 
   // Webhook route needs raw body for HMAC — mount BEFORE json parser
@@ -31,11 +24,6 @@ export const createApp = async () => {
   app.use("/cards", paidRouter);
   app.use("/cards", walletRouter);
   app.use("/ops", opsRouter);
-  app.use("/analytics", analyticsRouter);
-
-  // ── Mini App (Web App API) ─────────────────────────────────
-  const { miniappRouter } = await import("./modules/miniapp");
-  app.use("/api/miniapp", miniappRouter);
 
   // ── Telegram Bot (feature-flagged) ─────────────────────────
   if (env.TG_BOT_ENABLED === "true") {
@@ -59,11 +47,15 @@ export const createApp = async () => {
     // Note: startup notification removed — fires on every Vercel cold start
   }
 
-  // ── Stripe MPP Beta (feature-flagged) ────────────────────
-  if (env.STRIPE_MPP_BETA_ENABLED === "true") {
-    const { stripeBetaRouter } = await import("./routes/stripeBeta");
-    app.use("/stripe-beta", stripeBetaRouter);
-    appLogger.info("[APP] Stripe MPP beta enabled → /stripe-beta/*");
+  // ── Onboarding & Wallet Status (feature-flagged) ─────────
+  if (env.ONBOARDING_ENABLED === "true") {
+    const { onboardRouter } = await import("./routes/onboard");
+    const { walletStatusRouter } = await import("./routes/walletStatus");
+    const { sponsorshipMonitorRouter } = await import("./routes/sponsorshipMonitor");
+    app.use("/onboard", onboardRouter);
+    app.use("/wallet", walletStatusRouter);
+    app.use("/ops", sponsorshipMonitorRouter);
+    appLogger.info("[APP] Onboarding module enabled → /onboard/*, /wallet/*, /ops/sponsorship");
   }
 
   app.use((_req, res) => {

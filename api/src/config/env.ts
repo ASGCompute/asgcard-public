@@ -11,7 +11,7 @@ const logLevel = z.enum(["debug", "info", "warn", "error"]).default("info");
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
-  API_VERSION: z.string().default("0.5.0"),
+  API_VERSION: z.string().default("0.3.1"),
   NODE_ENV: nodeEnv,
   LOG_LEVEL: logLevel,
 
@@ -60,9 +60,6 @@ const envSchema = z.object({
   TG_BOT_TOKEN: z.string().optional(),
   TG_WEBHOOK_SECRET: z.string().optional(),
 
-  // ── CryptoBot Crypto Pay (@CryptoBot) ──────────────────
-  CRYPTO_BOT_TOKEN: z.string().optional(),
-
   // ── Owner Portal ───────────────────────────────────────
   OWNER_PORTAL_ENABLED: z.enum(["true", "false"]).default("false"),
 
@@ -78,16 +75,12 @@ const envSchema = z.object({
   AGENT_DETAILS_ENABLED: z.enum(["true", "false"]).default("true"),
   DETAILS_READ_LIMIT_PER_HOUR: z.coerce.number().default(5),
 
-  // ── Stripe MPP Beta ──────────────────────────────────────
-  STRIPE_MPP_BETA_ENABLED: z.enum(["true", "false"]).default("false"),
-  STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses (legacy)
-  STRIPE_SECRET_KEY: z.string().optional(),       // sk_live_... or sk_test_...
-  STRIPE_PUBLISHABLE_KEY: z.string().optional(),   // pk_live_... or pk_test_...
-  MPP_SECRET_KEY: z.string().optional(),           // HMAC key for MPP challenge binding
-
-  // ── Stripe Managed Identity ─────────────────────────────
-  STRIPE_SESSIONS_KEY: z.string().optional(),              // base64-encoded 32 bytes for session secret encryption
-  STRIPE_BETA_EMAIL_ALLOWLIST: z.string().optional(),      // comma-separated emails for beta enrollment
+  // ── Onboarding & Sponsorship (ASG Pay ecosystem) ───────
+  ONBOARDING_ENABLED: z.enum(["true", "false"]).default("false"),
+  STELLAR_TREASURY_SECRET: z.string().optional(),
+  STELLAR_SETTLEMENT_SECRET: z.string().optional(),  // fund-app compat: fallback for TREASURY_SECRET
+  SPONSOR_DAILY_BUDGET: z.coerce.number().default(100),
+  SPONSOR_IP_RATE_LIMIT: z.coerce.number().default(3),
 });
 
 // ── Fail-fast startup validation ──────────────────────────
@@ -95,6 +88,13 @@ let env: z.infer<typeof envSchema>;
 
 try {
   env = envSchema.parse(process.env);
+
+  // ── Settlement secret fallback (reuse fund-app wallet) ──
+  // If STELLAR_TREASURY_SECRET is not set but STELLAR_SETTLEMENT_SECRET is,
+  // use the settlement key for sponsorship. Allows both apps to share one wallet.
+  if (!env.STELLAR_TREASURY_SECRET && env.STELLAR_SETTLEMENT_SECRET) {
+    (env as Record<string, unknown>).STELLAR_TREASURY_SECRET = env.STELLAR_SETTLEMENT_SECRET;
+  }
 
   // ── Conditional validation for postgres mode ────────────
   if (env.REPO_MODE === "postgres") {

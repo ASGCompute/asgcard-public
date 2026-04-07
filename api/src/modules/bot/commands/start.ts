@@ -2,7 +2,7 @@
  * /start command handler.
  *
  * Handles:
- * 1. /start lnk_<token> → consume token, create binding
+ * 1. /start lnk_<token> → consume token, create binding, trigger sponsorship
  * 2. /start (no token) → welcome message with link instructions
  *
  * @module modules/bot/commands/start
@@ -11,14 +11,15 @@
 import type { TelegramClient } from "../telegramClient";
 import { LinkService } from "../../portal/linkService";
 import { AdminBot } from "../../admin/adminBot";
+import { SponsorshipService } from "../../../services/sponsorship";
+import { env } from "../../../config/env";
+import { appLogger } from "../../../utils/logger";
 import {
+    welcomeMessage,
     linkSuccessMessage,
     linkFailedMessage,
 } from "../templates";
 import { persistentMenu } from "../keyboards";
-import crypto from "node:crypto";
-import { env } from "../../../config/env";
-import { query } from "../../../db/db";
 
 export async function handleStartCommand(
     client: TelegramClient,
@@ -50,6 +51,42 @@ export async function handleStartCommand(
                 telegramUserId: userId,
                 username,
             }).catch(() => {});
+
+            // ── Async sponsorship trigger (fail-open) ──────────
+            // After successful identity binding, try to build a sponsored
+            // account activation XDR. If treasury is not configured or
+            // Horizon is down, identity binding still works. The user can
+            // retry sponsorship later via the CLI or MCP tools.
+            if (env.ONBOARDING_ENABLED === "true" && env.STELLAR_TREASURY_SECRET) {
+                (async () => {
+                    try {
+                        const ipAllowed = await SponsorshipService.checkIpRateLimit("telegram_bot");
+                        const budgetOk = await SponsorshipService.checkDailyBudget();
+
+                        if (ipAllowed && budgetOk) {
+                            const sponsorResult = await SponsorshipService.buildSponsoredXdr(
+                                result.ownerWallet!,
+                                "telegram_bot"
+                            );
+                            appLogger.info(
+                                { wallet: result.ownerWallet, success: sponsorResult.success },
+                                "[BOT/START] Async sponsorship triggered"
+                            );
+                        } else {
+                            appLogger.warn(
+                                { wallet: result.ownerWallet, ipAllowed, budgetOk },
+                                "[BOT/START] Sponsorship skipped (rate/budget limit)"
+                            );
+                        }
+                    } catch (err) {
+                        // Fail-open: never let sponsorship failure affect identity binding
+                        appLogger.error(
+                            { err, wallet: result.ownerWallet },
+                            "[BOT/START] Async sponsorship failed (non-blocking)"
+                        );
+                    }
+                })();
+            }
         } else {
             await client.sendMessage({
                 chat_id: chatId,
@@ -61,47 +98,12 @@ export async function handleStartCommand(
         return;
     }
 
-    // Invalid deep-link token (not lnk_ prefixed)
-    if (token) {
-        await client.sendMessage({
-            chat_id: chatId,
-            text: linkFailedMessage("invalid_token"),
-            parse_mode: "HTML",
-            reply_markup: persistentMenu(),
-        });
-        return;
-    }
-
-    // Regular /start — check existing wallet and send welcome
-    const rows = await query<{ owner_wallet: string }>(
-        `SELECT owner_wallet FROM owner_telegram_links WHERE telegram_user_id = $1 AND status = 'active' LIMIT 1`,
-        [userId]
-    );
-
-    // Store chat_id for later notifications (e.g. payment confirmations)
-    if (rows.length > 0) {
-        await query(
-            `UPDATE owner_telegram_links SET chat_id = $1 WHERE telegram_user_id = $2 AND status = 'active'`,
-            [chatId, userId]
-        );
-    }
-
-    const hasWallet = rows.length > 0;
-    const miniappUrl = process.env.VITE_APP_URL ? `${process.env.VITE_APP_URL}/miniapp` : "https://asgcard.dev/miniapp";
-
-    const welcomeText = hasWallet
-        ? `<b>Welcome back to ASG Card 🚀</b>\n\nYour wallet is active. Open the app below to manage your cards, fund your account, or issue new cards.`
-        : `<b>Welcome to ASG Card 🚀</b>\n\n💳 Virtual debit cards for AI agents & humans\n⚡ Zero gas fees on all transactions\n🌍 Works in 195+ countries\n\nTap below to create your smart wallet and get started.`;
-
+    // Plain /start — welcome
     await client.sendMessage({
         chat_id: chatId,
-        text: welcomeText,
+        text: welcomeMessage(),
         parse_mode: "HTML",
-        reply_markup: {
-            inline_keyboard: [[{
-                text: hasWallet ? "💳 Open ASG Card" : "🚀 Create Smart Wallet",
-                web_app: { url: miniappUrl }
-            }]],
-        },
+        reply_markup: persistentMenu(),
     });
 }
+

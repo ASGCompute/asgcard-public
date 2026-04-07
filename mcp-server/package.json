@@ -42,8 +42,8 @@
     "access": "public"
   },
   "dependencies": {
+    "@asgcard/sdk": "file:../sdk",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@asgcard/sdk": "^1.0.6",
     "@stellar/stellar-sdk": "^13.1.0",
     "tweetnacl": "^1.0.3",
     "zod": "^3.24.4"

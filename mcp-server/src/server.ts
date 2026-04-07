@@ -1,21 +1,25 @@
 /**
  * @asgcard/mcp-server — Core MCP Server
  *
- * Exposes 14 tools for AI agents to manage ASGCard virtual cards:
- *   - get_wallet_status: Read-only wallet status (address, balance, readiness)
- *   - create_card:       Create a virtual card (x402 autonomous payment)
- *   - fund_card:         Fund an existing card (x402 autonomous payment)
- *   - list_cards:        List all cards for the wallet
- *   - get_card:          Get card summary by ID
- *   - get_card_details:  Get sensitive card details (PAN, CVV, expiry)
- *   - freeze_card:       Freeze a card temporarily
- *   - unfreeze_card:     Unfreeze a frozen card
- *   - get_pricing:       Get pricing info
- *   - get_transactions:  Get card transaction history from 4payments
- *   - get_balance:       Get live card balance from 4payments
- *   - telegram_link:     Generate Telegram deep-link for notification binding
- *   - telegram_status:   Check Telegram connection status
- *   - telegram_revoke:   Disconnect Telegram notifications
+ * Exposes 18 tools for AI agents to manage ASGCard virtual cards:
+ *   - get_wallet_status:   Read-only wallet status (address, balance, readiness)
+ *   - create_card:         Create a virtual card (x402 autonomous payment)
+ *   - fund_card:           Fund an existing card (x402 autonomous payment)
+ *   - list_cards:          List all cards for the wallet
+ *   - get_card:            Get card summary by ID
+ *   - get_card_details:    Get sensitive card details (PAN, CVV, expiry)
+ *   - freeze_card:         Freeze a card temporarily
+ *   - unfreeze_card:       Unfreeze a frozen card
+ *   - get_pricing:         Get pricing info
+ *   - get_transactions:    Get card transaction history from 4payments
+ *   - get_balance:         Get live card balance from 4payments
+ *   - telegram_link:       Generate Telegram deep-link for notification binding
+ *   - telegram_status:     Check Telegram connection status
+ *   - telegram_revoke:     Disconnect Telegram notifications
+ *   - get_onboard_status:  Check onboarding lifecycle status
+ *   - connect_telegram:    Register wallet + get TG deep-link for identity binding
+ *   - get_fund_link:       Generate fund.asgcard.dev URL for wallet funding
+ *   - get_wallet_balance:  Get USDC balance (API-cached + Horizon fallback)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -84,7 +88,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: "asgcard",
-    version: "0.5.0",
+    version: "0.6.0",
   });
 
   // ── Tool 0: get_wallet_status ─────────────────────────────
@@ -537,6 +541,229 @@ export function createASGCardServer(config: ServerConfig): McpServer {
           return remediationError("Portal API not available", "The Owner Portal is not enabled on the API server", "This feature requires OWNER_PORTAL_ENABLED=true on the API server.");
         }
         return remediationError("Failed to revoke Telegram", msg, "Check API connectivity and wallet authentication.");
+      }
+    }
+  );
+
+  // ═══════════════════════════════════════════════════════════
+  // ONBOARDING TOOLS (v0.6.0 — queries /onboard/* and /wallet/*)
+  // ═══════════════════════════════════════════════════════════
+
+  // ── Tool 14: get_onboard_status ──────────────────────────────
+
+  server.tool(
+    "get_onboard_status",
+    "Check onboarding lifecycle status: registration, Telegram identity binding, sponsorship status, USDC balance, and next recommended action. Use this to determine what steps remain in the onboarding pipeline.",
+    {},
+    async () => {
+      try {
+        const result = await walletClient.authenticatedRequest<{
+          registered: boolean;
+          status: string;
+          registeredAt?: string;
+          sponsoredAt?: string;
+          clientType?: string;
+          telegram?: { linked: boolean; userId?: number; linkedAt?: string };
+          balance?: number | null;
+          pendingXdr?: string | null;
+          message?: string;
+        }>("GET", "/wallet/status");
+
+        // Add next-step guidance
+        const enriched: Record<string, unknown> = { ...result };
+
+        if (!result.registered) {
+          enriched.nextStep = "Wallet not registered. Use connect_telegram tool to start onboarding.";
+        } else if (result.status === "pending_identity") {
+          enriched.nextStep = "Open the Telegram link to connect financial identity. Use connect_telegram if you don't have a link.";
+        } else if (result.status === "pending_sponsor" && result.pendingXdr) {
+          enriched.nextStep = "Sponsorship XDR ready. Co-sign the transaction with your wallet to activate the account.";
+        } else if (result.status === "active") {
+          if (result.balance !== null && result.balance !== undefined && result.balance < MIN_CREATE_COST) {
+            enriched.nextStep = `Wallet active but balance ($${result.balance.toFixed(2)}) is below minimum. Use get_fund_link to get a funding page URL.`;
+          } else {
+            enriched.nextStep = "Fully onboarded and funded! Use create_card to issue a virtual card.";
+          }
+        }
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(enriched, null, 2) }],
+        };
+      } catch (error) {
+        return remediationError(
+          "Failed to check onboard status",
+          error instanceof Error ? error.message : String(error),
+          "The API may be unreachable or onboarding may not be enabled. Try get_wallet_status for basic local check."
+        );
+      }
+    }
+  );
+
+  // ── Tool 15: connect_telegram ─────────────────────────────────
+
+  // @ts-expect-error — TS2589: MCP SDK server.tool() generic depth exceeds TS limit; runtime is correct
+  server.tool(
+    "connect_telegram",
+    "Register wallet and get a Telegram deep-link for identity binding. The owner clicks this link in Telegram to connect their financial identity. Returns the deep-link URL and expiration time.",
+    {
+      clientType: z.string().optional().describe("The AI client type (codex, claude, cursor, gemini). Optional — helps with analytics."),
+    },
+    async ({ clientType }) => {
+      try {
+        const result = await walletClient.authenticatedRequest<{
+          registered: boolean;
+          status: string;
+          telegramLink?: string;
+          expiresAt?: string;
+          pendingXdr?: string | null;
+          message?: string;
+        }>("POST", "/onboard/register", { clientType: clientType ?? "mcp" });
+
+        const response: Record<string, unknown> = { ...result };
+
+        if (result.telegramLink) {
+          response.instructions = "Send this Telegram link to the wallet owner. They must click it within 10 minutes to bind their identity.";
+        } else if (result.status === "active") {
+          response.instructions = "Wallet is already fully onboarded. No action needed.";
+        } else if (result.pendingXdr) {
+          response.instructions = "Telegram already connected. Co-sign the pending sponsorship XDR to activate the account.";
+        }
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }],
+        };
+      } catch (error) {
+        return remediationError(
+          "Failed to register for onboarding",
+          error instanceof Error ? error.message : String(error),
+          "Ensure the API is reachable and ONBOARDING_ENABLED=true on the server."
+        );
+      }
+    }
+  );
+
+  // ── Tool 16: get_fund_link ────────────────────────────────────
+
+  server.tool(
+    "get_fund_link",
+    "Generate a fund.asgcard.dev URL that the wallet owner can use to fund the agent's wallet with USDC. Returns a shareable link with pre-filled agent name and amount.",
+    {
+      agentName: z.string().optional().describe("Name of the AI agent (shown on funding page). Default: 'AI Agent'"),
+      amount: z.string().optional().describe("Suggested USDC amount. Default: '50'"),
+    },
+    async ({ agentName, amount }) => {
+      try {
+        const params = new URLSearchParams();
+        if (agentName) params.set("agentName", agentName);
+        if (amount) params.set("amount", amount);
+        const qs = params.toString() ? `?${params.toString()}` : "";
+
+        const result = await walletClient.authenticatedRequest<{
+          url: string;
+          address: string;
+          agentName: string;
+          amount: number;
+          token: string;
+        }>("GET", `/wallet/fund-link${qs}`);
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            ...result,
+            instructions: "Share this URL with the wallet owner. They can fund the agent's wallet by sending USDC through this page.",
+          }, null, 2) }],
+        };
+      } catch (error) {
+        // Fallback: generate locally
+        try {
+          const kp = Keypair.fromSecret(config.privateKey);
+          const fallbackParams = new URLSearchParams({
+            agentName: agentName ?? "AI Agent",
+            toAddress: kp.publicKey(),
+            toAmount: amount ?? "50",
+            toToken: "USDC",
+          });
+          const url = `https://fund.asgcard.dev/?${fallbackParams.toString()}`;
+
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              url,
+              address: kp.publicKey(),
+              agentName: agentName ?? "AI Agent",
+              amount: Number(amount ?? "50"),
+              token: "USDC",
+              source: "local_fallback",
+              instructions: "Share this URL with the wallet owner. Generated locally because the API was unreachable.",
+            }, null, 2) }],
+          };
+        } catch (fallbackError) {
+          return remediationError(
+            "Failed to generate fund link",
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            "Verify the API is reachable or check your private key."
+          );
+        }
+      }
+    }
+  );
+
+  // ── Tool 17: get_wallet_balance ───────────────────────────────
+
+  server.tool(
+    "get_wallet_balance",
+    "Get the current USDC balance from the API's server-side Horizon cache (faster, 5-second cache). Falls back to direct Horizon query if API is unavailable.",
+    {},
+    async () => {
+      try {
+        const result = await walletClient.authenticatedRequest<{
+          address: string;
+          balance: number | null;
+          asset?: string;
+          network?: string;
+          error?: string;
+        }>("GET", "/wallet/balance");
+
+        if (result.balance === null) {
+          // Account may not exist yet
+          const kp = Keypair.fromSecret(config.privateKey);
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              address: kp.publicKey(),
+              balance: 0,
+              funded: false,
+              nextStep: `Send USDC on Stellar to ${kp.publicKey()} to fund this wallet.`,
+            }, null, 2) }],
+          };
+        }
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            ...result,
+            readyForCard: (result.balance ?? 0) >= MIN_CREATE_COST,
+          }, null, 2) }],
+        };
+      } catch {
+        // Fallback: direct Horizon
+        try {
+          const kp = Keypair.fromSecret(config.privateKey);
+          const balance = await getUsdcBalance(kp.publicKey());
+
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({
+              address: kp.publicKey(),
+              balance: balance >= 0 ? balance : null,
+              asset: "USDC",
+              network: "stellar:pubnet",
+              source: "horizon_direct",
+              readyForCard: balance >= MIN_CREATE_COST,
+            }, null, 2) }],
+          };
+        } catch (error) {
+          return remediationError(
+            "Failed to get wallet balance",
+            error instanceof Error ? error.message : String(error),
+            "Check network connectivity or verify your private key."
+          );
+        }
       }
     }
   );

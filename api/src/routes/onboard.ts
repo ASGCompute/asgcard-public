@@ -269,8 +269,14 @@ onboardRouter.post("/activate", async (req, res) => {
       });
       return;
     } catch (e: unknown) {
-      // 404 = doesn't exist — proceed with activation
-      if (!(e instanceof Error) || !e.message.includes("404")) {
+      // 404 = account doesn't exist on Stellar — proceed with creation
+      // Horizon SDK throws NotFoundError with message "Not Found" or status 404
+      const isNotFound =
+        e instanceof Error &&
+        (e.message.includes("Not Found") ||
+         e.message.includes("404") ||
+         (e as any).response?.status === 404);
+      if (!isNotFound) {
         throw e;
       }
     }

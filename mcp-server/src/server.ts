@@ -88,7 +88,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: "asgcard",
-    version: "0.6.0",
+    version: "0.6.1",
   });
 
   // ── Tool 0: get_wallet_status ─────────────────────────────

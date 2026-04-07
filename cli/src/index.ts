@@ -640,7 +640,7 @@ If wallet has insufficient USDC:
 | \`asgcard doctor\` | Diagnose setup issues |
 | \`asgcard wallet info\` | Show wallet address & balance |
 
-## MCP Tools (14 tools)
+## MCP Tools (18 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -658,10 +658,20 @@ If wallet has insufficient USDC:
 | \`connect_telegram\` | Get Telegram deep-link |
 | \`get_fund_link\` | Generate fund URL |
 | \`get_wallet_balance\` | Wallet USDC balance |
+| \`fund_card\` | Top up existing card |
+| \`telegram_link\` | TG deep-link (10min expiry) |
+| \`telegram_status\` | Check TG connection |
+| \`telegram_revoke\` | Disconnect TG |
+
+## Multi-Chain SDK
+
+\`npm install @asgcard/pay\` for multi-chain payments:
+Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, Stellar, Stripe, OWS.
 
 ## Important Notes
 
 - All payments are in USDC on Stellar via x402 protocol
+- Multi-chain via \`@asgcard/pay\` SDK (OWS, EVM, Solana)
 - Card details are returned immediately on creation (agent-first model)
 - Wallet uses Stellar Ed25519 keypair — private key must stay local
 - Card creation costs \$${MIN_CREATE_COST} USDC (flat fee, initial load optional)

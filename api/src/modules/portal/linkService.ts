@@ -181,6 +181,13 @@ export class LinkService {
                 [ownerWallet, telegramUserId, chatId]
             );
 
+            // Update wallet status: identity is now bound → ready for sponsorship
+            await client.query(
+                `UPDATE wallets SET status = 'pending_sponsor'
+                 WHERE wallet_address = $1 AND status = 'pending_identity'`,
+                [ownerWallet]
+            );
+
             await client.query("COMMIT");
 
             await AuditService.log({

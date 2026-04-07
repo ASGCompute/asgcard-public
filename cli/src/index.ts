@@ -1397,11 +1397,13 @@ program
           address: string;
         }>("GET", "/wallet/balance");
 
-        console.log(chalk.bold("\n💰 Wallet Balance\n"));
-        console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
-        console.log(chalk.dim("  Balance: ") + chalk.green(`$${data.balance.toFixed(2)} ${data.asset}`));
-        console.log();
-        return;
+        if (typeof data.balance === "number") {
+          console.log(chalk.bold("\n💰 Wallet Balance\n"));
+          console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
+          console.log(chalk.dim("  Balance: ") + chalk.green(`$${data.balance.toFixed(2)} ${data.asset}`));
+          console.log();
+          return;
+        }
       } catch { /* fallback to Horizon */ }
 
       // Fallback: direct Horizon query

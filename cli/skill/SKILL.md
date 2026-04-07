@@ -16,12 +16,24 @@ description: ASG Card — virtual MasterCard cards for AI agents, powered by x40
 > ❌ WRONG: `-e "test@example.com" -p "+12345678900" -n "Test User"`
 > ✅ RIGHT: Ask the user: "What email, phone number, and name should I use for the card?"
 
+## Onboarding (First Time)
+
+Run the full 9-step onboarding wizard:
+
+```bash
+npx -y @asgcard/cli@latest onboard -y
+```
+
+Steps: Agent Skill → MCP Config → Wallet → API Registration → Telegram Identity → Wallet Activation → Fund Link → Balance Check → Summary
+
 ## Canonical Flow (x402 / On-Chain USDC)
 
-1. **Check wallet status**: Use `get_wallet_status` MCP tool to verify wallet address and USDC balance
-2. **Check pricing**: Use `get_pricing` to see card and top-up pricing
-3. **Create a card**: Use `create_card` with amount, name, email, and phone — **all provided by the user**
-4. **Manage cards**: Use `list_cards`, `get_card`, `get_card_details`, `freeze_card`, `unfreeze_card`
+1. **Onboard**: Run `asgcard onboard -y` to set up wallet, MCP, and skill
+2. **Check wallet status**: Use `get_wallet_status` MCP tool to verify wallet address and USDC balance
+3. **Fund wallet**: Use `asgcard fund-link` to generate a deposit URL
+4. **Check pricing**: Use `get_pricing` to see card and top-up pricing
+5. **Create a card**: Use `create_card` with amount, name, email, and phone — **all provided by the user**
+6. **Manage cards**: Use `list_cards`, `get_card`, `get_card_details`, `freeze_card`, `unfreeze_card`
 
 ## Stripe MPP Flow (Fiat Payments via Stripe)
 
@@ -65,21 +77,40 @@ This polls until the owner completes Stripe payment and the card is issued.
 If wallet has insufficient USDC:
 - Tell the user their current balance and the minimum required ($20.35 for a $10 card)
 - Provide their Stellar public key for deposits
-- Explain: "Send USDC on Stellar to your wallet address, then retry"
+- Generate a fund link: `asgcard fund-link`
 
-## MCP Tools Available
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `asgcard onboard -y` | Full 9-step onboarding |
+| `asgcard status` | Onboarding lifecycle status |
+| `asgcard fund-link` | Generate deposit URL |
+| `asgcard wallet-balance` | Show wallet USDC balance |
+| `asgcard doctor` | Diagnose setup issues |
+| `asgcard wallet info` | Show wallet address & balance |
+| `asgcard cards` | List all virtual cards |
+| `asgcard card:create` | Create a new virtual card |
+| `asgcard card:details <id>` | Get PAN, CVV, expiry |
+
+## MCP Tools (14 tools)
 
 | Tool | Description |
 |------|-------------|
 | `get_wallet_status` | Check wallet address, USDC balance, and readiness |
 | `get_pricing` | View pricing (card $10, top-up 3.5%) |
 | `create_card` | Create virtual MasterCard (pays USDC on-chain via x402) |
-| `fund_card` | Top up existing card |
 | `list_cards` | List all wallet cards |
 | `get_card` | Get card summary |
 | `get_card_details` | Get PAN, CVV, expiry (sensitive, rate-limited 5/hr) |
 | `freeze_card` | Temporarily freeze card |
 | `unfreeze_card` | Re-enable frozen card |
+| `get_transactions` | Card transaction history |
+| `get_balance` | Card balance |
+| `get_onboard_status` | Onboarding lifecycle status |
+| `connect_telegram` | Get Telegram deep-link |
+| `get_fund_link` | Generate fund URL |
+| `get_wallet_balance` | Wallet USDC balance |
 
 ## Pricing
 
@@ -130,4 +161,3 @@ Stops all notifications immediately.
 - Wallet uses Stellar Ed25519 keypair — private key stays in `~/.asgcard/wallet.json`
 - MCP server auto-resolves key from wallet.json at startup (no env var needed)
 - **ALWAYS use `@latest` tag with npx to avoid stale cached versions**
-

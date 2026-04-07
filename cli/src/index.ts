@@ -583,73 +583,109 @@ program
 
 program
   .command("onboard")
-  .description("Full 9-step onboarding: wallet → MCP → skill → API register → TG identity → sponsorship → fund link → status")
+  .description("Full 9-step onboarding: skill → MCP → wallet → API register → TG identity → sponsorship → fund link → balance → status")
   .option("-y, --yes", "Non-interactive mode (auto-create wallet, skip prompts)")
   .option("-c, --client <client>", "AI client to configure (codex, claude, cursor, gemini)")
   .action(async (options: { yes?: boolean; client?: string }) => {
     console.log(chalk.bold("\n🚀 ASG Card Onboarding\n"));
 
     const TOTAL_STEPS = 9;
-
-    // Step 1: Wallet
-    console.log(chalk.bold(`Step 1/${TOTAL_STEPS}: Wallet`));
     let key = resolveKey();
 
-    if (key) {
-      const { Keypair } = await import("@stellar/stellar-sdk");
-      const kp = Keypair.fromSecret(key);
-      console.log(chalk.green("  ✅ Wallet found: ") + chalk.cyan(kp.publicKey()));
-    } else if (options.yes) {
-      // Auto-create wallet
-      const { Keypair } = await import("@stellar/stellar-sdk");
-      const kp = Keypair.random();
-      const wallet: WalletState = {
-        publicKey: kp.publicKey(),
-        secretKey: kp.secret(),
-        createdAt: new Date().toISOString(),
-      };
-      saveWallet(wallet);
-      const config = loadConfig();
-      config.privateKey = kp.secret();
-      saveConfig(config);
-      key = kp.secret();
-      console.log(chalk.green("  ✅ New wallet created: ") + chalk.cyan(kp.publicKey()));
-      console.log(chalk.dim("     Secret saved to: ") + chalk.dim(WALLET_FILE));
-    } else {
-      // Interactive: ask to create or import
-      const readline = await import("node:readline");
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise<string>((resolve) => {
-        rl.question(
-          chalk.cyan("  No wallet found. Create a new one? (Y/n): "),
-          (a) => {
-            rl.close();
-            resolve(a.trim().toLowerCase());
-          }
-        );
-      });
-
-      if (answer === "" || answer === "y" || answer === "yes") {
-        const { Keypair } = await import("@stellar/stellar-sdk");
-        const kp = Keypair.random();
-        const wallet: WalletState = {
-          publicKey: kp.publicKey(),
-          secretKey: kp.secret(),
-          createdAt: new Date().toISOString(),
-        };
-        saveWallet(wallet);
-        const config = loadConfig();
-        config.privateKey = kp.secret();
-        saveConfig(config);
-        key = kp.secret();
-        console.log(chalk.green("  ✅ Wallet created: ") + chalk.cyan(kp.publicKey()));
+    // ── Step 1/9: Agent Skill ─────────────────────────────
+    console.log(chalk.bold(`Step 1/${TOTAL_STEPS}: Agent Skill`));
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const bundledSkillDir = join(__dirname, "..", "skill");
+      if (existsSync(bundledSkillDir)) {
+        mkdirSync(SKILL_DIR, { recursive: true });
+        cpSync(bundledSkillDir, SKILL_DIR, { recursive: true });
+        console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
       } else {
-        console.log(chalk.dim("  Skipped. Run ") + chalk.cyan("asgcard wallet import") + chalk.dim(" later."));
+        // Create a minimal skill file
+        mkdirSync(SKILL_DIR, { recursive: true });
+        const skillContent = `---
+name: asgcard
+description: ASG Card — virtual MasterCard cards for AI agents, powered by x402 on Stellar
+---
+
+# ASG Card Agent Skill
+
+> **CRITICAL: Always use \`npx -y @asgcard/cli@latest\`** (with \`@latest\` tag!) to ensure you are running the newest published version.
+
+## Canonical Flow
+
+1. **Onboard**: Run \`asgcard onboard -y\` to set up wallet, MCP, and skill
+2. **Check wallet status**: Use \`get_wallet_status\` MCP tool to verify wallet address and USDC balance
+3. **Fund wallet**: Use \`asgcard fund-link\` to get a deposit URL
+4. **Check pricing**: Use \`get_pricing\` to see current pricing
+5. **Create a card**: Use \`create_card\` with amount, name, and email
+6. **Manage cards**: Use \`list_cards\`, \`get_card\`, \`get_card_details\`, \`freeze_card\`, \`unfreeze_card\`
+
+## Zero Balance Handling
+
+If wallet has insufficient USDC:
+- Tell the user their current balance and the minimum required
+- Provide their Stellar public key for deposits
+- Generate a fund link: \`asgcard fund-link\`
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| \`asgcard onboard -y\` | Full 9-step onboarding |
+| \`asgcard status\` | Onboarding lifecycle status |
+| \`asgcard fund-link\` | Generate deposit URL |
+| \`asgcard doctor\` | Diagnose setup issues |
+| \`asgcard wallet info\` | Show wallet address & balance |
+
+## MCP Tools (14 tools)
+
+| Tool | Description |
+|------|-------------|
+| \`get_wallet_status\` | Check wallet address, USDC balance, and readiness |
+| \`get_pricing\` | View pricing (card \$10, top-up 3.5%) |
+| \`create_card\` | Create virtual MasterCard (pays USDC on-chain via x402) |
+| \`list_cards\` | List all wallet cards |
+| \`get_card\` | Get card summary |
+| \`get_card_details\` | Get PAN, CVV, expiry (sensitive) |
+| \`freeze_card\` | Temporarily freeze card |
+| \`unfreeze_card\` | Re-enable frozen card |
+| \`get_transactions\` | Card transaction history |
+| \`get_balance\` | Card balance |
+| \`get_onboard_status\` | Onboarding lifecycle status |
+| \`connect_telegram\` | Get Telegram deep-link |
+| \`get_fund_link\` | Generate fund URL |
+| \`get_wallet_balance\` | Wallet USDC balance |
+
+## Important Notes
+
+- All payments are in USDC on Stellar via x402 protocol
+- Card details are returned immediately on creation (agent-first model)
+- Wallet uses Stellar Ed25519 keypair — private key must stay local
+- Card creation costs \$${MIN_CREATE_COST} USDC (flat fee, initial load optional)
+`;
+        writeFileSync(join(SKILL_DIR, "SKILL.md"), skillContent);
+        console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
       }
+
+      // Also install for claude and kiro if dirs exist
+      for (const altDir of [
+        join(homedir(), ".claude", "skills", "asgcard"),
+        join(homedir(), ".kiro", "skills", "asgcard"),
+      ]) {
+        if (existsSync(dirname(dirname(altDir)))) {
+          mkdirSync(altDir, { recursive: true });
+          cpSync(SKILL_DIR, altDir, { recursive: true });
+        }
+      }
+    } catch (error) {
+      console.log(chalk.yellow("  ⚠ Could not install skill: ") + chalk.dim(error instanceof Error ? error.message : String(error)));
     }
     console.log();
 
-    // Step 2: Install MCP for detected/specified clients
+    // ── Step 2/9: MCP Configuration ───────────────────────
     console.log(chalk.bold(`Step 2/${TOTAL_STEPS}: MCP Configuration`));
     const clients: string[] = [];
 
@@ -745,77 +781,59 @@ program
     }
     console.log();
 
-    // Step 3: Install product-owned skill
-    console.log(chalk.bold(`Step 3/${TOTAL_STEPS}: Agent Skill`));
-    try {
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const bundledSkillDir = join(__dirname, "..", "skill");
-      if (existsSync(bundledSkillDir)) {
-        mkdirSync(SKILL_DIR, { recursive: true });
-        cpSync(bundledSkillDir, SKILL_DIR, { recursive: true });
-        console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
+    // ── Step 3/9: Stellar Wallet ──────────────────────────
+    console.log(chalk.bold(`Step 3/${TOTAL_STEPS}: Stellar Wallet`));
+    if (key) {
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      console.log(chalk.green("  ✅ Wallet found: ") + chalk.cyan(kp.publicKey()));
+    } else if (options.yes) {
+      // Auto-create wallet
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.random();
+      const wallet: WalletState = {
+        publicKey: kp.publicKey(),
+        secretKey: kp.secret(),
+        createdAt: new Date().toISOString(),
+      };
+      saveWallet(wallet);
+      const config = loadConfig();
+      config.privateKey = kp.secret();
+      saveConfig(config);
+      key = kp.secret();
+      console.log(chalk.green("  ✅ New wallet created: ") + chalk.cyan(kp.publicKey()));
+      console.log(chalk.dim("     Secret saved to: ") + chalk.dim(WALLET_FILE));
+    } else {
+      // Interactive: ask to create or import
+      const readline = await import("node:readline");
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await new Promise<string>((resolve) => {
+        rl.question(
+          chalk.cyan("  No wallet found. Create a new one? (Y/n): "),
+          (a) => {
+            rl.close();
+            resolve(a.trim().toLowerCase());
+          }
+        );
+      });
+
+      if (answer === "" || answer === "y" || answer === "yes") {
+        const { Keypair } = await import("@stellar/stellar-sdk");
+        const kp = Keypair.random();
+        const wallet: WalletState = {
+          publicKey: kp.publicKey(),
+          secretKey: kp.secret(),
+          createdAt: new Date().toISOString(),
+        };
+        saveWallet(wallet);
+        const config = loadConfig();
+        config.privateKey = kp.secret();
+        saveConfig(config);
+        key = kp.secret();
+        console.log(chalk.green("  ✅ Wallet created: ") + chalk.cyan(kp.publicKey()));
       } else {
-        // Create a minimal skill file
-        mkdirSync(SKILL_DIR, { recursive: true });
-        const skillContent = `---
-name: asgcard
-description: ASG Card — virtual MasterCard cards for AI agents, powered by x402 on Stellar
----
-
-# ASG Card Agent Skill
-
-## Canonical Flow
-
-1. **Check wallet status**: Use \`get_wallet_status\` MCP tool to verify wallet address and USDC balance
-2. **Check pricing**: Use \`get_pricing\` to see pricing
-3. **Create a card**: Use \`create_card\` with amount, name, and email
-4. **Manage cards**: Use \`list_cards\`, \`get_card\`, \`get_card_details\`, \`freeze_card\`, \`unfreeze_card\`
-
-## Zero Balance Handling
-
-If wallet has insufficient USDC:
-- Tell the user their current balance and the minimum required
-- Provide their Stellar public key for deposits
-- Explain: "Send USDC on Stellar to your wallet address, then retry"
-
-## MCP Tools Available
-
-| Tool | Description |
-|------|-------------|
-| \`get_wallet_status\` | Check wallet address, USDC balance, and readiness |
-| \`get_pricing\` | View pricing (card $10, top-up 3.5%) |
-| \`create_card\` | Create virtual MasterCard (pays USDC on-chain via x402) |
-| \`fund_card\` | Top up existing card |
-| \`list_cards\` | List all wallet cards |
-| \`get_card\` | Get card summary |
-| \`get_card_details\` | Get PAN, CVV, expiry (sensitive) |
-| \`freeze_card\` | Temporarily freeze card |
-| \`unfreeze_card\` | Re-enable frozen card |
-
-## Important Notes
-
-- All payments are in USDC on Stellar via x402 protocol
-- Card details are returned immediately on creation (agent-first model)
-- Wallet uses Stellar Ed25519 keypair — private key must stay local
-- Card creation costs $${MIN_CREATE_COST} USDC (flat fee, initial load optional)
-`;
-        writeFileSync(join(SKILL_DIR, "SKILL.md"), skillContent);
-        console.log(chalk.green("  ✅ ASG Card skill installed: ") + chalk.dim(SKILL_DIR));
+        console.log(chalk.dim("  Skipped. Run ") + chalk.cyan("asgcard wallet import") + chalk.dim(" later."));
       }
-
-      // Also install for claude and kiro if dirs exist
-      for (const altDir of [
-        join(homedir(), ".claude", "skills", "asgcard"),
-        join(homedir(), ".kiro", "skills", "asgcard"),
-      ]) {
-        if (existsSync(dirname(dirname(altDir)))) {
-          mkdirSync(altDir, { recursive: true });
-          cpSync(SKILL_DIR, altDir, { recursive: true });
-        }
-      }
-    } catch (error) {
-      console.log(chalk.yellow("  ⚠ Could not install skill: ") + chalk.dim(error instanceof Error ? error.message : String(error)));
     }
     console.log();
 
@@ -891,10 +909,36 @@ If wallet has insufficient USDC:
     console.log(chalk.bold(`Step 6/${TOTAL_STEPS}: Wallet Activation (Sponsorship)`));
     if (apiStatus === "active") {
       console.log(chalk.green("  ✅ Wallet already activated on Stellar"));
+    } else if (pendingXdr && key) {
+      // Co-sign the sponsored transaction XDR
+      console.log(chalk.yellow("  ⏳ Sponsorship XDR received. Co-signing..."));
+      try {
+        const { Keypair, TransactionBuilder, Networks } = await import("@stellar/stellar-sdk");
+        const kp = Keypair.fromSecret(key);
+        const tx = TransactionBuilder.fromXDR(pendingXdr, Networks.PUBLIC);
+        tx.sign(kp);
+        const signedXdr = tx.toXDR();
+
+        // Submit signed XDR back to API
+        const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+        const submitResult = await client.authenticatedRequest<{
+          success: boolean;
+          status?: string;
+          error?: string;
+        }>("POST", "/onboard/submit-sponsor", { signedXdr });
+
+        if (submitResult.success) {
+          apiStatus = submitResult.status ?? "active";
+          console.log(chalk.green("  ✅ Wallet activated on Stellar!"));
+        } else {
+          console.log(chalk.yellow("  ⚠ Co-sign submitted but activation pending: " + (submitResult.error ?? "unknown")));
+        }
+      } catch (e) {
+        console.log(chalk.yellow("  ⚠ Could not co-sign XDR: " + (e instanceof Error ? e.message : String(e))));
+        console.log(chalk.dim("     Check progress with: ") + chalk.cyan("asgcard status"));
+      }
     } else if (pendingXdr) {
-      console.log(chalk.yellow("  ⏳ Sponsorship XDR ready. Co-sign required."));
-      console.log(chalk.dim("     Your AI agent will co-sign automatically via MCP, or use:"));
-      console.log(chalk.cyan("     asgcard status") + chalk.dim(" to check progress"));
+      console.log(chalk.yellow("  ⏳ Sponsorship XDR ready but no wallet key to co-sign."));
     } else if (apiStatus === "pending_identity") {
       console.log(chalk.dim("  Waiting for Telegram identity binding (step 5)"));
       console.log(chalk.dim("  Sponsorship XDR will be built automatically after TG connection."));
@@ -1323,6 +1367,73 @@ program
       console.log();
       console.log(chalk.bold("  URL: ") + chalk.cyan(url));
       console.log();
+    }
+  });
+
+// ── wallet-balance ──────────────────────────────────────────
+
+program
+  .command("wallet-balance")
+  .alias("wb")
+  .description("Show your Stellar wallet USDC balance")
+  .action(async () => {
+    const key = resolveKey();
+    if (!key) {
+      remediate("No wallet configured", "Cannot check balance", "asgcard wallet create");
+      process.exit(1);
+    }
+
+    try {
+      const { Keypair } = await import("@stellar/stellar-sdk");
+      const kp = Keypair.fromSecret(key);
+      const pubKey = kp.publicKey();
+
+      // First try API
+      try {
+        const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+        const data = await client.authenticatedRequest<{
+          balance: number;
+          asset: string;
+          address: string;
+        }>("GET", "/wallet/balance");
+
+        console.log(chalk.bold("\n💰 Wallet Balance\n"));
+        console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
+        console.log(chalk.dim("  Balance: ") + chalk.green(`$${data.balance.toFixed(2)} ${data.asset}`));
+        console.log();
+        return;
+      } catch { /* fallback to Horizon */ }
+
+      // Fallback: direct Horizon query
+      const resp = await fetch(`https://horizon.stellar.org/accounts/${pubKey}`);
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          console.log(chalk.bold("\n💰 Wallet Balance\n"));
+          console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
+          console.log(chalk.yellow("  Balance: $0.00 USDC") + chalk.dim(" (account not funded on Stellar)"));
+          console.log(chalk.dim("  Fund your wallet: ") + chalk.cyan("asgcard fund-link"));
+          console.log();
+          return;
+        }
+        throw new Error(`Horizon error: ${resp.status}`);
+      }
+
+      const account = await resp.json() as { balances: Array<{ asset_code?: string; asset_issuer?: string; balance: string }> };
+      const usdcIssuer = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+      const usdcBalance = account.balances.find(
+        (b) => b.asset_code === "USDC" && b.asset_issuer === usdcIssuer
+      );
+
+      console.log(chalk.bold("\n💰 Wallet Balance\n"));
+      console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
+      console.log(chalk.dim("  Balance: ") + chalk.green(`$${parseFloat(usdcBalance?.balance ?? "0").toFixed(2)} USDC`));
+      if (!usdcBalance) {
+        console.log(chalk.dim("  No USDC trustline. Fund your wallet: ") + chalk.cyan("asgcard fund-link"));
+      }
+      console.log();
+    } catch (e) {
+      console.error(chalk.red("✖ ") + (e instanceof Error ? e.message : String(e)));
+      process.exit(1);
     }
   });
 

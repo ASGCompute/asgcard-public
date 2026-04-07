@@ -236,6 +236,7 @@ async function handleMessage(client: TelegramClient, msg: TgMessage): Promise<vo
     if (cmd.startsWith("/start")) {
         const parts = text.split(" ");
         const token = parts.length > 1 ? parts[1] : undefined;
+        appLogger.info({ text, cmd, token: token ?? "none", userId }, "[BOT] /start command received");
         await handleStartCommand(client, chatId, userId, token, msg.from.username);
         return;
     }

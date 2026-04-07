@@ -189,6 +189,7 @@ walletStatusRouter.get("/balance", async (req, res) => {
  * GET /wallet/fund-link
  *
  * Generate a fund.asgcard.dev URL for this wallet.
+ * Checks Horizon to verify the wallet exists and has USDC trustline.
  */
 walletStatusRouter.get("/fund-link", async (req, res) => {
   if (!req.walletContext) {
@@ -196,23 +197,101 @@ walletStatusRouter.get("/fund-link", async (req, res) => {
     return;
   }
 
+  const walletAddress = req.walletContext.address;
   const agentName = (req.query.agentName as string) ?? "AI Agent";
   const amount = (req.query.amount as string) ?? "50";
 
-  const params = new URLSearchParams({
-    agentName,
-    toAddress: req.walletContext.address,
-    toAmount: amount,
-    toToken: "USDC",
-  });
+  try {
+    // Check Stellar Horizon: does the account exist & have USDC trustline?
+    let accountExists = false;
+    let hasUsdcTrustline = false;
+    let xlmBalance: number | null = null;
 
-  const fundUrl = `https://fund.asgcard.dev/?${params.toString()}`;
+    try {
+      const horizonRes = await fetch(`${env.STELLAR_HORIZON_URL}/accounts/${walletAddress}`);
+      if (horizonRes.ok) {
+        accountExists = true;
+        const accountData = await horizonRes.json() as {
+          balances: Array<{
+            asset_type: string;
+            asset_code?: string;
+            asset_issuer?: string;
+            balance: string;
+          }>;
+        };
 
-  res.json({
-    url: fundUrl,
-    address: req.walletContext.address,
-    agentName,
-    amount: Number(amount),
-    token: "USDC",
-  });
+        hasUsdcTrustline = accountData.balances.some(
+          (b) =>
+            b.asset_code === "USDC" &&
+            b.asset_issuer === "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
+        );
+
+        const xlm = accountData.balances.find((b) => b.asset_type === "native");
+        xlmBalance = xlm ? parseFloat(xlm.balance) : 0;
+      }
+    } catch {
+      // Horizon unreachable — generate link anyway with warning
+    }
+
+    const params = new URLSearchParams({
+      agentName,
+      toAddress: walletAddress,
+      toAmount: amount,
+      toToken: "USDC",
+    });
+
+    const fundUrl = `https://fund.asgcard.dev/?${params.toString()}`;
+
+    if (!accountExists) {
+      res.json({
+        url: fundUrl,
+        address: walletAddress,
+        agentName,
+        amount: Number(amount),
+        token: "USDC",
+        warning: "Account not activated on Stellar. USDC transfers will fail until the account is created and a USDC trustline is added.",
+        action: "Complete onboarding: npx @asgcard/cli onboard",
+        stellarStatus: {
+          exists: false,
+          hasTrustline: false,
+          xlmBalance: null,
+        },
+      });
+      return;
+    }
+
+    if (!hasUsdcTrustline) {
+      res.json({
+        url: fundUrl,
+        address: walletAddress,
+        agentName,
+        amount: Number(amount),
+        token: "USDC",
+        warning: "Account exists but has no USDC trustline. USDC transfers will fail.",
+        action: "Re-run onboarding to add USDC trustline: npx @asgcard/cli onboard",
+        stellarStatus: {
+          exists: true,
+          hasTrustline: false,
+          xlmBalance,
+        },
+      });
+      return;
+    }
+
+    res.json({
+      url: fundUrl,
+      address: walletAddress,
+      agentName,
+      amount: Number(amount),
+      token: "USDC",
+      stellarStatus: {
+        exists: true,
+        hasTrustline: true,
+        xlmBalance,
+      },
+    });
+  } catch (error) {
+    appLogger.error({ err: error }, "[WALLET_STATUS] fund-link error");
+    res.status(500).json({ error: "Failed to generate fund link" });
+  }
 });

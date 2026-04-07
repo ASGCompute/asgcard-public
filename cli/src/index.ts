@@ -933,8 +933,69 @@ Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, Stellar, Stripe, OWS.
     console.log(chalk.bold(`Step 6/${TOTAL_STEPS}: Wallet Activation (Sponsorship)`));
     if (apiStatus === "active") {
       console.log(chalk.green("  ✅ Wallet already activated on Stellar"));
+    } else if (key && (apiStatus === "pending_sponsor" || apiStatus === "sponsoring")) {
+      // If no XDR yet, request it from the server via /onboard/activate
+      if (!pendingXdr) {
+        console.log(chalk.yellow("  ⏳ Requesting activation XDR from Treasury..."));
+        try {
+          const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+          const activateResult = await client.authenticatedRequest<{
+            success: boolean;
+            status?: string;
+            xdr?: string;
+            error?: string;
+            message?: string;
+          }>("POST", "/onboard/activate");
+
+          if (activateResult.success && activateResult.xdr) {
+            pendingXdr = activateResult.xdr;
+            console.log(chalk.green("  ✅ Activation XDR received from Treasury"));
+          } else if (activateResult.status === "active") {
+            apiStatus = "active";
+            console.log(chalk.green("  ✅ Wallet already activated on Stellar"));
+          } else {
+            console.log(chalk.yellow("  ⚠ Could not get XDR: " + (activateResult.error ?? activateResult.message ?? "unknown")));
+          }
+        } catch (e) {
+          console.log(chalk.yellow("  ⚠ Activation endpoint unavailable: " + (e instanceof Error ? e.message : String(e))));
+        }
+      }
+
+      // Co-sign the sponsored transaction XDR locally
+      if (pendingXdr && apiStatus !== "active") {
+        console.log(chalk.yellow("  ⏳ Co-signing XDR locally (key never leaves this machine)..."));
+        try {
+          const { Keypair, TransactionBuilder, Networks } = await import("@stellar/stellar-sdk");
+          const kp = Keypair.fromSecret(key);
+          const tx = TransactionBuilder.fromXDR(pendingXdr, Networks.PUBLIC);
+          tx.sign(kp);
+          const signedXdr = tx.toXDR();
+
+          // Submit co-signed XDR back to API → Horizon
+          const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
+          const submitResult = await client.authenticatedRequest<{
+            success: boolean;
+            txHash?: string;
+            status?: string;
+            error?: string;
+          }>("POST", "/onboard/submit-sponsor", { signedXdr });
+
+          if (submitResult.success) {
+            apiStatus = submitResult.status ?? "active";
+            console.log(chalk.green("  ✅ Wallet activated on Stellar!"));
+            if (submitResult.txHash) {
+              console.log(chalk.dim(`     TX: https://stellar.expert/explorer/public/tx/${submitResult.txHash}`));
+            }
+          } else {
+            console.log(chalk.yellow("  ⚠ Submit failed: " + (submitResult.error ?? "unknown")));
+          }
+        } catch (e) {
+          console.log(chalk.yellow("  ⚠ Could not co-sign XDR: " + (e instanceof Error ? e.message : String(e))));
+          console.log(chalk.dim("     Check progress with: ") + chalk.cyan("asgcard status"));
+        }
+      }
     } else if (pendingXdr && key) {
-      // Co-sign the sponsored transaction XDR
+      // Legacy fallback: XDR from register response
       console.log(chalk.yellow("  ⏳ Sponsorship XDR received. Co-signing..."));
       try {
         const { Keypair, TransactionBuilder, Networks } = await import("@stellar/stellar-sdk");
@@ -943,7 +1004,6 @@ Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, Stellar, Stripe, OWS.
         tx.sign(kp);
         const signedXdr = tx.toXDR();
 
-        // Submit signed XDR back to API
         const client = new WalletClient({ baseUrl: getApiUrl(), privateKey: key });
         const submitResult = await client.authenticatedRequest<{
           success: boolean;
@@ -955,17 +1015,14 @@ Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, Stellar, Stripe, OWS.
           apiStatus = submitResult.status ?? "active";
           console.log(chalk.green("  ✅ Wallet activated on Stellar!"));
         } else {
-          console.log(chalk.yellow("  ⚠ Co-sign submitted but activation pending: " + (submitResult.error ?? "unknown")));
+          console.log(chalk.yellow("  ⚠ Co-sign submitted but pending: " + (submitResult.error ?? "unknown")));
         }
       } catch (e) {
         console.log(chalk.yellow("  ⚠ Could not co-sign XDR: " + (e instanceof Error ? e.message : String(e))));
-        console.log(chalk.dim("     Check progress with: ") + chalk.cyan("asgcard status"));
       }
-    } else if (pendingXdr) {
-      console.log(chalk.yellow("  ⏳ Sponsorship XDR ready but no wallet key to co-sign."));
     } else if (apiStatus === "pending_identity") {
       console.log(chalk.dim("  Waiting for Telegram identity binding (step 5)"));
-      console.log(chalk.dim("  Sponsorship XDR will be built automatically after TG connection."));
+      console.log(chalk.dim("  Re-run: asgcard onboard  after clicking the TG link."));
     } else {
       console.log(chalk.dim("  Skipped (will activate after TG binding)"));
     }
@@ -977,16 +1034,54 @@ Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, Stellar, Stripe, OWS.
       try {
         const { Keypair } = await import("@stellar/stellar-sdk");
         const kp = Keypair.fromSecret(key);
+        const pubKey = kp.publicKey();
+
+        // Check Stellar Horizon: does the account exist & have USDC trustline?
+        let accountExists = false;
+        let hasUsdcTrustline = false;
+        try {
+          const horizonRes = await fetch(`${HORIZON_URL}/accounts/${pubKey}`);
+          if (horizonRes.ok) {
+            accountExists = true;
+            const accountData = await horizonRes.json() as {
+              balances: Array<{ asset_code?: string; asset_issuer?: string }>;
+            };
+            hasUsdcTrustline = accountData.balances.some(
+              (b) => b.asset_code === "USDC" && b.asset_issuer === USDC_ISSUER
+            );
+          }
+        } catch {
+          // Horizon unreachable — continue anyway
+        }
+
+        if (!accountExists) {
+          console.log(chalk.yellow("  ⚠ Account not activated on Stellar yet."));
+          console.log(chalk.dim("     Cannot receive USDC until wallet is activated (Step 6)."));
+          if (apiStatus !== "active") {
+            console.log(chalk.dim("     Re-run: ") + chalk.cyan("asgcard onboard") + chalk.dim(" to complete activation."));
+          }
+          console.log();
+          console.log(chalk.dim("     Fund link (for after activation):"));
+        } else if (!hasUsdcTrustline) {
+          console.log(chalk.yellow("  ⚠ Account exists but no USDC trustline."));
+          console.log(chalk.dim("     Activation may be incomplete. Re-run: ") + chalk.cyan("asgcard onboard"));
+          console.log();
+          console.log(chalk.dim("     Fund link (for after trustline):"));
+        } else {
+          console.log(chalk.green("  ✅ Account active with USDC trustline. Ready to receive funds!"));
+        }
+
         const params = new URLSearchParams({
           agentName: "AI Agent",
-          toAddress: kp.publicKey(),
+          toAddress: pubKey,
           toAmount: "50",
           toToken: "USDC",
         });
         const fundUrl = `https://fund.asgcard.dev/?${params.toString()}`;
 
-        console.log(chalk.green("  ✅ Fund link generated:"));
-        console.log(chalk.dim("     Share this with the wallet owner to fund the agent:\n"));
+        if (accountExists && hasUsdcTrustline) {
+          console.log(chalk.dim("     Share this with the wallet owner to fund the agent:\n"));
+        }
         console.log(chalk.cyan(`     ${fundUrl}`));
       } catch {
         console.log(chalk.yellow("  ⚠ Could not generate fund link"));

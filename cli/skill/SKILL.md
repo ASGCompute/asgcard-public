@@ -116,7 +116,7 @@ If wallet has insufficient USDC:
 
 | Tool | Description |
 | ---- | ----------- |
-| `get_wallet_status` | Check wallet address, USDC balance, and readiness |
+| `get_wallet_status` | Check wallet address, USDC + XLM balances, and readiness |
 | `get_pricing` | View pricing (card $10, top-up 3.5%) |
 | `create_card` | Create virtual MasterCard (pays USDC on-chain via x402) |
 | `fund_card` | Top up existing card with USDC |
@@ -135,7 +135,7 @@ If wallet has insufficient USDC:
 | `get_onboard_status` | Onboarding lifecycle status |
 | `connect_telegram` | Register wallet and get TG deep-link for identity binding |
 | `get_fund_link` | Generate fund.asgcard.dev URL |
-| `get_wallet_balance` | Wallet USDC balance (Horizon-cached) |
+| `get_wallet_balance` | Wallet USDC + XLM balances (Horizon-cached) |
 
 ### Telegram Notifications
 

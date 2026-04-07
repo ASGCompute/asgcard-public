@@ -206,19 +206,30 @@ function getRpcUrl(): string | undefined {
 
 // ── Stellar Horizon helpers ─────────────────────────────────
 
-async function getUsdcBalance(publicKey: string): Promise<number> {
+async function getStellarBalances(publicKey: string): Promise<{ usdc: number; xlm: number }> {
   try {
     const res = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
-    if (res.status === 404) return 0; // Account not funded
+    if (res.status === 404) return { usdc: 0, xlm: 0 }; // Account not funded
     if (!res.ok) throw new Error(`Horizon error: ${res.status}`);
     const data = await res.json() as { balances: Array<{ asset_type: string; asset_code?: string; asset_issuer?: string; balance: string }> };
     const usdcBalance = data.balances.find(
       (b) => b.asset_code === "USDC" && b.asset_issuer === USDC_ISSUER
     );
-    return usdcBalance ? parseFloat(usdcBalance.balance) : 0;
+    const xlmBalance = data.balances.find(
+      (b) => b.asset_type === "native"
+    );
+    return {
+      usdc: usdcBalance ? parseFloat(usdcBalance.balance) : 0,
+      xlm: xlmBalance ? parseFloat(xlmBalance.balance) : 0,
+    };
   } catch {
-    return -1; // -1 signals error
+    return { usdc: -1, xlm: -1 }; // -1 signals error
   }
+}
+
+async function getUsdcBalance(publicKey: string): Promise<number> {
+  const { usdc } = await getStellarBalances(publicKey);
+  return usdc;
 }
 
 async function isAccountFunded(publicKey: string): Promise<boolean> {
@@ -398,7 +409,7 @@ walletCmd
       const pubKey = kp.publicKey();
 
       const funded = await isAccountFunded(pubKey);
-      const balance = funded ? await getUsdcBalance(pubKey) : 0;
+      const { usdc: balance, xlm: xlmBalance } = funded ? await getStellarBalances(pubKey) : { usdc: 0, xlm: 0 };
 
       spinner.stop();
 
@@ -409,6 +420,9 @@ walletCmd
       if (balance === -1) {
         console.log(chalk.dim("   USDC Balance:   ") + chalk.yellow("Could not fetch (Horizon API error)"));
       } else {
+        if (xlmBalance >= 0) {
+          console.log(chalk.dim("   XLM Balance:   ") + chalk.white(`${xlmBalance.toFixed(7)} XLM`));
+        }
         const balanceColor = balance >= MIN_CREATE_COST ? chalk.green : chalk.red;
         console.log(chalk.dim("   USDC Balance:  ") + balanceColor(`$${balance.toFixed(2)} USDC`));
         console.log();
@@ -1430,15 +1444,21 @@ program
         throw new Error(`Horizon error: ${resp.status}`);
       }
 
-      const account = await resp.json() as { balances: Array<{ asset_code?: string; asset_issuer?: string; balance: string }> };
+      const account = await resp.json() as { balances: Array<{ asset_type: string; asset_code?: string; asset_issuer?: string; balance: string }> };
       const usdcIssuer = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
       const usdcBalance = account.balances.find(
         (b) => b.asset_code === "USDC" && b.asset_issuer === usdcIssuer
       );
+      const xlmBalance = account.balances.find(
+        (b) => b.asset_type === "native"
+      );
 
       console.log(chalk.bold("\n💰 Wallet Balance\n"));
       console.log(chalk.dim("  Address: ") + chalk.cyan(pubKey));
-      console.log(chalk.dim("  Balance: ") + chalk.green(`$${parseFloat(usdcBalance?.balance ?? "0").toFixed(2)} USDC`));
+      if (xlmBalance) {
+        console.log(chalk.dim("  XLM:     ") + chalk.white(`${parseFloat(xlmBalance.balance).toFixed(7)} XLM`));
+      }
+      console.log(chalk.dim("  USDC:    ") + chalk.green(`$${parseFloat(usdcBalance?.balance ?? "0").toFixed(2)} USDC`));
       if (!usdcBalance) {
         console.log(chalk.dim("  No USDC trustline. Fund your wallet: ") + chalk.cyan("asgcard fund-link"));
       }

@@ -37,19 +37,30 @@ const PRICING_MIN = 5;
 const PRICING_MAX = 5000;
 const MIN_CREATE_COST = CARD_FEE; // $10 flat card creation (initial load optional)
 
-async function getUsdcBalance(publicKey: string): Promise<number> {
+async function getBalances(publicKey: string): Promise<{ usdc: number; xlm: number }> {
   try {
     const res = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
-    if (res.status === 404) return 0;
-    if (!res.ok) return -1;
+    if (res.status === 404) return { usdc: 0, xlm: 0 };
+    if (!res.ok) return { usdc: -1, xlm: -1 };
     const data = await res.json() as { balances: Array<{ asset_type: string; asset_code?: string; asset_issuer?: string; balance: string }> };
     const usdcBalance = data.balances.find(
       (b) => b.asset_code === "USDC" && b.asset_issuer === USDC_ISSUER
     );
-    return usdcBalance ? parseFloat(usdcBalance.balance) : 0;
+    const xlmBalance = data.balances.find(
+      (b) => b.asset_type === "native"
+    );
+    return {
+      usdc: usdcBalance ? parseFloat(usdcBalance.balance) : 0,
+      xlm: xlmBalance ? parseFloat(xlmBalance.balance) : 0,
+    };
   } catch {
-    return -1;
+    return { usdc: -1, xlm: -1 };
   }
+}
+
+async function getUsdcBalance(publicKey: string): Promise<number> {
+  const { usdc } = await getBalances(publicKey);
+  return usdc;
 }
 
 function remediationError(what: string, why: string, fix: string): { content: { type: "text"; text: string }[]; isError: true } {
@@ -88,26 +99,29 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   const server = new McpServer({
     name: "asgcard",
-    version: "0.6.1",
+    version: "0.6.2",
   });
 
   // ── Tool 0: get_wallet_status ─────────────────────────────
 
   server.tool(
     "get_wallet_status",
-    "Check wallet readiness: returns public key, USDC balance on Stellar, whether balance is sufficient for card creation, and next-step guidance. Use this FIRST before any card operations to verify the wallet is funded.",
+    "Check wallet readiness: returns public key, USDC and XLM balances on Stellar, whether balance is sufficient for card creation, and next-step guidance. Use this FIRST before any card operations to verify the wallet is funded.",
     {},
     async () => {
       try {
         const kp = Keypair.fromSecret(config.privateKey);
         const publicKey = kp.publicKey();
-        const balance = await getUsdcBalance(publicKey);
+        const { usdc: balance, xlm: xlmBalance } = await getBalances(publicKey);
 
         const isReady = balance >= MIN_CREATE_COST;
+        const accountFunded = xlmBalance > 0;
 
         const status: Record<string, unknown> = {
           publicKey,
           network: "stellar:pubnet",
+          accountFunded,
+          xlmBalance: xlmBalance === -1 ? "error_fetching" : xlmBalance.toFixed(7),
           usdcBalance: balance === -1 ? "error_fetching" : balance.toFixed(2),
           minimumRequired: MIN_CREATE_COST,
           readyForCardCreation: isReady,
@@ -710,7 +724,7 @@ export function createASGCardServer(config: ServerConfig): McpServer {
 
   server.tool(
     "get_wallet_balance",
-    "Get the current USDC balance from the API's server-side Horizon cache (faster, 5-second cache). Falls back to direct Horizon query if API is unavailable.",
+    "Get current USDC and XLM balances. API-first with Horizon fallback. Returns both balances, account funded status, and card readiness.",
     {},
     async () => {
       try {
@@ -745,16 +759,18 @@ export function createASGCardServer(config: ServerConfig): McpServer {
         // Fallback: direct Horizon
         try {
           const kp = Keypair.fromSecret(config.privateKey);
-          const balance = await getUsdcBalance(kp.publicKey());
+          const { usdc, xlm } = await getBalances(kp.publicKey());
 
           return {
             content: [{ type: "text" as const, text: JSON.stringify({
               address: kp.publicKey(),
-              balance: balance >= 0 ? balance : null,
+              usdcBalance: usdc >= 0 ? usdc : null,
+              xlmBalance: xlm >= 0 ? xlm : null,
               asset: "USDC",
               network: "stellar:pubnet",
               source: "horizon_direct",
-              readyForCard: balance >= MIN_CREATE_COST,
+              accountFunded: xlm > 0,
+              readyForCard: usdc >= MIN_CREATE_COST,
             }, null, 2) }],
           };
         } catch (error) {

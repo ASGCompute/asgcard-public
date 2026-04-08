@@ -81,6 +81,23 @@ const envSchema = z.object({
   STELLAR_SETTLEMENT_SECRET: z.string().optional(),  // fund-app compat: fallback for TREASURY_SECRET
   SPONSOR_DAILY_BUDGET: z.coerce.number().default(100),
   SPONSOR_IP_RATE_LIMIT: z.coerce.number().default(3),
+
+  // ── Stripe MPP Beta ──────────────────────────────────────
+  STRIPE_MPP_BETA_ENABLED: z.enum(["true", "false"]).default("false"),
+  STRIPE_BETA_ALLOWLIST: z.string().optional(),  // comma-separated wallet addresses (legacy)
+  STRIPE_SECRET_KEY: z.string().optional(),       // sk_live_... or sk_test_...
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),   // pk_live_... or pk_test_...
+  MPP_SECRET_KEY: z.string().optional(),           // HMAC key for MPP challenge binding
+
+  // ── Stripe Managed Identity ─────────────────────────────
+  STRIPE_SESSIONS_KEY: z.string().optional(),              // base64-encoded 32 bytes for session secret encryption
+  STRIPE_BETA_EMAIL_ALLOWLIST: z.string().optional(),      // comma-separated emails for beta enrollment
+
+  // ── 4payments V2 (new cabinet — migration) ─────────────
+  FOURPAYMENTS_BASE_URL: z.string().url().optional(),       // defaults to https://business.4payments.io
+  FOURPAYMENTS_V2_API_TOKEN: z.string().optional(),         // new cabinet API token
+  FOURPAYMENTS_V2_CARD_TYPE_ID: z.string().optional(),      // new cabinet card type ID
+  FOURPAYMENTS_V2_CARDHOLDER_ID: z.string().optional(),     // new cabinet cardholder ID
 });
 
 // ── Fail-fast startup validation ──────────────────────────

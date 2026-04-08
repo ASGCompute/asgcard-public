@@ -31,6 +31,15 @@ class CardService {
   }
 
   /**
+   * Resolve the 4payments cabinet version from the card's issuerProvider.
+   * Cards issued via new cabinet have issuerProvider = '4payments_v2'.
+   * All others (legacy) use v1.
+   */
+  private resolveVersion(issuerProvider?: string): "v1" | "v2" {
+    return issuerProvider === "4payments_v2" ? "v2" : "v1";
+  }
+
+  /**
    * Create a new prepaid card via 4payments API.
    * 1. Issue card via 4payments (returns real card number, CVV, expiry)
    * 2. Top up with initial balance
@@ -50,7 +59,7 @@ class CardService {
   }) {
     const rail = input.paymentRail || "stellar_x402";
     const reference = input.paymentReference || input.txHash;
-    const fp = getFourPaymentsClient();
+    const fp = getFourPaymentsClient("v2");
 
     // Generate our own external ID for tracking
     const externalId = `asg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -141,7 +150,7 @@ class CardService {
       fourPaymentsId: fpCard.id,
       paymentRail: rail,
       paymentReference: reference,
-      issuerProvider: "4payments",
+      issuerProvider: "4payments_v2",
     });
 
     // Step 5: Upsert wallet profile — always save email+phone for all callers
@@ -214,7 +223,7 @@ class CardService {
       throw new HttpError(400, "Card missing 4payments ID — cannot top up");
     }
 
-    const fp = getFourPaymentsClient();
+    const fp = getFourPaymentsClient(this.resolveVersion(card.issuerProvider));
 
     // Top up via 4payments
     try {
@@ -319,7 +328,7 @@ class CardService {
     // If we have a 4payments ID, fetch fresh sensitive info
     if (card.fourPaymentsId) {
       try {
-        const fp = getFourPaymentsClient();
+        const fp = getFourPaymentsClient(this.resolveVersion(card.issuerProvider));
         const sensitive = await fp.getSensitiveInfo(card.fourPaymentsId);
         return {
           details: this.parseSensitiveInfo(sensitive),
@@ -343,7 +352,7 @@ class CardService {
 
     // Sync with 4payments if we have an ID
     if (card.fourPaymentsId) {
-      const fp = getFourPaymentsClient();
+      const fp = getFourPaymentsClient(this.resolveVersion(card.issuerProvider));
       try {
         if (status === "frozen") {
           await fp.freezeCard(card.fourPaymentsId);
@@ -405,7 +414,7 @@ class CardService {
       throw new HttpError(400, "Card has no 4payments ID — cannot fetch transactions");
     }
 
-    const fp = getFourPaymentsClient();
+    const fp = getFourPaymentsClient(this.resolveVersion(card.issuerProvider));
     const txns = await fp.getTransactions(card.fourPaymentsId, page, limit);
     return {
       cardId: card.cardId,
@@ -433,7 +442,7 @@ class CardService {
       };
     }
 
-    const fp = getFourPaymentsClient();
+    const fp = getFourPaymentsClient(this.resolveVersion(card.issuerProvider));
     const details = await fp.getCardDetails(card.fourPaymentsId);
     return {
       cardId: card.cardId,

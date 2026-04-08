@@ -21,13 +21,21 @@ export async function routeCardEvent(
     const cardId = (payload.card_id ?? payload.cardId ?? "") as string;
     if (!cardId) return;
 
-    // Look up wallet from card
-    const cards = await query<{ wallet_address: string; card_number_last4: string }>(
-        `SELECT wallet_address,
-            RIGHT(card_number, 4) as card_number_last4
+    // Look up wallet from card — try our card_id first, then four_payments_id
+    let cards = await query<{ wallet_address: string; last_four: string | null }>(
+        `SELECT wallet_address, last_four
      FROM cards WHERE card_id = $1 LIMIT 1`,
         [cardId]
     );
+
+    // Fallback: webhook payload card_id is often the 4payments provider ID
+    if (cards.length === 0) {
+        cards = await query<{ wallet_address: string; last_four: string | null }>(
+            `SELECT wallet_address, last_four
+         FROM cards WHERE four_payments_id = $1 LIMIT 1`,
+            [cardId]
+        );
+    }
 
     if (cards.length === 0) return;
 
@@ -38,7 +46,7 @@ export async function routeCardEvent(
         cardId,
         walletAddress: card.wallet_address,
         payload: {
-            last4: card.card_number_last4,
+            last4: card.last_four ?? "????",
             amount: payload.amount as number | undefined,
             merchant: payload.merchant as string | undefined,
             balance: payload.available_balance as number | undefined,

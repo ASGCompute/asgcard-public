@@ -65,9 +65,9 @@ export class AlertService {
         let last4 = event.last4 ?? "????";
 
         if (fpId) {
-            const rows = await query<{ wallet_address: string; card_number_last4: string }>(
+            const rows = await query<{ wallet_address: string; last_four: string | null }>(
                 `SELECT wallet_address, 
-                        COALESCE(RIGHT(card_number, 4), 'XXXX') as card_number_last4
+                        COALESCE(last_four, 'XXXX') as last_four
                  FROM cards 
                  WHERE four_payments_id = $1 
                  LIMIT 1`,
@@ -75,14 +75,14 @@ export class AlertService {
             ).catch(() => []);
             if (rows.length > 0) {
                 ownerWallet = rows[0].wallet_address;
-                last4 = rows[0].card_number_last4 || last4;
+                last4 = rows[0].last_four || last4;
             }
         }
 
         if (!ownerWallet && extId) {
-            const rows = await query<{ wallet_address: string; card_number_last4: string }>(
+            const rows = await query<{ wallet_address: string; last_four: string | null }>(
                 `SELECT wallet_address,
-                        COALESCE(RIGHT(card_number, 4), 'XXXX') as card_number_last4
+                        COALESCE(last_four, 'XXXX') as last_four
                  FROM cards 
                  WHERE card_id = $1 
                  LIMIT 1`,
@@ -90,7 +90,7 @@ export class AlertService {
             ).catch(() => []);
             if (rows.length > 0) {
                 ownerWallet = rows[0].wallet_address;
-                last4 = rows[0].card_number_last4 || last4;
+                last4 = rows[0].last_four || last4;
             }
         }
 

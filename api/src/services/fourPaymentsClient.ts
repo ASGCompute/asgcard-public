@@ -366,12 +366,48 @@ class FourPaymentsClient {
   }
 }
 
-// ── Singleton ──────────────────────────────────────────────
+// ── Dual-Mode Factory (V1 = old cabinet, V2 = new cabinet) ──
 
-let _client: FourPaymentsClient | null = null;
+let _clientV1: FourPaymentsClient | null = null;
+let _clientV2: FourPaymentsClient | null = null;
 
-export function getFourPaymentsClient(): FourPaymentsClient {
-  if (_client) return _client;
+/**
+ * Get a 4payments client for the specified cabinet version.
+ *
+ *   "v1" — legacy cabinet (existing cards until they're migrated by 4payments)
+ *   "v2" — new cabinet (all new card issuance)
+ *
+ * After 4payments completes card migration, v1 can be retired.
+ */
+export function getFourPaymentsClient(version: "v1" | "v2" = "v2"): FourPaymentsClient {
+  const baseUrl = process.env.FOURPAYMENTS_BASE_URL || "https://business.4payments.io";
+
+  if (version === "v2") {
+    if (_clientV2) return _clientV2;
+
+    // V2 env vars — new cabinet
+    const apiToken = process.env.FOURPAYMENTS_V2_API_TOKEN || process.env.FOURPAYMENTS_API_TOKEN;
+    if (!apiToken) {
+      throw new Error("FOURPAYMENTS_V2_API_TOKEN (or FOURPAYMENTS_API_TOKEN fallback) env var is required");
+    }
+
+    const cardTypeId = process.env.FOURPAYMENTS_V2_CARD_TYPE_ID || process.env.FOURPAYMENTS_CARD_TYPE_ID;
+    if (!cardTypeId) {
+      throw new Error("FOURPAYMENTS_V2_CARD_TYPE_ID (or FOURPAYMENTS_CARD_TYPE_ID fallback) env var is required");
+    }
+
+    _clientV2 = new FourPaymentsClient({
+      baseUrl,
+      apiToken,
+      cardTypeId,
+      cardholderId: process.env.FOURPAYMENTS_V2_CARDHOLDER_ID || process.env.FOURPAYMENTS_CARDHOLDER_ID,
+    });
+
+    return _clientV2;
+  }
+
+  // V1 — legacy cabinet
+  if (_clientV1) return _clientV1;
 
   const apiToken = process.env.FOURPAYMENTS_API_TOKEN;
   if (!apiToken) {
@@ -383,14 +419,14 @@ export function getFourPaymentsClient(): FourPaymentsClient {
     throw new Error("FOURPAYMENTS_CARD_TYPE_ID env var is required");
   }
 
-  _client = new FourPaymentsClient({
-    baseUrl: process.env.FOURPAYMENTS_BASE_URL || "https://business.4payments.io",
+  _clientV1 = new FourPaymentsClient({
+    baseUrl,
     apiToken,
     cardTypeId,
     cardholderId: process.env.FOURPAYMENTS_CARDHOLDER_ID,
   });
 
-  return _client;
+  return _clientV1;
 }
 
 // ── Issuer balance precheck ────────────────────────────────
@@ -403,12 +439,13 @@ export interface IssuerBalanceResult {
 
 /**
  * Check whether the issuer (4payments) has enough balance to fund
- * the requested amount. Fail-closed: any error → { sufficient: false }.
+ * the requested amount. Uses V2 cabinet since new cards are issued there.
+ * Fail-closed: any error → { sufficient: false }.
  * Timeout: 5 seconds.
  */
 export async function checkIssuerBalance(requiredAmount: number): Promise<IssuerBalanceResult> {
   try {
-    const client = getFourPaymentsClient();
+    const client = getFourPaymentsClient("v2");
 
     // 5-second timeout
     const timeoutMs = 5_000;

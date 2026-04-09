@@ -96,10 +96,8 @@ class CardService {
         phone: profilePhone,
         label: `ASG ${input.nameOnCard}`.slice(0, 50),
       };
-      // Only set initialBalance when loading funds
-      if (input.initialAmountUsd > 0) {
-        issueParams.initialBalance = input.initialAmountUsd;
-      }
+      // V2 API requires initialBalance field (even when 0)
+      issueParams.initialBalance = input.initialAmountUsd;
       fpCard = await fp.issueCard(issueParams);
     } catch (error) {
       if (error instanceof FourPaymentsError) {
